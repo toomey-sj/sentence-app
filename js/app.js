@@ -41,7 +41,7 @@
 
     view.innerHTML =
       '<section class="hero">' +
-      "  <h1>Grammar <span>Lab</span></h1>" +
+      "  <h1>Sentence <span>Forge</span></h1>" +
       "  <p>Label the building blocks of any sentence — words, parts, phrases, and clauses —<br/>then present the breakdown to your class or let students quiz themselves.</p>" +
       '  <div class="btn-row btn-row-center">' +
       '    <button class="btn btn-primary btn-big" data-act="new">＋ New lesson</button>' +
