@@ -56,7 +56,7 @@ significant finding.
 **The taxonomy.** 87 labels across four layers, plus the sentence-type badges.
 No new labels during the pilot unless a teacher hits a real, blocking gap in a
 real lesson — and then it goes in as a
-[feature request](https://github.com/YOUR-GITHUB-USERNAME/grammar-lab/issues/new?template=feature_request.yml) with the
+[feature request](https://github.com/wildbil2me/sentence-app/issues/new?template=feature_request.yml) with the
 lesson attached, not as a speculative addition. Adding label 88 is the easiest
 way to feel productive while learning nothing.
 
@@ -102,9 +102,9 @@ Three channels, in descending order of usefulness:
 
 | | When | Where |
 |---|---|---|
-| 🍎 **Classroom feedback** | You taught with it | [Classroom feedback issue](https://github.com/YOUR-GITHUB-USERNAME/grammar-lab/issues/new?template=classroom_feedback.yml) |
-| 🐛 **Bug report** | Something behaved wrong | [Bug report issue](https://github.com/YOUR-GITHUB-USERNAME/grammar-lab/issues/new?template=bug_report.yml) |
-| ✨ **Feature request** | Something's missing | [Feature request issue](https://github.com/YOUR-GITHUB-USERNAME/grammar-lab/issues/new?template=feature_request.yml) |
+| 🍎 **Classroom feedback** | You taught with it | [Classroom feedback issue](https://github.com/wildbil2me/sentence-app/issues/new?template=classroom_feedback.yml) |
+| 🐛 **Bug report** | Something behaved wrong | [Bug report issue](https://github.com/wildbil2me/sentence-app/issues/new?template=bug_report.yml) |
+| ✨ **Feature request** | Something's missing | [Feature request issue](https://github.com/wildbil2me/sentence-app/issues/new?template=feature_request.yml) |
 
 **Attach the lesson file.** Export it and paste the JSON into the issue. Most
 reports are unreproducible without it, and a real lesson is also the most useful

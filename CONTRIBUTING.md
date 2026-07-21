@@ -8,11 +8,11 @@ code is welcome, but it isn't the bottleneck.
 
 1. **Use it in a class and report back.** See
    [docs/product/pilot.md](docs/product/pilot.md) and file a
-   [classroom feedback issue](https://github.com/YOUR-GITHUB-USERNAME/grammar-lab/issues/new?template=classroom_feedback.yml).
+   [classroom feedback issue](https://github.com/wildbil2me/sentence-app/issues/new?template=classroom_feedback.yml).
 2. **Report a bug** with the lesson file attached —
-   [bug report](https://github.com/YOUR-GITHUB-USERNAME/grammar-lab/issues/new?template=bug_report.yml).
+   [bug report](https://github.com/wildbil2me/sentence-app/issues/new?template=bug_report.yml).
 3. **Tell us a label is named wrong** for your textbook. Cheap to fix, high
-   value — [feature request](https://github.com/YOUR-GITHUB-USERNAME/grammar-lab/issues/new?template=feature_request.yml).
+   value — [feature request](https://github.com/wildbil2me/sentence-app/issues/new?template=feature_request.yml).
 4. **Contribute an example lesson** — a well-labeled public-domain passage that
    other teachers can use (see [below](#contributing-an-example-lesson)).
 5. **Fix something** in the code.

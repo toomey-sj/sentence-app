@@ -3,7 +3,10 @@
 Grammar Lab has no build step, so "deploying" means **serving the repository
 root**. `index.html` is at the root; every path in it is relative.
 
-- [First-time GitHub Pages setup](#first-time-github-pages-setup)
+**Live site:** <https://wildbil2me.github.io/sentence-app/> ·
+**Repository:** <https://github.com/wildbil2me/sentence-app>
+
+- [GitHub Pages setup](#github-pages-setup)
 - [The two workflows](#the-two-workflows)
 - [Release checklist](#release-checklist)
 - [Other ways to host it](#other-ways-to-host-it)
@@ -11,32 +14,26 @@ root**. `index.html` is at the root; every path in it is relative.
 
 ---
 
-## First-time GitHub Pages setup
+## GitHub Pages setup
 
-1. Push the repository to GitHub with `main` as the default branch.
+A one-time configuration on the repository, then every push to `main` publishes.
+
+1. Push to <https://github.com/wildbil2me/sentence-app> with `main` as the
+   default branch.
 2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
    Not "Deploy from a branch" — [`pages.yml`](../../.github/workflows/pages.yml)
-   uploads the root as an artifact and deploys it.
-3. Push to `main` (or run the workflow manually from the Actions tab).
-4. The site appears at `https://<user>.github.io/<repo>/`. The workflow prints
-   the URL on the `deployment` step.
-5. Add the URL to the repo's **About** sidebar (tick "Use your GitHub Pages
-   website"), and replace the placeholders described below.
+   uploads the root as an artifact and deploys it. This is the one step that
+   can't be done from the repo contents, and nothing publishes until it's set.
+3. Push to `main`, or run the workflow manually from the Actions tab.
+4. The site goes live at <https://wildbil2me.github.io/sentence-app/>; the
+   workflow prints the URL on its `deployment` step.
+5. Add that URL to the repo's **About** sidebar (tick "Use your GitHub Pages
+   website") so it's reachable from the repo header.
 
-### Replace the placeholders
-
-The docs ship with `YOUR-GITHUB-USERNAME` and a repo name of `grammar-lab` in
-every link that has to point at the live site or the issue tracker. One pass
-fixes them all:
-
-```bash
-grep -rl "YOUR-GITHUB-USERNAME" --include="*.md" --include="*.yml" . \
-  | xargs sed -i "s/YOUR-GITHUB-USERNAME/<your-user-or-org>/g"
-```
-
-If the repository isn't named `grammar-lab`, replace that too. The placeholder
-appears in `README.md`, `CONTRIBUTING.md`, `docs/product/pilot.md`,
-`docs/product/teacher-guide.md`, and `.github/ISSUE_TEMPLATE/config.yml`.
+If the repository is ever renamed or moved, the live URL changes with it. It's
+hard-coded in `README.md`, `CONTRIBUTING.md`, `docs/product/pilot.md`,
+`docs/product/teacher-guide.md`, and `.github/ISSUE_TEMPLATE/config.yml` —
+`grep -rl "wildbil2me" .` finds every one.
 
 `.nojekyll` at the root tells Pages to serve files as-is rather than running them
 through Jekyll. Nothing here starts with an underscore today, but the file costs

@@ -86,8 +86,13 @@ body {
 .topbar .brand .flask { font-size: 20px; }
 .topbar .brand em { font-style: normal; color: var(--accent); }
 
-#theme-toggle {
+.topbar .kofi {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+#theme-toggle {
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--text);
