@@ -187,7 +187,16 @@ body {
   border-color: var(--accent);
   color: var(--text);
 }
-.pill-lg { font-size: 14px; padding: 8px 16px; }
+/* Fixed height so a pill that wraps to a second row never collapses into a
+   thin bar; inline-flex vertically centers the label and its count. */
+.pill-lg {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  box-sizing: border-box;
+  font-size: 14px;
+  padding: 8px 16px;
+}
 .pill-count {
   display: inline-block;
   background: var(--accent);
@@ -433,6 +442,11 @@ body {
 .gl-bar-note { flex: none; font-size: 11px; opacity: 0.8; }
 .gl-size-lg .gl-bar { font-size: 15px; padding: 4px 10px 5px; border-radius: 9px; }
 
+/* Reserved-but-hidden layer (Present mode): keeps its grid track's height so a
+   toggled layer appears in place instead of resizing the whole block.
+   visibility:hidden also makes the chip/bar unclickable, which is what we want. */
+.gl-hidden { visibility: hidden; }
+
 @keyframes pop-in {
   from { opacity: 0; transform: scale(0.85); }
   to { opacity: 1; transform: none; }
@@ -638,20 +652,54 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
 /* ====================================================================
    Present mode
    ==================================================================== */
-.present-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+/* Present gets a wider column than the rest of the app so the sentence has more
+   room to breathe (and wraps less), and a trimmed bottom padding so the stage
+   can claim the height. The view is a full-height flex column whose middle —
+   the stage — is the only part that scrolls. */
+#app:has(.view-present) { max-width: 1280px; padding-bottom: 28px; }
+
+.view-present {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 120px);
+}
+
+/* Title and the Edit / Quiz / Full screen actions share one row: the title
+   column grows to fill (basis 0 so its long description never forces a wrap),
+   the actions stay a fixed cluster on the right. */
+.present-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.present-title { flex: 1 1 0; min-width: 0; }
 .present-title h2 { font-size: 22px; }
+.present-title .muted-note {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.present-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 
 .present-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.layer-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+/* align-content:flex-start keeps wrapped rows from being stretched into thin
+   bars; the pills carry their own fixed height. */
+.layer-chips { display: flex; align-items: center; align-content: flex-start; gap: 8px; flex-wrap: wrap; }
+
+/* Stage + the vertical sentence switcher sit side by side; the stage takes all
+   remaining width and height, the switcher is a fixed rail on the right. */
+.present-main { display: flex; align-items: stretch; gap: 16px; flex: 1 1 auto; min-height: 0; }
 
 .stage {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 260px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* safe center: centers when it fits, falls back to start when the breakdown
+     is taller than the card so the top can't be clipped past the scroll edge. */
+  justify-content: safe center;
   text-align: center;
-  padding: 34px 26px;
+  padding: 34px 30px;
+  overflow: auto;
 }
 .stage .gl-sentence { max-width: 100%; }
 .stage-counter {
@@ -666,8 +714,22 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
 
 .explain { margin-top: 14px; animation: view-in 0.25s ease both; }
 
-.present-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 18px; }
-.dots { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.present-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex: none;
+}
+.dots {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: center;
+  gap: 8px;
+  justify-content: center;
+}
 .dot {
   width: 11px;
   height: 11px;
@@ -681,15 +743,12 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
 .dot.is-on { background: var(--accent); border-color: var(--accent); transform: scale(1.25); }
 
 /* Full screen: the view leaves #app's centered column, so it supplies its own
-   backdrop, padding, and scroll. The stage grows to fill the extra height. */
+   backdrop and padding. The stage still owns the scroll. */
 .view-present.is-fullscreen {
   background: var(--bg);
   padding: 26px 40px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
+  min-height: 0;
 }
-.view-present.is-fullscreen .stage { flex: 1 1 auto; }
 
 /* ====================================================================
    Quiz mode
@@ -828,4 +887,12 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
   .card { padding: 14px; }
   .quiz-prompt { font-size: 18px; }
   .hero p br { display: none; }
+
+  /* Not enough width for a side rail: drop the switcher below the stage, laid
+     out horizontally again, and let the page scroll rather than the stage. */
+  .view-present { min-height: 0; }
+  .present-main { flex-direction: column; }
+  .stage { overflow: visible; }
+  .present-nav { flex-direction: row; margin-top: 4px; }
+  .dots { flex-direction: row; flex-wrap: wrap; }
 }

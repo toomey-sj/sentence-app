@@ -32,10 +32,11 @@
       "    <h2>" + wjt.escapeHtml(lesson.title) + "</h2>" +
       (lesson.description ? '<p class="muted-note">' + wjt.escapeHtml(lesson.description) + "</p>" : "") +
       "  </div>" +
-      '  <span class="spacer"></span>' +
-      '  <a class="btn" href="#/edit/' + lesson.id + '">✎ Edit</a>' +
-      '  <a class="btn" href="#/quiz/' + lesson.id + '">🎯 Quiz</a>' +
-      '  <button class="btn" data-act="fullscreen" hidden></button>' +
+      '  <div class="present-actions">' +
+      '    <a class="btn" href="#/edit/' + lesson.id + '">✎ Edit</a>' +
+      '    <a class="btn" href="#/quiz/' + lesson.id + '">🎯 Quiz</a>' +
+      '    <button class="btn" data-act="fullscreen" hidden></button>' +
+      "  </div>" +
       "</header>" +
       '<div class="present-controls">' +
       '  <div class="layer-chips" data-role="chips"></div>' +
@@ -43,46 +44,58 @@
       '  <button class="btn btn-sm" data-act="all">Show all</button>' +
       '  <button class="btn btn-sm" data-act="none">Hide all</button>' +
       "</div>" +
-      '<section class="card stage" data-role="stage"></section>' +
-      '<aside class="explain card" data-role="explain" hidden></aside>' +
-      '<footer class="present-nav">' +
-      '  <button class="btn btn-big" data-act="prev">←</button>' +
-      '  <div class="dots" data-role="dots"></div>' +
-      '  <button class="btn btn-big" data-act="next">→</button>' +
-      "</footer>";
+      '<div class="present-main">' +
+      '  <section class="card stage" data-role="stage"></section>' +
+      '  <nav class="present-nav">' +
+      '    <button class="btn btn-big" data-act="prev" title="Previous sentence">↑</button>' +
+      '    <div class="dots" data-role="dots"></div>' +
+      '    <button class="btn btn-big" data-act="next" title="Next sentence">↓</button>' +
+      "  </nav>" +
+      "</div>" +
+      '<aside class="explain card" data-role="explain" hidden></aside>';
 
     var chipsEl = view.querySelector('[data-role="chips"]');
     var stageEl = view.querySelector('[data-role="stage"]');
     var explainEl = view.querySelector('[data-role="explain"]');
     var dotsEl = view.querySelector('[data-role="dots"]');
 
-    function layerCount(layerId) {
+    function annsInLayer(annotations, layerId) {
       var n = 0;
-      lesson.sentences.forEach(function (s) {
-        (s.annotations || []).forEach(function (a) {
-          var l = wjt.layerOf(a.label);
-          if (l && l.id === layerId) n++;
-        });
+      (annotations || []).forEach(function (a) {
+        var l = wjt.layerOf(a.label);
+        if (l && l.id === layerId) n++;
       });
       return n;
     }
 
+    // Passage total for a layer: the y in the "x / y" chip count.
+    function layerCount(layerId) {
+      var n = 0;
+      lesson.sentences.forEach(function (s) { n += annsInLayer(s.annotations, layerId); });
+      return n;
+    }
+
+    // Count for the sentence currently on screen: the x in "x / y". This is why
+    // renderStage re-runs renderChips — x changes as you page through sentences.
     function renderChips() {
       chipsEl.innerHTML = "";
+      var current = lesson.sentences[idx];
       lesson.layers
         .slice()
         .sort(function (a, b) { return wjt.LAYERS[a].order - wjt.LAYERS[b].order; })
         .forEach(function (layerId) {
-          var n = layerCount(layerId);
+          var here = annsInLayer(current.annotations, layerId);
+          var total = layerCount(layerId);
           var b = document.createElement("button");
           b.type = "button";
           var on = visible.indexOf(layerId) !== -1;
           b.className = "pill pill-lg" + (on ? " is-on" : "");
-          b.innerHTML = wjt.escapeHtml(wjt.LAYERS[layerId].name) + ' <span class="pill-count">' + n + "</span>";
+          b.innerHTML = wjt.escapeHtml(wjt.LAYERS[layerId].name) +
+            ' <span class="pill-count">' + here + " / " + total + "</span>";
+          b.title = here + " on screen · " + total + " in this passage";
           b.addEventListener("click", function () {
             var i = visible.indexOf(layerId);
             if (i === -1) visible.push(layerId); else visible.splice(i, 1);
-            renderChips();
             renderStage();
           });
           chipsEl.appendChild(b);
@@ -146,11 +159,15 @@
 
     function renderStage() {
       hideExplain();
+      renderChips();
       stageEl.innerHTML =
         '<div class="stage-counter">Sentence ' + (idx + 1) + " of " + lesson.sentences.length + "</div>";
       var sentence = lesson.sentences[idx];
       var r = wjt.renderSentence(sentence, {
         layers: visible,
+        // Lay out every layer this lesson teaches so the block keeps a constant
+        // height; toggling a chip reveals its rows in place instead of resizing.
+        reserve: lesson.layers,
         size: "lg",
         onAnnClick: function (ann, el, labelId) { showExplain(sentence, ann, labelId); },
       });
@@ -176,10 +193,10 @@
     view.querySelector('[data-act="prev"]').addEventListener("click", function () { go(-1); });
     view.querySelector('[data-act="next"]').addEventListener("click", function () { go(1); });
     view.querySelector('[data-act="all"]').addEventListener("click", function () {
-      visible = lesson.layers.slice(); renderChips(); renderStage();
+      visible = lesson.layers.slice(); renderStage();
     });
     view.querySelector('[data-act="none"]').addEventListener("click", function () {
-      visible = []; renderChips(); renderStage();
+      visible = []; renderStage();
     });
 
     // Full screen — the Fullscreen API works from file:// and needs no network.
@@ -208,8 +225,11 @@
     }
 
     function onKey(e) {
-      if (e.key === "ArrowLeft") go(-1);
-      if (e.key === "ArrowRight") go(1);
+      // The switcher reads top-to-bottom now, so Up/Down page too, alongside
+      // the original Left/Right. preventDefault keeps Up/Down from scrolling the
+      // page out from under a presenter mid-lesson.
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { go(-1); e.preventDefault(); }
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { go(1); e.preventDefault(); }
       if ((e.key === "f" || e.key === "F") && !fsBtn.hidden) toggleFullscreen();
     }
     document.addEventListener("keydown", onKey);
@@ -220,7 +240,6 @@
       if (fsActive() && exitFs) exitFs.call(document);
     });
 
-    renderChips();
     renderStage();
   };
 })();

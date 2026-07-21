@@ -18,6 +18,10 @@
    * Render one sentence.
    * opts: {
    *   layers: ["pos","phrase",...]  visible layers (default: all),
+   *   reserve: ["pos","phrase",...] layers to lay out but keep hidden when not
+   *                                 in `layers`, so toggling a layer reveals it
+   *                                 in place instead of resizing the block
+   *                                 (default: `layers`, i.e. no reservation),
    *   showAnnotations: true,        false = plain tokens only (quiz "find"),
    *   interactive: false,           enable drag selection,
    *   onSelect(range, evt),         drag finished ({first,last} token idxs),
@@ -30,6 +34,11 @@
   wjt.renderSentence = function (sentence, opts) {
     opts = opts || {};
     var layers = opts.layers || wjt.LAYER_ORDER;
+    // Layers laid out but possibly hidden: their rows are built so the block
+    // keeps a constant height as `layers` is toggled. Defaults to `layers`,
+    // which reserves nothing and reproduces the legacy layout exactly.
+    var reserve = opts.reserve || layers;
+    function shown(layerId) { return layers.indexOf(layerId) !== -1; }
     var show = opts.showAnnotations !== false;
     var tokens = wjt.tokenize(sentence.text);
     var anns = (sentence.annotations || []).slice();
@@ -44,8 +53,12 @@
 
     function annKey(a) { return a.id || (a.start + ":" + a.end + ":" + a.label); }
 
-    /* --- precompute annotation ranges (global; independent of line breaks) --- */
-    var posItems = (show && layers.indexOf("pos") !== -1
+    /* --- precompute annotation ranges (global; independent of line breaks) --- *
+     * Items are computed for every *reserved* layer; whether a layer is actually
+     * shown is a per-item flag the layout turns into a `gl-hidden` class, so a
+     * reserved-but-hidden layer still occupies its rows/lanes. */
+    var posShown = show && shown("pos");
+    var posItems = (show && reserve.indexOf("pos") !== -1
       ? anns.filter(function (a) { return wjt.layerOf(a.label) && wjt.layerOf(a.label).id === "pos"; })
       : [])
       .map(function (a) {
@@ -56,23 +69,26 @@
       })
       .filter(Boolean);
 
-    // One sorted item list per visible bar layer; lanes are packed per line below.
+    // One sorted item list per reserved bar layer, tagged with whether it shows.
     var barLayers = show
       ? BAR_LAYERS
-          .filter(function (layerId) { return layers.indexOf(layerId) !== -1; })
+          .filter(function (layerId) { return reserve.indexOf(layerId) !== -1; })
           .map(function (layerId) {
-            return anns
-              .map(function (a) {
-                var l = wjt.layerOf(a.label);
-                if (!l || l.id !== layerId) return null;
-                var range = wjt.spanToTokens(tokens, a.start, a.end);
-                return range ? { ann: a, range: range, label: wjt.LABELS[a.label] } : null;
-              })
-              .filter(Boolean)
-              .sort(function (x, y) {
-                return x.range.first - y.range.first ||
-                  (y.range.last - y.range.first) - (x.range.last - x.range.first);
-              });
+            return {
+              shown: shown(layerId),
+              items: anns
+                .map(function (a) {
+                  var l = wjt.layerOf(a.label);
+                  if (!l || l.id !== layerId) return null;
+                  var range = wjt.spanToTokens(tokens, a.start, a.end);
+                  return range ? { ann: a, range: range, label: wjt.LABELS[a.label] } : null;
+                })
+                .filter(Boolean)
+                .sort(function (x, y) {
+                  return x.range.first - y.range.first ||
+                    (y.range.last - y.range.first) - (x.range.last - x.range.first);
+                }),
+            };
           })
       : [];
 
@@ -91,13 +107,17 @@
       return el;
     });
 
-    // The part-of-speech underline is per token (global) — colour it once.
-    posItems.forEach(function (item) {
-      for (var i = item.range.first; i <= item.range.last; i++) {
-        tokenEls[i].classList.add("has-pos");
-        tokenEls[i].style.setProperty("--c", item.label.color);
-      }
-    });
+    // The part-of-speech underline is per token (global) — colour it once. The
+    // token's transparent bottom border always reserves the space; only the
+    // colour is withheld when the pos layer is reserved but hidden.
+    if (posShown) {
+      posItems.forEach(function (item) {
+        for (var i = item.range.first; i <= item.range.last; i++) {
+          tokenEls[i].classList.add("has-pos");
+          tokenEls[i].style.setProperty("--c", item.label.color);
+        }
+      });
+    }
 
     /* --- lay the sentence out across `lines` (each a global {first,last}) --- *
      * One .gl-grid per visual line, stacked vertically. Chips and bars are
@@ -144,9 +164,10 @@
           grid.appendChild(el);
         }
 
+        var posHide = posShown ? "" : " gl-hidden";
         linePos.forEach(function (p) {
           var item = p.item, seg = p.seg, label = item.label, col = cols(seg);
-          var cc = contClass(seg, item.range);
+          var cc = contClass(seg, item.range) + posHide;
 
           var parent = label.parent ? wjt.LABELS[label.parent] : null;
           if (parent) {
@@ -183,8 +204,9 @@
 
         // Span bars: clip to the line, then pack lanes on the clipped ranges.
         var nextRow = tokenRow + 1;
-        barLayers.forEach(function (items) {
-          var lineItems = items
+        barLayers.forEach(function (bl) {
+          var barHide = bl.shown ? "" : " gl-hidden";
+          var lineItems = bl.items
             .map(function (item) {
               var seg = clip(item.range, lineFirst, lineLast);
               return seg ? { item: item, seg: seg } : null;
@@ -208,7 +230,7 @@
             var cont = contClass(seg, item.range);
             var bar = document.createElement("button");
             bar.type = "button";
-            bar.className = "gl-bar" + cont;
+            bar.className = "gl-bar" + cont + barHide;
             bar.style.gridRow = (nextRow + li.lane) + "";
             bar.style.gridColumn = cols(seg);
             bar.style.setProperty("--c", label.color);
