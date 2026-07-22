@@ -47,6 +47,16 @@
     }
   }
 
+  // Fold typographic look-alikes to ASCII for the `match` lookup ONLY.
+  // Every substitution is 1 code unit -> 1 code unit, so length and all offsets
+  // are preserved: the resolved span still slices the untouched original text.
+  function foldForMatch(s) {
+    return s
+      .replace(/[\u2018\u2019\u201B]/g, "'")     // left/right/reversed single quote & apostrophe -> '
+      .replace(/[\u201C\u201D]/g, '"')            // left/right double quote -> "
+      .replace(/[\u00A0\u2000-\u200A\u202F]/g, " "); // NBSP, en..hair spaces, narrow NBSP -> space
+  }
+
   wjt.store = {
     list: function () {
       return readAll().sort(function (a, b) {
@@ -165,7 +175,7 @@
         // Alternative addressing: { "match": "the frozen river" } finds the
         // first occurrence of that text (handy when writing JSON by hand).
         if (typeof a.match === "string" && a.match) {
-          var at = text.indexOf(a.match);
+          var at = foldForMatch(text).indexOf(foldForMatch(a.match));
           if (at === -1) { warnings.push('Text "' + a.match + '" not found (' + where + ")."); return; }
           start = at; end = at + a.match.length;
         }

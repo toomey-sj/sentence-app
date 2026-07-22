@@ -93,8 +93,12 @@ An annotation marks one span of the sentence and gives it one label.
 resolved and the offsets are overwritten. Use `start`/`end` only when the text
 you want appears more than once and you need a later occurrence.
 
-`match` is a plain `String.prototype.indexOf` — no normalization, no
-case-folding, no smart-quote handling. `"don't"` will not find `"don’t"`.
+`match` folds smart quotes (curly single/double → straight) and Unicode spaces
+(NBSP, narrow NBSP, en/em/thin/hair spaces → a plain space) before comparing, so
+a straight quote finds a curly one and pasted typographic spaces still match. It
+does **not** case-fold, and length-changing look-alikes are not handled: an
+ellipsis char vs three dots, and a Word-autocorrected `--` vs an em dash, will
+still miss (see [to-do.md](../../to-do.md) item 3).
 
 ### Spans snap outward to whole words
 

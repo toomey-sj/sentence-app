@@ -238,6 +238,27 @@ check("import: bad entries produce warnings", hw.warnings.length === 3);
 check("import: bare string sentence accepted", hw.lesson.sentences[1].text === "A bare string sentence works too.");
 check("import: layers inferred", hw.lesson.layers.includes("part"));
 
+// --- match folds smart quotes and Unicode spaces (P3) ---
+// Source strings use \u escapes so this file stays ASCII; they evaluate to the
+// real curly-apostrophe / NBSP glyphs at runtime.
+const curlyText = "The dog didn\u2019t bark."; // curly apostrophe in the passage
+const curly = wjt.importLesson({
+  title: "Curly",
+  sentences: [{ text: curlyText, annotations: [{ match: "didn't", label: "verb" }] }], // straight quote in match
+});
+check("import: straight-quote match finds curly text", curly.lesson.sentences[0].annotations.length === 1);
+check("import: curly match offsets slice the original text",
+  curlyText.slice(
+    curly.lesson.sentences[0].annotations[0].start,
+    curly.lesson.sentences[0].annotations[0].end).indexOf("didn\u2019t") === 0);
+
+const nbspText = "New\u00A0York is big."; // NBSP between the words of the target
+const nbsp = wjt.importLesson({
+  title: "NBSP",
+  sentences: [{ text: nbspText, annotations: [{ match: "New York", label: "noun" }] }], // ASCII space in match
+});
+check("import: ASCII-space match finds NBSP text", nbsp.lesson.sentences[0].annotations.length === 1);
+
 let threw = false;
 try { wjt.importLesson({ title: "no sentences" }); } catch (e) { threw = true; }
 check("import: missing sentences throws", threw);
