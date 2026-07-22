@@ -6,11 +6,22 @@
   wjt.VERSION = "0.1.0";
 
   /* ---------------- toasts ---------------- */
-  wjt.toast = function (msg, ms) {
+  wjt.toast = function (msg, ms, onClick) {
     var host = document.getElementById("toasts");
     var t = document.createElement("div");
     t.className = "toast";
     t.textContent = msg;
+    // Optional action toast: click (or Enter/Space) runs onClick. Used by the
+    // corrupt-library recovery prompt (audit P1-2).
+    if (onClick) {
+      t.style.cursor = "pointer";
+      t.setAttribute("role", "button");
+      t.setAttribute("tabindex", "0");
+      t.addEventListener("click", onClick);
+      t.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); }
+      });
+    }
     host.appendChild(t);
     setTimeout(function () { t.classList.add("hide"); }, ms || 3200);
     setTimeout(function () { t.remove(); }, (ms || 3200) + 400);
@@ -36,6 +47,10 @@
     var msg = document.createElement("p");
     msg.className = "modal-msg";
     msg.textContent = opts.message || "Are you sure?";
+    // Name the dialog after its message so a screen reader announces what's
+    // being confirmed when focus lands inside (audit P0-3).
+    msg.id = "modal-msg-" + wjt.uid();
+    modal.setAttribute("aria-labelledby", msg.id);
 
     var row = document.createElement("div");
     row.className = "btn-row modal-actions";
@@ -61,7 +76,15 @@
       backdrop.remove();
       if (prevFocus && prevFocus.focus) { try { prevFocus.focus(); } catch (e) { /* gone */ } }
     }
-    function onKey(e) { if (e.key === "Escape") close(); }
+    // Escape closes; Tab is trapped between the two buttons so keyboard focus
+    // can't wander to the page behind the modal (audit P0-3).
+    function onKey(e) {
+      if (e.key === "Escape") return close();
+      if (e.key === "Tab") {
+        if (e.shiftKey && document.activeElement === cancel) { e.preventDefault(); ok.focus(); }
+        else if (!e.shiftKey && document.activeElement === ok) { e.preventDefault(); cancel.focus(); }
+      }
+    }
 
     cancel.addEventListener("click", close);
     backdrop.addEventListener("pointerdown", function (e) { if (e.target === backdrop) close(); });
@@ -111,10 +134,31 @@
     });
   }
 
+  /* ---------------- safe storage ----------------
+   * localStorage can throw on mere ACCESS in a locked-down browser (private
+   * mode, storage disabled by policy, some sandboxed file:// contexts). The
+   * lesson store already guards its own reads/writes, but the theme, palette,
+   * and first-run seed touched localStorage directly during boot — so a
+   * disabled store threw out of the DOMContentLoaded handler before routing and
+   * left the app blank (audit P0-2). Route those direct touches through here:
+   * a failed read returns null, a failed write no-ops, and either flips
+   * wjt.storageOK so boot can warn the teacher once. */
+  wjt.storageOK = true;
+  wjt.safeStorage = {
+    get: function (k) {
+      try { return localStorage.getItem(k); }
+      catch (e) { wjt.storageOK = false; return null; }
+    },
+    set: function (k, v) {
+      try { localStorage.setItem(k, v); return true; }
+      catch (e) { wjt.storageOK = false; return false; }
+    },
+  };
+
   /* ---------------- theme ---------------- */
   function applyTheme(theme) {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("sentenceForge.theme", theme);
+    wjt.safeStorage.set("sentenceForge.theme", theme);
     var btn = document.getElementById("theme-toggle");
     if (btn) btn.textContent = theme === "light" ? "🌙" : "☀️";
   }
@@ -128,7 +172,7 @@
   function applyPalette(name) {
     if (name !== "cbSafe") name = "default";
     wjt.applyPalette(name);
-    localStorage.setItem("sentenceForge.palette", name);
+    wjt.safeStorage.set("sentenceForge.palette", name);
     var btn = document.getElementById("palette-toggle");
     if (btn) {
       btn.setAttribute("aria-pressed", name === "cbSafe" ? "true" : "false");
@@ -260,8 +304,10 @@
           wjt.downloadJson(wjt.exportLesson(lesson), name + ".sentence-forge.json");
         });
         card.querySelector('[data-act="dup"]').addEventListener("click", function () {
-          wjt.store.duplicate(lesson.id);
-          renderLessons();
+          try {
+            wjt.store.duplicate(lesson.id);
+            renderLessons();
+          } catch (e) { wjt.toast(e.message, 6000); }   // storage full/disabled
         });
         card.querySelector('[data-act="del"]').addEventListener("click", function () {
           wjt.confirmDialog({
@@ -269,8 +315,10 @@
             confirmText: "Delete",
             danger: true,
             onConfirm: function () {
-              wjt.store.remove(lesson.id);
-              renderLessons();
+              try {
+                wjt.store.remove(lesson.id);
+                renderLessons();
+              } catch (e) { wjt.toast(e.message, 6000); }   // storage full/disabled
             },
           });
         });
@@ -365,14 +413,14 @@
 
   /* ---------------- boot ---------------- */
   document.addEventListener("DOMContentLoaded", function () {
-    applyTheme(localStorage.getItem("sentenceForge.theme") || "dark");
+    applyTheme(wjt.safeStorage.get("sentenceForge.theme") || "dark");
     document.getElementById("theme-toggle").addEventListener("click", function () {
       applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
     });
 
     // Apply the stored grammar palette BEFORE the first route() below so the
     // opening view paints in the chosen palette (no flash of default colors).
-    applyPalette(localStorage.getItem("sentenceForge.palette") || "default");
+    applyPalette(wjt.safeStorage.get("sentenceForge.palette") || "default");
     document.getElementById("palette-toggle").addEventListener("click", function () {
       applyPalette(wjt.activePalette === "cbSafe" ? "default" : "cbSafe");
       wjt.rerender();   // full repaint; Present resets to slide 1 (accepted trade-off)
@@ -384,19 +432,40 @@
     // Prune empty + un-named drafts left behind by a hard refresh mid-edit (the
     // editor's discard-on-exit guard can't fire on a page reload). Runs before the
     // seed check so a lone abandoned draft never blocks re-seeding the sample.
-    wjt.store.list().forEach(function (l) {
-      var empty = !l.sentences.length;
-      var unnamed = !(l.title || "").trim() || l.title === "Untitled lesson";
-      if (empty && unnamed) wjt.store.remove(l.id);
-    });
+    // Guarded: a disabled store must not throw the boot handler (audit P0-2).
+    try {
+      wjt.store.list().forEach(function (l) {
+        var empty = !l.sentences.length;
+        var unnamed = !(l.title || "").trim() || l.title === "Untitled lesson";
+        if (empty && unnamed) wjt.store.remove(l.id);
+      });
 
-    // First run: seed the sample so the app never starts empty.
-    if (!localStorage.getItem("sentenceForge.seeded") && !wjt.store.list().length) {
-      wjt.store.save(wjt.buildSampleLesson());
-      localStorage.setItem("sentenceForge.seeded", "1");
-    }
+      // First run: seed the sample so the app never starts empty.
+      if (!wjt.safeStorage.get("sentenceForge.seeded") && !wjt.store.list().length) {
+        wjt.store.save(wjt.buildSampleLesson());
+        wjt.safeStorage.set("sentenceForge.seeded", "1");
+      }
+    } catch (e) { /* storage write failed — app still opens; warned below */ }
 
     window.addEventListener("hashchange", route);
     route();
+
+    // If storage was unreachable during any step above, say so plainly: work
+    // won't persist and the teacher should keep a file copy (audit P0-2). Routed
+    // AFTER route() so the toast host exists and the app has already rendered.
+    if (!wjt.storageOK) {
+      wjt.toast("Browser storage is off — your work won’t be saved between " +
+        "sessions. Use Export to keep a copy as a file.", 8000);
+    } else if (wjt.store.corruptBackup) {
+      // The saved library couldn't be read. It's been kept aside (not
+      // overwritten) so it stays recoverable; log the raw value for support and
+      // let the teacher download it (audit P1-2).
+      console.warn("[Sentence Forge] Corrupt saved library preserved:", wjt.store.corruptBackup);
+      wjt.toast("Your saved lessons couldn’t be read and may look missing. The " +
+        "original data has been kept — click to download a backup copy.", 12000,
+        function () {
+          wjt.downloadText(wjt.store.corruptBackup, "sentence-forge-recovered.txt");
+        });
+    }
   });
 })();

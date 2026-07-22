@@ -15,3 +15,6 @@ npm-debug.log*
 # Scratch output from the headless DOM check
 tools/.tmp-*/
 *.local.json
+
+# Scratch output from the UI audit (screenshots, throwaway browser profiles)
+.ui-audit-artifacts/

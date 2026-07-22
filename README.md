@@ -74,9 +74,12 @@ Product and project docs are kept separate — [full index](docs/README.md).
 
 ## Status
 
-Feature-complete and heading into a **classroom pilot**. The taxonomy and the
-lesson file format are frozen during it; bug reports and classroom feedback are
-the most valuable thing you can send. See [the pilot plan](docs/product/pilot.md).
+**Open alpha (`0.x`).** Usable and heading into classroom testing on GitHub
+Pages, but not yet committed to format stability: the taxonomy and lesson file
+format stay **additive** during the alpha, changing only for a real, blocking gap
+a teacher hits. The format freeze becomes a promise at **1.0.0 — the first real
+teacher**. Bug reports and classroom feedback are the most valuable thing you can
+send. See [the pilot plan](docs/product/pilot.md).
 
 ## Privacy
 

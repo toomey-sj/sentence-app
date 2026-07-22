@@ -1,6 +1,10 @@
 # Sentence Forge — Road to 0.1.0 (Polish Pass)
 
-**Status:** Planned · **Date:** 2026-07-22
+**Status:** Blockers cleared — ready to tag `v0.1.0` · **Date:** 2026-07-22
+(release blockers from the [code audit](code-audit-0.1.0.md) resolved; see the
+2026-07-22 audit-remediation "As built" note below and
+[audit-remediation-0.1.0.md](audit-remediation-0.1.0.md). Creating the `v0.1.0`
+tag is the maintainer's call.)
 **Scope:** Harden the current proof of concept into a coherent, trustworthy
 `0.1.0`. Additive and format-safe throughout — no taxonomy or lesson-format
 changes. The student-as-creator pivot is deliberately *out* of this milestone
@@ -172,9 +176,9 @@ Parked deliberately, not forgotten:
 ## 5. Definition of done for 0.1.0
 
 - [x] P1–P4 items above complete (or explicitly re-deferred with a note here).
-- [x] All checks green; browser DOM check honestly reported (see "As built" —
-      logic checks green; the live headless dump could not be captured in the
-      dev environment, with the reason and the structural argument recorded).
+- [x] All checks green; browser DOM check honestly reported. **Now captured
+      empirically at 261/0** via PowerShell `Start-Process` (the earlier empty
+      dump is fixed — see the 2026-07-22 audit-remediation "As built" note).
 - [x] `0.1.0` recorded wherever the app surfaces a version. **Decided: add a
       footer with the version string** (`wjt.VERSION`), part of P1 —
       [plans/done/001](../plans/done/001-data-durability.md) Task D.
@@ -229,3 +233,44 @@ plan anticipated. What diverged or is worth recording:
   deliberately frozen" → "What stays stable during the alpha" now frame the
   taxonomy/format as *kept additive during the alpha*, with the hard freeze
   reserved for 1.0.0 (the first-real-teacher line), matching §0.
+
+### As built — audit remediation
+
+_(2026-07-22, [audit-remediation-0.1.0.md](audit-remediation-0.1.0.md), from
+[code-audit-0.1.0.md](code-audit-0.1.0.md))_
+
+A post-close audit found the milestone overstated completion in five areas. All
+release blockers are now resolved; what landed and what diverged from the
+remediation plan:
+
+- **The empty headless dump is solved — and the previous diagnosis was
+  incomplete.** The earlier note blamed Edge handing off to a live interactive
+  session. In this session, with a fresh `--user-data-dir`, the Git-Bash `>`
+  redirect *still* returned zero bytes while PowerShell **`Start-Process -Wait
+  -RedirectStandardOutput`** captured the full dump — a controlled same-machine
+  comparison. The msedge launcher detaches from a redirected pipe; Start-Process
+  waits for the real child. `CLAUDE.md` and `testing.md` now document this.
+- **The DOM harness was extended, not replaced.** It now boots the *full* app
+  (`app.js`/`display.js`/`quiz.js`) against the real page chrome and adds 16
+  runtime checks (boot renders, storage guards, keyboard token selection, confirm
+  dialog a11y). Baseline moved **245 → 261/0**. Pass counts are now framed as an
+  implementation detail; "0 failed" is the contract.
+- **Metadata-loss fix went through the model layer for testability.** Merge and
+  edit-text were extracted from `editor.js` event handlers into pure
+  `wjt.store.mergeSentence` / `rewriteSentenceText` so the Node smoke test covers
+  the type/note rules. Merge now *unions* `types` (an axis→option map — the
+  survivor wins per axis) rather than the "union arrays" the plan loosely
+  described; edit-text keeps `types`/`notes` on the first split piece; delete
+  now confirms on any metadata, not just annotations.
+- **Keyboard selection is one commit path.** `attachSelection` gained a roving
+  `tabindex` + Arrow/Shift+Arrow/Enter/Escape gesture feeding the *same*
+  `onSelect` as the pointer drag, so the editor palette and Quiz "find" are
+  reachable without a pointer. The label palette was already keyboard-trapped
+  from the P4 sweep, so only the way *into* it was missing.
+- **Deferred (non-blocking, per the audit's own tiering):** the single-active-
+  roadmap reorg, dropping the byte-identical `fox`/`sample-lesson` duplicate, and
+  moving `buildSampleLesson()` out of `store.js`. These are generated-file/doc
+  reshuffles with no runtime effect; left for a focused follow-up rather than
+  bundled into the blocker fix. The glob-expansion DX fix *did* land
+  (`validate-lesson.js` now expands dirs/globs itself, so the documented command
+  works in PowerShell).

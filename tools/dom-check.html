@@ -6,24 +6,42 @@
   <link rel="stylesheet" href="../css/styles.css" />
 </head>
 <!--
-  Headless render check. Not part of the app — open it (or dump it) to confirm
-  every label in the taxonomy actually renders as a span bar, and that the
-  editor palette builds for all four layers. Run with:
+  Headless render + runtime check. Not part of the app. It has two parts:
 
-    msedge --headless=new --dump-dom \
-      --user-data-dir=<a temp dir>  file:///C:/dev/sentences/tools/dom-check.html \
-      > dump.html
-    node tools/dom-check-report.js dump.html
+    - Parse-time checks (1–5): every label in the taxonomy renders its mark, each
+      sample renders all its annotations, the palette builds, notes and the Key
+      legend render. These use render/editor/store only.
+    - Runtime checks (6–8): load the FULL app (app.js/display.js/quiz.js) against
+      the real page chrome and verify boot, storage guards, the keyboard token
+      selection path, and the confirmation dialog's a11y (audit P0-2/P0-3).
 
-  The temp user-data-dir is required or the dump comes back empty, and the URL
-  needs a Windows-style drive (file:///C:/…) or the browser loads an error page.
+  Run it (the Git-Bash `>` redirect returns an EMPTY dump for this GUI process —
+  use PowerShell Start-Process, which waits for the child and captures stdout):
 
-  Results are summarized in #result as PASS/FAIL lines. Read them with
+    $edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+    $udd  = Join-Path $env:TEMP ("edge-udd-" + [guid]::NewGuid())
+    $dump = Join-Path $env:TEMP ("dom-" + [guid]::NewGuid() + ".html")
+    Start-Process -FilePath $edge -Wait -NoNewWindow -RedirectStandardOutput $dump `
+      -ArgumentList "--headless=new","--disable-gpu","--no-sandbox",`
+      "--virtual-time-budget=8000","--dump-dom","--user-data-dir=$udd",`
+      "file:///C:/dev/sentences/tools/dom-check.html"
+    node tools/dom-check-report.js $dump
+
+  The temp user-data-dir and a Windows-style drive (file:///C:/…) are both
+  required. Results are summarized in #result as PASS/FAIL lines. Read them with
   dom-check-report.js, NOT by grepping the dump — the dump includes this file's
   own script, and the strings "PASS" and "FAIL" appear in it as source text.
 -->
 <body>
+  <!-- Real page chrome so app.js boots exactly as it does in index.html. -->
+  <nav class="topbar">
+    <a class="brand" href="#/">Sentence Forge</a>
+    <button id="palette-toggle" aria-pressed="false">🎨</button>
+    <button id="theme-toggle">☀️</button>
+  </nav>
   <main id="app"></main>
+  <div id="toasts" aria-live="polite"></div>
+  <footer class="appfoot"><span data-role="version"></span></footer>
   <pre id="result"></pre>
 
   <script src="../js/labels.js"></script>
@@ -32,6 +50,9 @@
   <script src="../js/examples.js"></script>
   <script src="../js/render.js"></script>
   <script src="../js/editor.js"></script>
+  <script src="../js/display.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script src="../js/app.js"></script>
 
   <script>
   (function () {
@@ -40,6 +61,10 @@
     function check(name, cond) {
       out.push((cond ? "PASS  " : "FAIL  ") + name);
       if (!cond) fails++;
+    }
+    function finish() {
+      out.push(fails ? fails + " FAILURE(S)" : "ALL DOM CHECKS PASSED");
+      document.getElementById("result").textContent = out.join("\n");
     }
 
     window.onerror = function (msg, src, line) {
@@ -159,8 +184,115 @@
     check("legend: one group per shown layer with annotations",
       !!legTwo && legTwo.querySelectorAll(".legend-group").length === 2);
 
-    out.push(fails ? fails + " FAILURE(S)" : "ALL DOM CHECKS PASSED");
-    document.getElementById("result").textContent = out.join("\n");
+    /* -------------------------------------------------------------------- *
+     * Runtime checks (6–8) — run AFTER app.js has booted the real app, so
+     * these cover the P4 runtime paths the old harness never loaded. app.js
+     * registered its DOMContentLoaded boot before this script, so its handler
+     * fires first (clearing #app and routing to Home) and ours runs after.
+     * -------------------------------------------------------------------- */
+    document.addEventListener("DOMContentLoaded", function () {
+      try { runtimeChecks(); }
+      catch (e) { check("runtime checks threw: " + e.message, false); }
+      finish();
+    });
+
+    function key(el, opts) {
+      opts = opts || {};
+      opts.bubbles = true; opts.cancelable = true;
+      el.dispatchEvent(new KeyboardEvent("keydown", opts));
+    }
+
+    function runtimeChecks() {
+      // 6. Boot renders content and the app didn't throw (audit P0-2). The Home
+      //    view replaced #app wholesale; if boot had thrown, #app stays empty.
+      check("P0-2: app booted and rendered a view into #app", app.children.length > 0);
+      check("P0-2: footer version reflects wjt.VERSION",
+        (document.querySelector('[data-role="version"]').textContent || "")
+          .indexOf(wjt.VERSION) !== -1);
+
+      // 6b. safeStorage swallows a store that throws on access, instead of
+      //     letting it escape and blank the app (the P0-2 boot hazard).
+      check("P0-2: wjt.safeStorage exposes get/set",
+        !!wjt.safeStorage && typeof wjt.safeStorage.get === "function" &&
+        typeof wjt.safeStorage.set === "function");
+      var proto = Object.getPrototypeOf(localStorage);
+      var origGet = proto.getItem, origSet = proto.setItem, savedOK = wjt.storageOK;
+      try {
+        proto.getItem = function () { throw new Error("storage disabled"); };
+        proto.setItem = function () { throw new Error("storage disabled"); };
+        wjt.storageOK = true;
+        var got = wjt.safeStorage.get("anything");
+        var setOK = wjt.safeStorage.set("anything", "x");
+        check("P0-2: safeStorage.get returns null on a throwing store", got === null);
+        check("P0-2: safeStorage.set returns false on a throwing store", setOK === false);
+        check("P0-2: a throwing store flips wjt.storageOK false", wjt.storageOK === false);
+      } finally {
+        proto.getItem = origGet; proto.setItem = origSet; wjt.storageOK = savedOK;
+      }
+
+      // 7. Keyboard token selection (audit P0-3): interactive tokens are
+      //    focusable buttons, and the keyboard gesture drives the SAME onSelect
+      //    as a pointer drag — so a keyboard user can create a label.
+      var picked = null;
+      var r = wjt.renderSentence(
+        { text: "The quick brown fox jumped.", annotations: [] },
+        { layers: ["pos"], interactive: true, onSelect: function (range) { picked = range; } });
+      app.appendChild(r.root);
+      var toks = r.root.querySelectorAll(".gl-token");
+      check("P0-3: interactive tokens are focusable buttons",
+        toks.length > 0 && toks[0].getAttribute("role") === "button" &&
+        toks[0].getAttribute("tabindex") !== null);
+      check("P0-3: exactly one token starts in the Tab order (roving tabindex)",
+        r.root.querySelectorAll('.gl-token[tabindex="0"]').length === 1);
+
+      picked = null;
+      key(toks[1], { key: "Enter" });
+      check("P0-3: Enter on a token commits that single word",
+        !!picked && picked.first === 1 && picked.last === 1);
+
+      picked = null;
+      key(toks[1], { key: "ArrowRight", shiftKey: true });  // extend head 1 -> 2
+      var focused = r.root.querySelector('.gl-token[tabindex="0"]');
+      check("P0-3: Shift+Arrow moves the roving focus to the extended word",
+        focused === toks[2]);
+      key(focused, { key: "Enter" });
+      check("P0-3: Shift+Arrow then Enter commits a multi-word span",
+        !!picked && picked.first === 1 && picked.last === 2);
+
+      // 8. Confirmation dialog a11y (audit P0-3): named + Tab focus trap.
+      var confirmed = false;
+      wjt.confirmDialog({ message: "Delete this thing?", confirmText: "Delete",
+        onConfirm: function () { confirmed = true; } });
+      var modal = document.querySelector(".modal");
+      check("P0-3: confirm dialog is a modal dialog",
+        !!modal && modal.getAttribute("role") === "dialog" &&
+        modal.getAttribute("aria-modal") === "true");
+      var lb = modal && modal.getAttribute("aria-labelledby");
+      var named = lb && document.getElementById(lb) &&
+        document.getElementById(lb).textContent.indexOf("Delete this thing?") !== -1;
+      check("P0-3: confirm dialog has an accessible name", !!named);
+
+      var cancel = modal.querySelector(".btn:not(.btn-primary)");
+      var ok = modal.querySelector(".btn-primary");
+      // Focus-trap: assert only if headless focus tracking works (it does in
+      // Chromium --headless=new); otherwise report that it was not exercised.
+      ok.focus();
+      if (document.activeElement === ok) {
+        key(ok, { key: "Tab" });
+        check("P0-3: Tab from the last button wraps to the first (focus trap)",
+          document.activeElement === cancel);
+        cancel.focus();
+        key(cancel, { key: "Tab", shiftKey: true });
+        check("P0-3: Shift+Tab from the first button wraps to the last",
+          document.activeElement === ok);
+      } else {
+        check("P0-3: focus trap NOT EXERCISED (headless focus unavailable)", true);
+      }
+      // Close via Escape and confirm the callback never fired on a cancel path.
+      key(document, { key: "Escape" });
+      check("P0-3: Escape closes the dialog without confirming",
+        !document.querySelector(".modal") && confirmed === false);
+    }
   })();
   </script>
 </body>

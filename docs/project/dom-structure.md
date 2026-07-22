@@ -45,10 +45,12 @@ body
 
 A **confirm dialog** (`wjt.confirmDialog` in `app.js`) is the app's own
 replacement for the browser `confirm()`. Like the popover and toasts it appends to
-`document.body`, not inside a view: `div.modal-backdrop > div.modal[role=dialog]`
-containing `p.modal-msg` + `div.btn-row.modal-actions` (Cancel + confirm button,
-the confirm being `.btn-danger` for destructive actions). It closes on confirm,
-cancel, backdrop click, or Escape, and restores focus on close.
+`document.body`, not inside a view:
+`div.modal-backdrop > div.modal[role=dialog][aria-modal=true][aria-labelledby=<msg id>]`
+containing `p.modal-msg` (its id names the dialog) + `div.btn-row.modal-actions`
+(Cancel + confirm button, the confirm being `.btn-danger` for destructive
+actions). It closes on confirm, cancel, backdrop click, or Escape, traps Tab
+between the two buttons while open, and restores focus on close.
 
 `#app` is the single mount point. `route()` in [`js/app.js`](../../js/app.js)
 clears it and calls one view function per hash, then `focusView()` moves focus to
@@ -126,6 +128,7 @@ div.gl-sentence  (.gl-size-lg in Present)
    ├─ button.gl-chip                  [data-layer=pos][data-ann]   ← specific POS
    ├─ span.gl-token                   [data-i=<tokenIndex>]        ← one per token
    │     .has-pos .is-sel/.is-sel-first/.is-sel-last .is-hl/.is-hl-first/.is-hl-last
+   │     when interactive: [role=button][tabindex=0|-1]  ← focusable, roving tabindex
    └─ button.gl-bar                   [data-layer=part|phrase|clause][data-ann]
          ├─ span.gl-bar-abbr          ← short label (e.g. "DO")
          ├─ span.gl-bar-name          ← full label ("Direct object")
@@ -163,13 +166,21 @@ are bare bars.
   width changes (measures real token widths, re-runs `layout()`). Relayout is
   deferred to `requestAnimationFrame` to avoid the "ResizeObserver loop" warning.
 
-### Drag-selection (`wjt.attachSelection`)
+### Selection (`wjt.attachSelection`)
 
 Attached when `interactive` is true. Pointer events (mouse + touch) on
 `.gl-token` elements paint `.is-sel` / `.is-sel-first` / `.is-sel-last` across
 the dragged range and call `onSelect({first,last})` on pointer-up. Ownership is
 by `container.contains(tok)` — because a sentence's tokens now live across
 several line-grids, not one. Returns `{ clear, set, get }`.
+
+It is also **keyboard-operable**: each token is a focusable `[role=button]` with
+a roving `tabindex` (only one token is in the Tab order at a time). Arrow moves
+focus between words, **Shift+Arrow** extends a selection from the focused word,
+**Enter/Space** commits (a single word if nothing was extended), and **Escape**
+clears. Keyboard and pointer feed the *same* `onSelect`, so there is one commit
+path — the editor palette and the Quiz "find" answer are both reachable without a
+pointer.
 
 ### Type badges (`wjt.renderTypeBadges`)
 

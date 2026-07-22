@@ -306,6 +306,66 @@ check("store: duplicate", dup.title === "Test A (copy)" && wjt.store.list().leng
 wjt.store.remove(l1.id);
 check("store: remove", wjt.store.list().length === 2 && !wjt.store.get(l1.id));
 
+// --- sentence transforms preserve types/notes (audit P0-1) ---
+const mergeS = [
+  { text: "The dog ran.", annotations: [{ start: 0, end: 3, label: "determiner", note: "art" }], types: { structure: "simple" }, notes: "first" },
+  { text: "It barked.", annotations: [{ start: 0, end: 2, label: "pronoun" }], types: { purpose: "declarative" }, notes: "second" },
+];
+wjt.store.mergeSentence(mergeS, 0);
+check("merge: sentences collapse to 1", mergeS.length === 1);
+check("merge: text concatenated", mergeS[0].text === "The dog ran. It barked.");
+check("merge: annotations re-offset", mergeS[0].annotations.length === 2 &&
+  mergeS[0].annotations[1].start === 13);
+check("merge: next sentence's type carried", mergeS[0].types.structure === "simple" &&
+  mergeS[0].types.purpose === "declarative");
+check("merge: notes concatenated", mergeS[0].notes === "first second");
+
+// Survivor's type wins per axis; next only fills axes the survivor left unset.
+const mergeConflict = [
+  { text: "A.", annotations: [], types: { structure: "simple" } },
+  { text: "B.", annotations: [], types: { structure: "compound" } },
+];
+wjt.store.mergeSentence(mergeConflict, 0);
+check("merge: survivor's type wins on axis conflict", mergeConflict[0].types.structure === "simple");
+
+const rewriteS = [
+  { text: "Old words here.", annotations: [{ start: 0, end: 3, label: "determiner" }], types: { structure: "simple" }, notes: "keep me" },
+];
+wjt.store.rewriteSentenceText(rewriteS, 0, ["New words entirely."]);
+check("rewrite: annotations cleared", rewriteS[0].annotations.length === 0);
+check("rewrite: text replaced", rewriteS[0].text === "New words entirely.");
+check("rewrite: type preserved", rewriteS[0].types.structure === "simple");
+check("rewrite: note preserved", rewriteS[0].notes === "keep me");
+
+// A reword that splits into several sentences keeps type/note on the first.
+const rewriteSplit = [{ text: "One.", annotations: [], types: { purpose: "declarative" }, notes: "n" }];
+wjt.store.rewriteSentenceText(rewriteSplit, 0, ["First part.", "Second part."]);
+check("rewrite: split produces 2 sentences", rewriteSplit.length === 2);
+check("rewrite: split keeps meta on first piece",
+  rewriteSplit[0].types.purpose === "declarative" && rewriteSplit[0].notes === "n" &&
+  !rewriteSplit[1].types && !rewriteSplit[1].notes);
+
+// --- corrupt library is preserved, not silently emptied (audit P1-2) ---
+// The sandbox localStorage is backed by the `storage` Map declared up top.
+const BAD = "{ this is not valid json ]";
+storage.set("sentenceForge.lessons.v1", BAD);
+delete wjt.store.corruptBackup;
+const salvaged = wjt.store.list();
+check("corrupt store: list falls back to empty", Array.isArray(salvaged) && salvaged.length === 0);
+check("corrupt store: raw value preserved under side key",
+  storage.get("sentenceForge.lessons.v1.corrupt") === BAD);
+check("corrupt store: flagged on wjt.store for the shell", wjt.store.corruptBackup === BAD);
+// A valid but wrong-shaped value (object, not array) is treated the same way.
+storage.delete("sentenceForge.lessons.v1.corrupt");
+storage.set("sentenceForge.lessons.v1", '{"not":"an array"}');
+delete wjt.store.corruptBackup;
+check("corrupt store: non-array JSON also falls back to empty", wjt.store.list().length === 0);
+check("corrupt store: non-array JSON is preserved too",
+  storage.get("sentenceForge.lessons.v1.corrupt") === '{"not":"an array"}');
+// Clean up so the sample-file write below starts from a good state.
+storage.delete("sentenceForge.lessons.v1");
+storage.delete("sentenceForge.lessons.v1.corrupt");
+
 // --- write the sample JSON file for the samples/ folder ---
 fs.mkdirSync(path.join(root, "samples"), { recursive: true });
 fs.writeFileSync(

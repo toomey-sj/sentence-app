@@ -254,7 +254,7 @@
         if (!annCount(s)) {
           var tip = document.createElement("div");
           tip.className = "sentence-tip";
-          tip.textContent = "Drag across words to add your first label.";
+          tip.textContent = "Drag across words — or Tab to a word and use Shift+Arrow, then Enter — to add your first label.";
           body.appendChild(tip);
         }
       }
@@ -272,16 +272,9 @@
       var mergeBtn = head.querySelector('[data-act="merge"]');
       if (mergeBtn) {
         mergeBtn.addEventListener("click", function () {
-          var next = lesson.sentences[idx + 1];
-          var offset = s.text.length + 1;
-          s.text = s.text + " " + next.text;
-          (next.annotations || []).forEach(function (a) {
-            s.annotations.push({
-              id: wjt.uid(), start: a.start + offset, end: a.end + offset,
-              label: a.label, note: a.note || "",
-            });
-          });
-          lesson.sentences.splice(idx + 1, 1);
+          // Text + annotations + type/note carry-over all live in the pure
+          // model helper so the smoke test can cover the metadata rules (P0-1).
+          wjt.store.mergeSentence(lesson.sentences, idx);
           save();
           renderSentences();
         });
@@ -292,9 +285,18 @@
           save();
           renderSentences();
         }
-        if (!annCount(s)) return doDelete();
+        // Confirm whenever ANY teacher-authored metadata would be lost — not
+        // just annotations. A sentence with a type badge or a note but no labels
+        // used to delete silently (audit P0-1).
+        var lost = [];
+        if (annCount(s)) lost.push(annCount(s) + " label" + (annCount(s) === 1 ? "" : "s"));
+        if (s.types && Object.keys(s.types).length) lost.push("its sentence type");
+        if (s.notes) lost.push("its note");
+        if (!lost.length) return doDelete();
+        var what = lost.length === 1 ? lost[0]
+          : lost.slice(0, -1).join(", ") + " and " + lost[lost.length - 1];
         wjt.confirmDialog({
-          message: "Delete this sentence and its " + annCount(s) + " labels?",
+          message: "Delete this sentence and " + what + "?",
           confirmText: "Delete",
           danger: true,
           onConfirm: doDelete,
@@ -312,7 +314,7 @@
         row.innerHTML =
           '<button class="btn btn-primary" data-act="ok">Save text</button>' +
           '<button class="btn" data-act="cancel">Cancel</button>' +
-          '<span class="muted-note">Changing the words clears this sentence’s labels.</span>';
+          '<span class="muted-note">Changing the words clears this sentence’s labels; its type and note are kept.</span>';
         body.appendChild(ta);
         body.appendChild(row);
         ta.focus();
@@ -323,15 +325,16 @@
           if (!text) return wjt.toast("Sentence text can’t be empty.");
           if (text === s.text) return renderGrid();
           function applyText() {
-            var parts = wjt.splitSentences(text);
-            var replacements = parts.map(function (p) { return { text: p, annotations: [] }; });
-            lesson.sentences.splice.apply(lesson.sentences, [idx, 1].concat(replacements));
+            // Type/note carry-over and annotation clearing live in the pure
+            // model helper so the smoke test can cover the rules (P0-1).
+            wjt.store.rewriteSentenceText(lesson.sentences, idx, wjt.splitSentences(text));
             save();
             renderSentences();
           }
           if (!annCount(s)) return applyText();
           wjt.confirmDialog({
-            message: "This clears the sentence’s " + annCount(s) + " labels. Continue?",
+            message: "This clears the sentence’s " + annCount(s) +
+              " labels (its type and note are kept). Continue?",
             confirmText: "Continue",
             onConfirm: applyText,
           });

@@ -42,10 +42,41 @@ const wjt = sandbox.wjt;
 
 const args = process.argv.slice(2);
 const strict = args.includes("--complete");
-const files = args.filter((a) => a !== "--complete");
-if (!files.length) {
-  console.error("usage: node tools/validate-lesson.js [--complete] <file.json|file.md> [...]");
+const rawArgs = args.filter((a) => a !== "--complete");
+if (!rawArgs.length) {
+  console.error("usage: node tools/validate-lesson.js [--complete] <file.json|file.md|dir|glob> [...]");
   process.exit(2);
+}
+
+// Expand directories and simple globs OURSELVES. The documented command
+// `samples/*.json` works in Bash/CI but Windows/PowerShell passes the wildcard
+// through literally, so Node saw a nonexistent file and died with ENOENT
+// (audit, DX defect). Accept a directory (→ its .json files) or a `dir/*.ext`
+// glob here so the same command works in every shell.
+function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function expandArg(arg) {
+  try {
+    if (fs.statSync(arg).isDirectory()) {
+      return fs.readdirSync(arg).filter((f) => f.endsWith(".json"))
+        .map((f) => path.join(arg, f)).sort();
+    }
+    return [arg];   // an existing file — use as-is
+  } catch (e) { /* not an existing path — try treating it as a glob */ }
+  if (arg.includes("*")) {
+    const dir = path.dirname(arg);
+    const rx = new RegExp("^" + arg.split(/[\\/]/).pop().split("*").map(escapeRegExp).join(".*") + "$");
+    try {
+      const hits = fs.readdirSync(dir).filter((f) => rx.test(f)).map((f) => path.join(dir, f)).sort();
+      if (!hits.length) console.log("     --    " + arg + " — no files matched");
+      return hits;
+    } catch (e) { return [arg]; }   // dir missing → let the reader error clearly
+  }
+  return [arg];   // let fs.readFileSync report a clear ENOENT
+}
+const files = rawArgs.flatMap(expandArg);
+if (!files.length) {
+  console.log("\nNo files matched.");
+  process.exit(1);
 }
 
 let problems = 0;

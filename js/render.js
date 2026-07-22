@@ -665,6 +665,10 @@
   /**
    * Drag-to-select whole tokens inside one grid. Works with mouse and touch
    * (tokens set touch-action: none in CSS). Single click selects one token.
+   * Also fully keyboard-operable (audit P0-3): tokens are focusable with a
+   * roving tabindex; Arrow moves focus, Shift+Arrow extends a selection from the
+   * focused word, Enter/Space commits, Escape clears. Keyboard and pointer feed
+   * the SAME onDone, so there is one commit path.
    * Returns { clear(), set(range), get() }.
    */
   wjt.attachSelection = function (container, tokenEls, onDone) {
@@ -679,6 +683,45 @@
         el.classList.toggle("is-sel-last", on && i === hi);
       });
     }
+
+    // Make each word a focusable button with a roving tabindex — only one token
+    // is in the Tab order at a time, and Arrow keys move focus between them
+    // (the ARIA pattern for a composite widget). The token nodes persist across
+    // reflow (they're re-parented, not rebuilt), so these attributes stick.
+    tokenEls.forEach(function (el, i) {
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", i === 0 ? "0" : "-1");
+    });
+    function focusToken(i) {
+      if (i < 0 || i >= tokenEls.length) return;
+      tokenEls.forEach(function (el, j) { el.setAttribute("tabindex", j === i ? "0" : "-1"); });
+      tokenEls[i].focus();
+    }
+
+    container.addEventListener("keydown", function (e) {
+      var t = e.target.closest && e.target.closest(".gl-token");
+      if (!t || !container.contains(t)) return;
+      var i = +t.dataset.i;
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        var dir = e.key === "ArrowRight" ? 1 : -1;
+        if (e.shiftKey) {
+          // Extend the selection from the focused word.
+          if (anchor === -1) { anchor = i; head = i; }
+          head = Math.max(0, Math.min(tokenEls.length - 1, head + dir));
+          paint();
+          focusToken(head);
+        } else {
+          focusToken(i + dir);   // plain arrow just moves focus
+        }
+        e.preventDefault();
+      } else if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        if (anchor === -1) { anchor = head = i; paint(); }   // no extension → this word
+        onDone({ first: Math.min(anchor, head), last: Math.max(anchor, head) }, e);
+      } else if (e.key === "Escape") {
+        if (anchor > -1) { anchor = head = -1; paint(); e.preventDefault(); }
+      }
+    });
 
     container.addEventListener("pointerdown", function (e) {
       var t = e.target.closest && e.target.closest(".gl-token");

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sentence Forge UI audit fixture</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#app">Skip to content</a>
+  <nav class="topbar">
+    <a class="brand" href="#/"><svg class="anvil" viewBox="0 0 24 24" aria-hidden="true"><polygon points="1.5,8.5 8,6.5 21.5,6.5 21.5,10.5 8,10.5"/><polygon points="10,10.5 16,10.5 15,15 11,15"/><polygon points="5.5,19.5 20.5,19.5 17.5,15 8.5,15"/></svg>Sentence <em>Forge</em></a>
+    <button id="palette-toggle" title="Grammar colors: default" aria-pressed="false">🎨</button>
+    <button id="theme-toggle" title="Toggle light / dark theme">☀️</button>
+  </nav>
+  <main id="app"></main>
+  <div id="toasts" aria-live="polite"></div>
+  <footer class="appfoot"><span data-role="version"></span></footer>
+
+  <script src="../js/labels.js"></script>
+  <script src="../js/tokenize.js"></script>
+  <script src="../js/store.js"></script>
+  <script src="../js/examples.js"></script>
+  <script src="../js/render.js"></script>
+  <script src="../js/editor.js"></script>
+  <script src="../js/display.js"></script>
+  <script src="../js/quiz.js"></script>
+  <script>
+    (function () {
+      var ex = wjt.EXAMPLES.filter(function (item) { return item.id === "dracula-count-appears"; })[0];
+      var lesson = ex.build();
+      lesson.id = "ui-audit";
+      lesson.title = "UI Audit: Dense Complex Sentences";
+      localStorage.setItem("sentenceForge.lessons.v1", JSON.stringify([lesson]));
+      localStorage.setItem("sentenceForge.seeded", "1");
+    })();
+  </script>
+  <script src="../js/app.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      setTimeout(function () {
+        var state = new URLSearchParams(location.search).get("state") || "";
+        if (state.indexOf("present") === 0) {
+          var next = document.querySelector('[data-act="next"]');
+          if (next) next.click();
+          var all = document.querySelector('[data-act="all"]');
+          if (all) all.click();
+          var key = document.querySelector('[data-act="key"]');
+          if (key) key.click();
+          if (state === "present-explain") {
+            var ann = document.querySelector(".gl-bar, .gl-chip");
+            if (ann) ann.click();
+          }
+        }
+        if (state === "quiz-live") {
+          var start = document.querySelector('[data-act="start"]');
+          if (start) start.click();
+        }
+        if (state === "editor-palette") {
+          var token = document.querySelector(".gl-token");
+          if (token) {
+            var rect = token.getBoundingClientRect();
+            token.dispatchEvent(new PointerEvent("pointerdown", {
+              bubbles: true, button: 0, clientX: rect.left + 2, clientY: rect.top + 2
+            }));
+            document.dispatchEvent(new PointerEvent("pointerup", {
+              bubbles: true, button: 0, clientX: rect.left + 2, clientY: rect.top + 2
+            }));
+          }
+        }
+      }, 250);
+    });
+  </script>
+</body>
+</html>

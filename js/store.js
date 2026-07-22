@@ -25,15 +25,32 @@
   window.wjt = window.wjt || {};
 
   var KEY = "sentenceForge.lessons.v1";
+  var CORRUPT_KEY = KEY + ".corrupt";
 
   function readAll() {
+    var raw;
     try {
-      var raw = localStorage.getItem(KEY);
-      var list = raw ? JSON.parse(raw) : [];
-      return Array.isArray(list) ? list : [];
+      raw = localStorage.getItem(KEY);
     } catch (e) {
-      return [];
+      return [];   // storage access itself is disabled — nothing to read or salvage
     }
+    if (!raw) return [];
+    try {
+      var list = JSON.parse(raw);
+      if (Array.isArray(list)) return list;
+      // Valid JSON but not our array shape — treat like corruption below.
+    } catch (e) { /* not parseable — fall through to preserve */ }
+
+    // The stored library is unreadable (hand-editing, a truncated write, a
+    // foreign value). Returning [] keeps the app usable as before — but the very
+    // next save would overwrite this raw value and destroy any recoverable
+    // lessons. Copy it aside FIRST and flag it so the shell can surface recovery
+    // (audit P1-2). Only back up once, so repeated reads never clobber the copy.
+    try {
+      if (localStorage.getItem(CORRUPT_KEY) == null) localStorage.setItem(CORRUPT_KEY, raw);
+    } catch (e2) { /* best effort — couldn't preserve, but still don't crash */ }
+    wjt.store.corruptBackup = raw;
+    return [];
   }
 
   function writeAll(list) {
@@ -105,6 +122,54 @@
       copy.title = src.title + " (copy)";
       copy.createdAt = new Date().toISOString();
       return this.save(copy);
+    },
+
+    /* -------- sentence transforms (pure model logic, DOM-free) --------
+     * Kept here rather than inline in the editor so the smoke test can cover
+     * them. Both mutate `sentences` in place. */
+
+    // Merge the sentence at idx+1 into idx: concatenate text, re-offset and
+    // append the next sentence's annotations, and carry its grammar `types` and
+    // `notes` instead of discarding them (audit P0-1). `types` is an
+    // axis->option map: the survivor's choice per axis wins; `next` fills any
+    // axis it hasn't set. Notes are concatenated. No-op if either is missing.
+    mergeSentence: function (sentences, idx) {
+      var s = sentences[idx], next = sentences[idx + 1];
+      if (!s || !next) return sentences;
+      var offset = s.text.length + 1;
+      s.text = s.text + " " + next.text;
+      s.annotations = s.annotations || [];
+      (next.annotations || []).forEach(function (a) {
+        s.annotations.push({
+          id: wjt.uid(), start: a.start + offset, end: a.end + offset,
+          label: a.label, note: a.note || "",
+        });
+      });
+      if (next.types) {
+        s.types = s.types || {};
+        Object.keys(next.types).forEach(function (cat) {
+          if (!s.types[cat]) s.types[cat] = next.types[cat];
+        });
+        if (!Object.keys(s.types).length) delete s.types;
+      }
+      if (next.notes) s.notes = s.notes ? s.notes + " " + next.notes : next.notes;
+      sentences.splice(idx + 1, 1);
+      return sentences;
+    },
+
+    // Replace the sentence at idx with `parts` (new text, possibly split into
+    // several sentences). Annotations are offset-dependent and clear; the
+    // sentence `types` and `notes` survive on the first piece (audit P0-1).
+    // Returns the replacement array spliced in.
+    rewriteSentenceText: function (sentences, idx, parts) {
+      var s = sentences[idx];
+      var replacements = parts.map(function (p) { return { text: p, annotations: [] }; });
+      if (s && replacements.length) {
+        if (s.types) replacements[0].types = s.types;
+        if (s.notes) replacements[0].notes = s.notes;
+      }
+      sentences.splice.apply(sentences, [idx, 1].concat(replacements));
+      return replacements;
     },
   };
 
@@ -264,7 +329,13 @@
   };
 
   wjt.downloadJson = function (obj, filename) {
-    var blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json" });
+    wjt.downloadText(JSON.stringify(obj, null, 2), filename, "application/json");
+  };
+
+  // Download an already-serialized string verbatim (no re-stringify) — used to
+  // rescue a corrupt saved library, whose raw text may not even be JSON (P1-2).
+  wjt.downloadText = function (text, filename, type) {
+    var blob = new Blob([text], { type: type || "text/plain" });
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;

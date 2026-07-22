@@ -63,8 +63,10 @@ should watch the checks rather than assume green.
 
 ## Release checklist
 
-There are no releases, tags, or versions; `main` is what teachers get. Before
-pushing anything to `main` during the pilot:
+The app carries a version — `wjt.VERSION`, shown in the footer — and `0.1.0` is
+the first marked release. `main` is still what teachers get: GitHub Pages deploys
+it directly, so a tag is a marker, not a separate release channel. Before pushing
+anything to `main` during the alpha:
 
 - [ ] `node tools/smoke-test.js` passes and `samples/` is committed.
 - [ ] `node tools/gen-docs.js --check` is clean.

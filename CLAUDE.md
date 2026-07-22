@@ -47,28 +47,38 @@ node tools/cvd-check.js --palette=cbSafe --check  # opt-in CB palette gate: fail
                                 #   within-layer/axis pair collapses (report: drop --check)
 ```
 
-**`tools/dom-check.html`** covers rendering and needs a real browser:
+**`tools/dom-check.html`** covers rendering *and* the app runtime (it now boots
+the full app — `app.js`/`display.js`/`quiz.js` — against the real page chrome)
+and needs a real browser. Run it from **PowerShell**, which waits for the child
+process and captures its stdout — the Git-Bash `>` redirect returns an **empty
+dump** for this GUI-subsystem process (so does a bare PowerShell pipe):
 
-```bash
-DUMP="$(mktemp -d)/dom.html"
-"/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
-  --headless=new --dump-dom --user-data-dir="$(mktemp -d)" \
-  "file:///C:/dev/sentences/tools/dom-check.html" > "$DUMP"
-node tools/dom-check-report.js "$(cygpath -w "$DUMP")"
+```powershell
+$edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+$udd  = Join-Path $env:TEMP ("edge-udd-" + [guid]::NewGuid())
+$dump = Join-Path $env:TEMP ("dom-" + [guid]::NewGuid() + ".html")
+Start-Process -FilePath $edge -Wait -NoNewWindow -RedirectStandardOutput $dump `
+  -ArgumentList "--headless=new","--disable-gpu","--no-sandbox",`
+  "--virtual-time-budget=8000","--dump-dom","--user-data-dir=$udd",`
+  "file:///C:/dev/sentences/tools/dom-check.html"
+node tools/dom-check-report.js $dump
 ```
 
-Four hard-won details, all of which produce a *silent* wrong answer:
+Hard-won details, all of which produce a *silent* wrong answer:
 
+- Use **`Start-Process -Wait -RedirectStandardOutput`** (PowerShell). A plain `>`
+  from the Bash tool — the method that used to be documented here — now yields a
+  zero-byte dump, because msedge detaches from the redirected pipe. Start-Process
+  waits for the real child and captures it.
 - The URL needs a **Windows-style drive** (`file:///C:/dev/…`). A Git-Bash path
   (`file:///c/dev/…`) loads a browser error page and dumps 300KB of nothing.
 - The temporary **`--user-data-dir` is required** or the dump is empty.
-- Run it through the **Bash tool**, not PowerShell — PowerShell returns an empty
-  dump.
 - **Never grep the raw dump for `FAIL`.** It contains `dom-check.html`'s own
   inline script, which has the literal strings `PASS`/`FAIL` in it. Use
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
-A healthy run is **245 passed, 0 failed**.
+A healthy run reports **0 failed** (the stable contract). The pass *count* is an
+implementation detail — it grows as checks are added (currently 261).
 
 Report results honestly. If a check fails, say so with the output; don't
 summarize a red run as done.

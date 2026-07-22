@@ -110,8 +110,8 @@ Saying no to these keeps the app teachable in five minutes:
 
 ## Where it's going next
 
-The near-term plan is a **classroom pilot** rather than more features — see
-[pilot.md](pilot.md). The taxonomy is deliberately frozen during the pilot
-unless a teacher hits a real gap, because the open question is whether the
-Edit → Present → Practice loop survives a live class period, not whether label
+The near-term plan is **classroom testing** rather than more features — see
+[pilot.md](pilot.md). The taxonomy is kept **additive** during the open alpha —
+changed only if a teacher hits a real gap — because the open question is whether
+the Edit → Present → Practice loop survives a live class period, not whether label
 number 88 exists.

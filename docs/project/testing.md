@@ -111,23 +111,31 @@ PASS/FAIL lines it writes into `#result`:
 
 ### Running it headlessly
 
-```bash
-DUMP="$(mktemp -d)/dom.html"
-"/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
-  --headless=new --dump-dom --user-data-dir="$(mktemp -d)" \
-  "file:///C:/dev/sentences/tools/dom-check.html" > "$DUMP"
-node tools/dom-check-report.js "$(cygpath -w "$DUMP")"
+Use **PowerShell `Start-Process`**, which waits for the browser child and
+captures its stdout. A plain `>` redirect from Git Bash returns a **zero-byte
+dump** for this GUI-subsystem process — the msedge launcher detaches from the
+redirected pipe:
+
+```powershell
+$edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+$udd  = Join-Path $env:TEMP ("edge-udd-" + [guid]::NewGuid())
+$dump = Join-Path $env:TEMP ("dom-" + [guid]::NewGuid() + ".html")
+Start-Process -FilePath $edge -Wait -NoNewWindow -RedirectStandardOutput $dump `
+  -ArgumentList "--headless=new","--disable-gpu","--no-sandbox",`
+  "--virtual-time-budget=8000","--dump-dom","--user-data-dir=$udd",`
+  "file:///C:/dev/sentences/tools/dom-check.html"
+node tools/dom-check-report.js $dump
 ```
 
-Three things that will waste your afternoon if you don't know them:
+Things that will waste your afternoon if you don't know them:
 
+- **Use Start-Process, not a shell `>` redirect.** The Bash-tool redirect that
+  used to be documented here now yields an empty dump; Start-Process waits for
+  the real child and captures it.
 - **The URL needs a Windows-style drive** — `file:///C:/dev/…`, not
-  `file:///c/dev/…`. The Git-Bash-style path silently loads a browser error page,
-  and the dump comes back large but with no results in it.
+  `file:///c/dev/…`. The Git-Bash-style path silently loads a browser error page.
 - **The temporary `--user-data-dir` is required.** Without it the dump comes back
   empty.
-- **Run it from a POSIX shell (Git Bash), not PowerShell.** The same command
-  through PowerShell returns an empty dump.
 
 `tools/dom-check-report.js` parses the `<pre id="result">` block and exits
 non-zero on any FAIL, on a missing block, or on an empty one — so a dump that
@@ -136,8 +144,11 @@ never ran can't pass silently. **Don't grep the raw dump**: it contains
 `PASS`, `FAIL`, and `FAILURE(S)` in it, so a naive grep reports failures that
 aren't there. CI runs the Chrome equivalent through the same script.
 
-A healthy run reports **234 passed, 0 failed** and ends with
-`ALL DOM CHECKS PASSED`.
+The harness now boots the **full app** (`app.js`/`display.js`/`quiz.js`) against
+the real page chrome, so it also covers boot, the storage guards, keyboard token
+selection, and the confirm-dialog a11y. A healthy run reports **0 failed** and
+ends with `ALL DOM CHECKS PASSED`. The pass *count* is an implementation detail
+that grows as checks are added — don't hard-code it into a green/red judgment.
 
 ## Manual pass
 

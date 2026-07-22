@@ -322,7 +322,7 @@
           stageEl.appendChild(rf.root);
           var tip = document.createElement("div");
           tip.className = "sentence-tip";
-          tip.textContent = "Drag across the words (or click a single word), then press Check.";
+          tip.textContent = "Drag across the words (or click one; or Tab to a word and use Shift+Arrow), then press Check.";
           stageEl.appendChild(tip);
 
           answersEl.innerHTML =
