@@ -173,6 +173,12 @@ Present mode drops that chip into the same `.type-badges` row as the structure/
 purpose badges. Without `onClick` it falls back to an inline
 `div.sentence-note` (`span.sentence-note-tag "Note"` + text).
 
+`wjt.renderLegend(sentence, layers)` builds the Present-mode Key legend: for each
+shown layer (in `LAYER_ORDER`), a `div.legend-group` (a `div.legend-layer`
+heading + a `div.legend-items` of `span.legend-item` — `span.swatch[style="--c: …"]`
++ `b` abbr + name) for the distinct labels annotated in that sentence. Returns
+`null` when no shown layer has annotations, so the caller `hidden`s the container.
+
 ## The popover
 
 One floating popover at a time, managed by `wjt.showPopover(rect, contentEl)` /
@@ -309,7 +315,8 @@ div.view.view-present   (.is-fullscreen when the Fullscreen API is active)
 │  ├─ div.layer-chips[data-role=chips]     ← pill.pill-lg[data-layer] per layer,
 │  │                                          each with span.pill-count "x / y"
 │  ├─ span.spacer
-│  └─ button[data-act=all|none]  "Show all" / "Hide all"
+│  └─ button[data-act=all|none|key]  "Show all" / "Hide all" / "🔑 Key"
+│                                     (key is aria-pressed, .is-on when the legend shows)
 ├─ div.present-main
 │  ├─ section.card.stage[data-role=stage]
 │  │  ├─ div.stage-counter "Sentence i of N"
@@ -320,6 +327,10 @@ div.view.view-present   (.is-fullscreen when the Fullscreen API is active)
 │     ├─ button[data-act=prev] "↑"
 │     ├─ div.dots[data-role=dots]  ← button.dot per sentence (.is-on = current)
 │     └─ button[data-act=next] "↓"
+├─ div.present-legend[data-role=legend][hidden]    ← Key legend, filled by wjt.renderLegend()
+│  └─ div.legend-group ×(shown layers)             ← div.legend-layer heading +
+│                                                     div.legend-items (span.legend-item ×labels:
+│                                                     span.swatch + b abbr + name)
 └─ aside.explain.card[data-role=explain][hidden]   ← label explainer, filled on chip click
 ```
 
@@ -327,6 +338,13 @@ The `.explain` aside is filled by `showExplain()` (annotation),
 `showTypeExplain()` (sentence type), or `showNoteExplain()` (the sentence note
 chip); all reuse the `.ann-details-*` class family. Keyboard: ↑/← prev, ↓/→
 next, `f` fullscreen.
+
+The `.present-legend` is a transient, off-by-default view toggle (the `🔑 Key`
+button), a **sibling after `present-main`** so it reads as a full-width band under
+the stage rather than a column inside the horizontal stage/nav flex. `renderLegend()`
+rebuilds it on the same triggers as the chips — sentence change (`renderStage`) and
+layer toggle (`applyVisible`) — from `wjt.renderLegend(currentSentence, visible)`,
+listing per shown layer the distinct labels annotated in the on-screen sentence.
 
 ## Quiz view
 

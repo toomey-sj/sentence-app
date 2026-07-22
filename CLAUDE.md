@@ -40,6 +40,9 @@ node tools/gen-docs.js --check  # CI form: fails instead of writing
 
 # any lesson JSON, through the real importer; also scans .md for ```json examples
 node tools/validate-lesson.js samples/*.json docs/custom-gpt-instructions.md
+
+node tools/cvd-check.js         # color-blind screen: pairs that collapse under CVD (report)
+node tools/cvd-check.js --check # CI form: fails only if a same-abbr pair in one layer collapses
 ```
 
 **`tools/dom-check.html`** covers rendering and needs a real browser:
@@ -63,7 +66,7 @@ Four hard-won details, all of which produce a *silent* wrong answer:
   inline script, which has the literal strings `PASS`/`FAIL` in it. Use
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
-A healthy run is **238 passed, 0 failed**.
+A healthy run is **245 passed, 0 failed**.
 
 Report results honestly. If a check fails, say so with the output; don't
 summarize a red run as done.

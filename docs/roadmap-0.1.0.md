@@ -110,6 +110,7 @@ Per [CLAUDE.md](../CLAUDE.md):
 node tools/smoke-test.js         # logic layer; regenerates samples/ — commit the result
 node tools/gen-docs.js --check   # CI form of the doc generator
 node tools/validate-lesson.js samples/*.json docs/custom-gpt-instructions.md
+node tools/cvd-check.js --check  # color-blind guard: no same-abbr pair collapses
 ```
 
 Plus the browser DOM check (P2) for anything touching [render.js](../js/render.js).

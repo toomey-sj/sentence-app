@@ -128,6 +128,37 @@
       !!noteEl && noteEl.innerHTML.indexOf("&lt;cleft&gt;") !== -1 &&
       noteEl.innerHTML.indexOf("<cleft>") === -1);
 
+    // 5. Present-mode Key legend: shows only shown layers annotated in the
+    //    sentence, one item per distinct label (de-duped), swatch · abbr · name.
+    var legSentence = {
+      text: "x",
+      annotations: [
+        { label: "noun" }, { label: "noun" }, { label: "verb" },  // pos (noun repeats)
+        { label: "subject" },                                      // part
+      ],
+    };
+    check("legend: null when no layers shown",
+      wjt.renderLegend(legSentence, []) === null);
+    check("legend: null when shown layer has no annotations here",
+      wjt.renderLegend({ text: "x", annotations: [{ label: "noun" }] }, ["clause"]) === null);
+    var legEl = wjt.renderLegend(legSentence, ["pos"]);
+    check("legend: renders a group for the shown layer",
+      !!legEl && legEl.querySelectorAll(".legend-group").length === 1);
+    check("legend: layer heading names the layer",
+      !!legEl && legEl.querySelector(".legend-layer").textContent === wjt.LAYERS.pos.name);
+    check("legend: one item per distinct label (noun de-duped)",
+      !!legEl && legEl.querySelectorAll(".legend-item").length === 2);
+    check("legend: item carries swatch, abbr, and name",
+      !!legEl && (function () {
+        var it = legEl.querySelector(".legend-item");
+        return (it.querySelector(".swatch").getAttribute("style") || "").indexOf(wjt.LABELS.noun.color) !== -1 &&
+          it.querySelector("b").textContent === wjt.LABELS.noun.abbr &&
+          it.textContent.indexOf(wjt.LABELS.noun.name) !== -1;
+      })());
+    var legTwo = wjt.renderLegend(legSentence, ["pos", "part"]);
+    check("legend: one group per shown layer with annotations",
+      !!legTwo && legTwo.querySelectorAll(".legend-group").length === 2);
+
     out.push(fails ? fails + " FAILURE(S)" : "ALL DOM CHECKS PASSED");
     document.getElementById("result").textContent = out.join("\n");
   })();

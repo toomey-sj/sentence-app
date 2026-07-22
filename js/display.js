@@ -43,6 +43,7 @@
       '  <span class="spacer"></span>' +
       '  <button class="btn btn-sm" data-act="all">Show all</button>' +
       '  <button class="btn btn-sm" data-act="none">Hide all</button>' +
+      '  <button class="btn btn-sm" data-act="key" aria-pressed="false">🔑 Key</button>' +
       "</div>" +
       '<div class="present-main">' +
       '  <section class="card stage" data-role="stage"></section>' +
@@ -52,12 +53,19 @@
       '    <button class="btn btn-big" data-act="next" title="Next sentence">↓</button>' +
       "  </nav>" +
       "</div>" +
+      '<div class="present-legend" data-role="legend" hidden></div>' +
       '<aside class="explain card" data-role="explain" hidden></aside>';
 
     var chipsEl = view.querySelector('[data-role="chips"]');
     var stageEl = view.querySelector('[data-role="stage"]');
     var explainEl = view.querySelector('[data-role="explain"]');
     var dotsEl = view.querySelector('[data-role="dots"]');
+    var legendEl = view.querySelector('[data-role="legend"]');
+
+    // The Key legend is a transient view toggle (like Show all): off by default,
+    // not persisted. renderLegend() rebuilds it from the current sentence and the
+    // visible layers, so it tracks the exact triggers the chips do.
+    var legendOn = false;
 
     // The current rendered sentence and its "turn on a level" tip. A layer
     // toggle patches these in place (see applyVisible) instead of rebuilding.
@@ -188,6 +196,18 @@
         pills[i].classList.toggle("is-on", visible.indexOf(pills[i].dataset.layer) !== -1);
       }
       if (tipEl) tipEl.hidden = visible.length > 0;
+      renderLegend();
+    }
+
+    // Rebuild the Key legend from the current sentence + visible layers. Hidden
+    // when the toggle is off or nothing shown is annotated. Called on the same
+    // triggers as the chips: sentence change (renderStage) and layer toggle
+    // (applyVisible).
+    function renderLegend() {
+      legendEl.innerHTML = "";
+      var content = wjt.renderLegend(lesson.sentences[idx], visible);
+      if (content) legendEl.appendChild(content);
+      legendEl.hidden = !legendOn || !content;
     }
 
     function renderStage() {
@@ -224,6 +244,7 @@
       tipEl.textContent = "Turn on a level above to reveal the breakdown.";
       tipEl.hidden = visible.length > 0;
       stageEl.appendChild(tipEl);
+      renderLegend();
       renderDots();
     }
 
@@ -241,6 +262,13 @@
     });
     view.querySelector('[data-act="none"]').addEventListener("click", function () {
       visible = []; applyVisible();
+    });
+    var keyBtn = view.querySelector('[data-act="key"]');
+    keyBtn.addEventListener("click", function () {
+      legendOn = !legendOn;
+      keyBtn.setAttribute("aria-pressed", legendOn ? "true" : "false");
+      keyBtn.classList.toggle("is-on", legendOn);
+      renderLegend();
     });
 
     // Full screen — the Fullscreen API works from file:// and needs no network.

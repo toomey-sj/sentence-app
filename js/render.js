@@ -586,6 +586,54 @@
   };
 
   /**
+   * Legend for one sentence: per shown layer (in LAYER_ORDER), the distinct
+   * labels actually annotated in that sentence, each as swatch · abbr · name.
+   * Returns a DOM element, or null if nothing is shown/annotated.
+   */
+  wjt.renderLegend = function (sentence, layers) {
+    var anns = (sentence && sentence.annotations) || [];
+    var wrap = document.createElement("div");
+    var any = false;
+    wjt.LAYER_ORDER.forEach(function (layerId) {
+      if (layers.indexOf(layerId) === -1) return;
+      // Distinct labels annotated in this sentence at this layer, first-appearance
+      // order, de-duped by label id.
+      var seen = {};
+      var labelIds = [];
+      anns.forEach(function (a) {
+        var l = wjt.layerOf(a.label);
+        if (!l || l.id !== layerId) return;
+        if (seen[a.label]) return;
+        seen[a.label] = true;
+        labelIds.push(a.label);
+      });
+      if (!labelIds.length) return;
+      any = true;
+      var group = document.createElement("div");
+      group.className = "legend-group";
+      var heading = document.createElement("div");
+      heading.className = "legend-layer";
+      heading.textContent = wjt.LAYERS[layerId].name;
+      group.appendChild(heading);
+      var items = document.createElement("div");
+      items.className = "legend-items";
+      labelIds.forEach(function (id) {
+        var label = wjt.LABELS[id];
+        var item = document.createElement("span");
+        item.className = "legend-item";
+        item.innerHTML =
+          '<span class="swatch" style="--c:' + label.color + '"></span>' +
+          "<b>" + wjt.escapeHtml(label.abbr) + "</b> " +
+          wjt.escapeHtml(label.name);
+        items.appendChild(item);
+      });
+      group.appendChild(items);
+      wrap.appendChild(group);
+    });
+    return any ? wrap : null;
+  };
+
+  /**
    * Render a sentence's free-text note.
    * Returns a DOM element, or null if the sentence carries no note.
    * With `onClick`, returns a compact chip (styled like a type badge) that
