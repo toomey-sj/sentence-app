@@ -16,6 +16,92 @@
     setTimeout(function () { t.remove(); }, (ms || 3200) + 400);
   };
 
+  /* ---------------- in-app confirm dialog ----------------
+   * A centered modal with a dimmed backdrop — the app's own replacement for the
+   * browser's confirm(). Callback-based (not a Promise) to match the ES5 flavor
+   * here. opts: { message, confirmText, cancelText, danger, onConfirm }.
+   * Closes on confirm, cancel, backdrop click, or Escape; restores focus on close. */
+  wjt.confirmDialog = function (opts) {
+    opts = opts || {};
+    var prevFocus = document.activeElement;
+
+    var backdrop = document.createElement("div");
+    backdrop.className = "modal-backdrop";
+
+    var modal = document.createElement("div");
+    modal.className = "modal";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+
+    var msg = document.createElement("p");
+    msg.className = "modal-msg";
+    msg.textContent = opts.message || "Are you sure?";
+
+    var row = document.createElement("div");
+    row.className = "btn-row modal-actions";
+
+    var cancel = document.createElement("button");
+    cancel.className = "btn";
+    cancel.textContent = opts.cancelText || "Cancel";
+
+    var ok = document.createElement("button");
+    ok.className = "btn btn-primary" + (opts.danger ? " btn-danger" : "");
+    ok.textContent = opts.confirmText || "OK";
+
+    row.appendChild(cancel);
+    row.appendChild(ok);
+    modal.appendChild(msg);
+    modal.appendChild(row);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    ok.focus();
+
+    function close() {
+      document.removeEventListener("keydown", onKey);
+      backdrop.remove();
+      if (prevFocus && prevFocus.focus) { try { prevFocus.focus(); } catch (e) { /* gone */ } }
+    }
+    function onKey(e) { if (e.key === "Escape") close(); }
+
+    cancel.addEventListener("click", close);
+    backdrop.addEventListener("pointerdown", function (e) { if (e.target === backdrop) close(); });
+    ok.addEventListener("click", function () {
+      close();
+      if (opts.onConfirm) opts.onConfirm();
+    });
+    document.addEventListener("keydown", onKey);
+  };
+
+  /* ---------------- shared lesson import ----------------
+   * Reads File objects (JSON), imports each via wjt.importBundle, saves the
+   * lessons, toasts a summary, and routes to the Library. Shared by the Home
+   * splash and the Library so both offer the same import. `onDone` (optional)
+   * runs after a successful import — used by Library to re-render in place. */
+  wjt.importLessonFiles = function (files, onDone) {
+    Array.prototype.slice.call(files || []).forEach(function (file) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var data = JSON.parse(reader.result);
+          var result = wjt.importBundle(data);
+          if (!result.lessons.length) throw new Error("No usable lessons in the file.");
+          result.lessons.forEach(function (l) { wjt.store.save(l); });
+          wjt.toast("Imported " + result.lessons.length + " lesson" +
+            (result.lessons.length === 1 ? "" : "s") +
+            (result.warnings.length ? " (" + result.warnings.length + " warning(s) — see console)." : "."));
+          result.warnings.forEach(function (w) { console.warn("[Sentence Forge import]", w); });
+          if (onDone) onDone();
+          // The lessons grid lives on the Library screen — go show it there.
+          else if (location.hash === "#/library") route();
+          else location.hash = "#/library";
+        } catch (e) {
+          wjt.toast("Import failed: " + e.message, 5000);
+        }
+      };
+      reader.readAsText(file);
+    });
+  };
+
   /* ---------------- per-view cleanup ---------------- */
   var cleanups = [];
   wjt.onViewCleanup = function (fn) { cleanups.push(fn); };
@@ -94,31 +180,8 @@
       fileInput.click();
     });
     fileInput.addEventListener("change", function () {
-      var files = Array.prototype.slice.call(fileInput.files || []);
-      fileInput.value = "";
-      var imported = 0;
-      files.forEach(function (file) {
-        var reader = new FileReader();
-        reader.onload = function () {
-          try {
-            var data = JSON.parse(reader.result);
-            var result = wjt.importBundle(data);
-            if (!result.lessons.length) throw new Error("No usable lessons in the file.");
-            result.lessons.forEach(function (l) { wjt.store.save(l); });
-            imported += result.lessons.length;
-            wjt.toast("Imported " + result.lessons.length + " lesson" +
-              (result.lessons.length === 1 ? "" : "s") +
-              (result.warnings.length ? " (" + result.warnings.length + " warning(s) — see console)." : "."));
-            result.warnings.forEach(function (w) { console.warn("[Sentence Forge import]", w); });
-            // The lessons grid lives on the Library screen — go show it there.
-            if (location.hash === "#/library") route();
-            else location.hash = "#/library";
-          } catch (e) {
-            wjt.toast("Import failed: " + e.message, 5000);
-          }
-        };
-        reader.readAsText(file);
-      });
+      wjt.importLessonFiles(fileInput.files);   // captures files synchronously
+      fileInput.value = "";                      // safe to reset after the call
     });
 
     var demoHost = view.querySelector('[data-role="blocks-demo-host"]');
@@ -138,7 +201,11 @@
       '<section data-role="my-lessons">' +
       '  <div class="section-head">' +
       '    <h2 class="section-title">Your lessons</h2>' +
+      '    <span class="spacer"></span>' +
+      '    <button class="btn btn-sm btn-primary" data-act="new" title="Start a new lesson">＋ New lesson</button>' +
+      '    <button class="btn btn-sm" data-act="import" title="Import lessons from a JSON file">⬆ Import</button>' +
       '    <button class="btn btn-sm" data-act="export-all" title="Download every lesson as one JSON">⬇ Export all</button>' +
+      '    <input type="file" accept=".json,application/json" data-role="file" hidden multiple />' +
       "  </div>" +
       '  <div class="lesson-grid" data-role="lessons"></div>' +
       "</section>" +
@@ -197,9 +264,15 @@
           renderLessons();
         });
         card.querySelector('[data-act="del"]').addEventListener("click", function () {
-          if (!confirm("Delete “" + lesson.title + "”? This can’t be undone.")) return;
-          wjt.store.remove(lesson.id);
-          renderLessons();
+          wjt.confirmDialog({
+            message: "Delete “" + lesson.title + "”? This can’t be undone.",
+            confirmText: "Delete",
+            danger: true,
+            onConfirm: function () {
+              wjt.store.remove(lesson.id);
+              renderLessons();
+            },
+          });
         });
         lessonsEl.appendChild(card);
       });
@@ -232,6 +305,24 @@
     view.querySelector('[data-act="export-all"]').addEventListener("click", function () {
       if (!wjt.store.list().length) { wjt.toast("No lessons to export."); return; }
       wjt.downloadJson(wjt.exportAllLessons(), "sentence-forge-lessons.json");
+    });
+
+    view.querySelector('[data-act="new"]').addEventListener("click", function () {
+      try {
+        var lesson = wjt.store.save(wjt.store.create());
+        location.hash = "#/edit/" + lesson.id;
+      } catch (e) {
+        wjt.toast(e.message, 6000);
+      }
+    });
+
+    var fileInput = view.querySelector('[data-role="file"]');
+    view.querySelector('[data-act="import"]').addEventListener("click", function () {
+      fileInput.click();
+    });
+    fileInput.addEventListener("change", function () {
+      wjt.importLessonFiles(fileInput.files, renderLessons);   // captures files synchronously
+      fileInput.value = "";                                     // safe to reset after the call
     });
 
     renderLessons();
@@ -276,6 +367,15 @@
 
     var vEl = document.querySelector('[data-role="version"]');
     if (vEl) vEl.textContent = "v" + wjt.VERSION;
+
+    // Prune empty + un-named drafts left behind by a hard refresh mid-edit (the
+    // editor's discard-on-exit guard can't fire on a page reload). Runs before the
+    // seed check so a lone abandoned draft never blocks re-seeding the sample.
+    wjt.store.list().forEach(function (l) {
+      var empty = !l.sentences.length;
+      var unnamed = !(l.title || "").trim() || l.title === "Untitled lesson";
+      if (empty && unnamed) wjt.store.remove(l.id);
+    });
 
     // First run: seed the sample so the app never starts empty.
     if (!localStorage.getItem("sentenceForge.seeded") && !wjt.store.list().length) {

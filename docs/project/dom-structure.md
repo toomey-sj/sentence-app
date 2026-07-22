@@ -32,14 +32,22 @@ injected into `#app`. Full file: [`index.html`](../../index.html).
 body
 ├─ nav.topbar
 │  ├─ a.brand[href="#/"]        ← svg.anvil + "Sentence Forge" wordmark
-│  ├─ a.kofi                    ← the only external link; inline base64 image
 │  ├─ button#palette-toggle     ← 🎨, aria-pressed; toggles default/cbSafe grammar palette, wired in app.js
+│  │                              carries margin-left:auto to pin the toggle cluster right
 │  └─ button#theme-toggle       ← ☀️ / 🌙, wired in app.js
 ├─ main#app                     ← every view replaces this element's contents
 ├─ div#toasts[aria-live=polite] ← transient .toast children, added by wjt.toast()
-├─ footer.appfoot               ← span[data-role=version], set once at boot ("v" + wjt.VERSION)
+├─ footer.appfoot               ← span[data-role=version] (set once at boot, "v" + wjt.VERSION)
+│                                 + a.kofi (the only external link; inline base64 image)
 └─ <script> ×9                  ← load order IS the dependency graph
 ```
+
+A **confirm dialog** (`wjt.confirmDialog` in `app.js`) is the app's own
+replacement for the browser `confirm()`. Like the popover and toasts it appends to
+`document.body`, not inside a view: `div.modal-backdrop > div.modal[role=dialog]`
+containing `p.modal-msg` + `div.btn-row.modal-actions` (Cancel + confirm button,
+the confirm being `.btn-danger` for destructive actions). It closes on confirm,
+cancel, backdrop click, or Escape, and restores focus on close.
 
 `#app` is the single mount point. `route()` in [`js/app.js`](../../js/app.js)
 clears it and calls one view function per hash. `#toasts`, `#palette-toggle`,
@@ -228,9 +236,13 @@ view's "Library" button and from the "← Library" back-links in every other vie
 ```
 div.view.view-library
 ├─ section[data-role=my-lessons]
-│  ├─ div.section-head              ← flex row: title + Export-all
+│  ├─ div.section-head              ← flex row: title + spacer + actions
 │  │  ├─ h2.section-title "Your lessons"
-│  │  └─ button[data-act=export-all] "⬇ Export all"   ← wjt.exportAllLessons()
+│  │  ├─ span.spacer
+│  │  ├─ button[data-act=new]        "＋ New lesson"   (.btn-primary)
+│  │  ├─ button[data-act=import]     "⬆ Import"        ← triggers the hidden file input
+│  │  ├─ button[data-act=export-all] "⬇ Export all"   ← wjt.exportAllLessons()
+│  │  └─ input[type=file][data-role=file][hidden][multiple]  ← → wjt.importLessonFiles()
 │  └─ div.lesson-grid[data-role=lessons]
 │     └─ article.card.lesson-card    ×N   (or .empty-state card if none)
 │        ├─ h3, p.lesson-desc

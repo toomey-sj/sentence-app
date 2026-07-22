@@ -11,6 +11,16 @@
       return;
     }
 
+    // A brand-new lesson is persisted the instant "New lesson" is clicked so the
+    // editor can load it by id. If the teacher navigates away without ever giving
+    // it a title or a sentence, discard it so empty "Untitled lesson" drafts never
+    // clutter the Library. (Both conditions required, per the to-do.)
+    wjt.onViewCleanup(function () {
+      var empty = !lesson.sentences.length;
+      var unnamed = !lesson.title.trim() || lesson.title === "Untitled lesson";
+      if (empty && unnamed) wjt.store.remove(lesson.id);
+    });
+
     var savedFlash = null;
     function save() {
       try { wjt.store.save(lesson); } catch (e) { wjt.toast(e.message, 6000); return; }
@@ -277,10 +287,18 @@
         });
       }
       head.querySelector('[data-act="del"]').addEventListener("click", function () {
-        if (annCount(s) && !confirm("Delete this sentence and its " + annCount(s) + " labels?")) return;
-        lesson.sentences.splice(idx, 1);
-        save();
-        renderSentences();
+        function doDelete() {
+          lesson.sentences.splice(idx, 1);
+          save();
+          renderSentences();
+        }
+        if (!annCount(s)) return doDelete();
+        wjt.confirmDialog({
+          message: "Delete this sentence and its " + annCount(s) + " labels?",
+          confirmText: "Delete",
+          danger: true,
+          onConfirm: doDelete,
+        });
       });
 
       function openTextEditor() {
@@ -304,12 +322,19 @@
           var text = ta.value.trim();
           if (!text) return wjt.toast("Sentence text can’t be empty.");
           if (text === s.text) return renderGrid();
-          if (annCount(s) && !confirm("This clears the sentence’s " + annCount(s) + " labels. Continue?")) return;
-          var parts = wjt.splitSentences(text);
-          var replacements = parts.map(function (p) { return { text: p, annotations: [] }; });
-          lesson.sentences.splice.apply(lesson.sentences, [idx, 1].concat(replacements));
-          save();
-          renderSentences();
+          function applyText() {
+            var parts = wjt.splitSentences(text);
+            var replacements = parts.map(function (p) { return { text: p, annotations: [] }; });
+            lesson.sentences.splice.apply(lesson.sentences, [idx, 1].concat(replacements));
+            save();
+            renderSentences();
+          }
+          if (!annCount(s)) return applyText();
+          wjt.confirmDialog({
+            message: "This clears the sentence’s " + annCount(s) + " labels. Continue?",
+            confirmText: "Continue",
+            onConfirm: applyText,
+          });
         });
       }
 
