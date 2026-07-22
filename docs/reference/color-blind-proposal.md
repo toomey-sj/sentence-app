@@ -189,6 +189,36 @@ impact.
   before it ships. I can generate and validate a candidate 9-hue set as the
   concrete next step if you want to move from review to plan.
 
+> **As built** (Tier B shipped via [`plans/003-tier-b-cvd-palette.md`](../../plans/done/003-tier-b-cvd-palette.md)):
+>
+> - **Data model, not CSS.** Grammar colors live in [`labels.js`](../../js/labels.js)
+>   and are injected inline as `--c`, so the switch is a data rewrite plus a
+>   re-render, not a `:root` swap. `wjt.PALETTES` holds a `default` snapshot
+>   (taken from the resolved inline `color:` fields — still the single source of
+>   truth) and a hand-tuned `cbSafe` map of the ~35 color *anchors*;
+>   `wjt.applyPalette(name)` writes anchor colors onto `wjt.LABELS` /
+>   `SENTENCE_TYPES` and re-inherits non-anchor subtypes, exactly mirroring the
+>   file's own inheritance pass. Round-trips exactly (verified: 0 mismatches
+>   back to default). `labels.js` stays DOM-free.
+> - **The toggle.** A 🎨 `#palette-toggle` header button beside ☀️/🌙
+>   ([`index.html`](../../index.html)), wired in [`app.js`](../../js/app.js)
+>   (`applyPalette` mirrors `applyTheme`; `wjt.rerender = route` repaints). The
+>   choice persists in `localStorage["sentenceForge.palette"]` and is applied
+>   *before* the first `route()` so the opening view paints in the chosen palette
+>   with no flash of default. Toggling in Present accepts a reset to slide 1.
+> - **The gate.** [`tools/cvd-check.js`](../../tools/cvd-check.js) grew a
+>   `--palette=<name>` arg (it calls `wjt.applyPalette` in-sandbox and screens
+>   live) and a stricter acceptance mode: `node tools/cvd-check.js
+>   --palette=cbSafe --check` fails if **any** normally-distinct within-layer /
+>   within-axis pair collapses under a CVD, not just same-abbr pairs. It exits 0.
+> - **The `cbSafe` design.** Every category is fanned across **L\*** (the axis all
+>   three dichromacies preserve) as well as hue; the subject/predicate families
+>   are lightness ladders, determiner is a near-neutral grey, and POS/type colors
+>   stay light enough for the fixed dark chip/badge text. The shipped set clears
+>   ΔE2000 ≥ 13 for every normally-distinct pair under protan/deutan/tritan
+>   (floor 12). Before/after: default collapses ~35 pairs across the six sets
+>   (run `node tools/cvd-check.js`); `--palette=cbSafe` reports **zero**.
+
 ### Tier C — redundant *shape/texture* channel (highest-density views only)
 
 For the projected diagram, where the most spans coexist, a second non-color

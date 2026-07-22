@@ -33,6 +33,7 @@ body
 ├─ nav.topbar
 │  ├─ a.brand[href="#/"]        ← svg.anvil + "Sentence Forge" wordmark
 │  ├─ a.kofi                    ← the only external link; inline base64 image
+│  ├─ button#palette-toggle     ← 🎨, aria-pressed; toggles default/cbSafe grammar palette, wired in app.js
 │  └─ button#theme-toggle       ← ☀️ / 🌙, wired in app.js
 ├─ main#app                     ← every view replaces this element's contents
 ├─ div#toasts[aria-live=polite] ← transient .toast children, added by wjt.toast()
@@ -41,9 +42,12 @@ body
 ```
 
 `#app` is the single mount point. `route()` in [`js/app.js`](../../js/app.js)
-clears it and calls one view function per hash. `#toasts`, `#theme-toggle`, and
-`.appfoot` live *outside* `#app`, so they persist across navigations — the footer
-version string is written once at boot, not per route.
+clears it and calls one view function per hash. `#toasts`, `#palette-toggle`,
+`#theme-toggle`, and `.appfoot` live *outside* `#app`, so they persist across
+navigations — the footer version string is written once at boot, not per route.
+The palette toggle rewrites grammar colors in `wjt.LABELS`/`SENTENCE_TYPES` and
+calls `wjt.rerender()` (= `route()`), so the current view repaints its inline
+`--c` values in the chosen palette.
 
 ## Conventions (read this first)
 

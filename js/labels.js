@@ -637,4 +637,131 @@
   wjt.isSentenceType = function (categoryId, optionId) {
     return !!wjt.sentenceTypeOption(categoryId, optionId);
   };
+
+  /* ------------------------------------------------------------------ *
+   * Palettes — the grammar colors are DATA, not CSS. Renderers read
+   * `label.color` (and each sentence-type option's `color`) live and write
+   * it inline as `--c`, so swapping these values and re-rendering repaints
+   * everything. Annotations store label *ids*, never colors, so a palette is
+   * a pure presentation switch with zero migration.
+   *
+   * The `default` palette is a snapshot of the resolved hues above (single
+   * source of truth stays the inline `color:` fields). `cbSafe` is an opt-in,
+   * color-vision-deficiency-tuned alternate that separates categories by
+   * LIGHTNESS as well as hue, so every within-layer/axis pair stays distinct
+   * under protanopia, deuteranopia, and tritanopia. It lists only the ~35
+   * color *anchors* (the ids that declare `color:` above); subtypes without
+   * their own anchor re-inherit from their updated parent — the same rule the
+   * inheritance pass uses. Validated by `tools/cvd-check.js --palette=cbSafe
+   * --check`. See docs/reference/color-blind-proposal.md §2 (Tier B).
+   * ------------------------------------------------------------------ */
+  wjt.PALETTES = {
+    default: { labels: {}, types: {} },
+    cbSafe: {
+      // Tuned with tools/cvd-check.js so every within-layer/axis pair of
+      // normally-distinct colors clears ΔE2000 ≥ 13 under protanopia,
+      // deuteranopia, AND tritanopia (floor 12; gate: --palette=cbSafe --check).
+      // Categories are separated by LIGHTNESS as well as hue — the only axis all
+      // three dichromacies preserve — so the "all the X words are one color"
+      // glance survives when hue collapses. POS/type colors stay light enough
+      // for the fixed dark chip/badge text; the subject & predicate families
+      // are lightness ladders (as in the default palette).
+      labels: {
+        /* Parts of speech — 9 categories fanned across L*. */
+        noun: "#e7e540",            // yellow      (lightest warm)
+        pronoun: "#c39800",         // gold        (darker warm vs noun)
+        verb: "#d35c5f",            // red
+        adjective: "#cac4ff",       // light lavender
+        adverb: "#79a6ff",          // blue        (darker than adjective)
+        preposition: "#1c918d",     // teal
+        conjunction: "#ffbadc",     // pink
+        determiner: "#bab1b9",      // neutral grey (clears every hue by chroma)
+        interjection: "#e6965a",    // orange
+
+        /* Sentence parts — subject & predicate as lightness ladders (dark→light),
+         * object / complement / appositive one hue each. */
+        subject: "#80a6f3",         // blue (base)
+        "simple-subject": "#2d86ef",
+        "complete-subject": "#a8bffc",
+        "compound-subject": "#256fc7",
+        "understood-subject": "#b2c7ff",
+        predicate: "#e27b9c",       // rose (base)
+        "simple-predicate": "#da5a87",
+        "complete-predicate": "#ffb2c8",
+        "compound-predicate": "#d71272",
+        object: "#77f5a4",          // green
+        complement: "#8b78d2",      // violet
+        appositive: "#8d6528",      // bronze
+
+        /* Phrases — mirror the POS hues where they correspond, plus the two
+         * phrase-only anchors (verbal-phrase violet, appositive-phrase green). */
+        "noun-phrase": "#e7e540",
+        "verb-phrase": "#d35c5f",
+        "prepositional-phrase": "#1c918d",
+        "verbal-phrase": "#8b78d2",      // violet
+        "gerund-phrase": "#79a6ff",      // blue (mirrors adverb)
+        "infinitive-phrase": "#cac4ff",  // lavender (mirrors adjective)
+        "participial-phrase": "#ffbadc", // pink (mirrors conjunction)
+        "appositive-phrase": "#77f5a4",  // green
+        "absolute-phrase": "#c39800",    // gold
+
+        /* Clauses — mirror the shared hues. */
+        "independent-clause": "#9dc3fd", // blue
+        "dependent-clause": "#e6965a",   // orange
+        "relative-clause": "#8b78d2",    // violet
+        "adverbial-clause": "#1c918d",   // teal
+        "noun-clause": "#e7e540",        // yellow
+      },
+      types: {
+        structure: {
+          simple: "#77f5a4",             // green
+          compound: "#79a6ff",           // blue
+          complex: "#8b78d2",            // violet
+          "compound-complex": "#ffbadc", // pink
+        },
+        purpose: {
+          declarative: "#69c4f9",        // sky
+          interrogative: "#e6965a",      // orange
+          imperative: "#1c918d",         // teal
+          exclamatory: "#d35c5f",        // red
+        },
+      },
+    },
+  };
+
+  /* Snapshot the fully-resolved default so switching back is exact. */
+  Object.keys(wjt.LABELS).forEach(function (id) {
+    wjt.PALETTES.default.labels[id] = wjt.LABELS[id].color;
+  });
+  wjt.SENTENCE_TYPE_ORDER.forEach(function (axis) {
+    var o = wjt.SENTENCE_TYPES[axis].options, m = (wjt.PALETTES.default.types[axis] = {});
+    Object.keys(o).forEach(function (oid) { m[oid] = o[oid].color; });
+  });
+
+  wjt.PALETTE_ORDER = ["default", "cbSafe"];
+  wjt.activePalette = "default";
+
+  /* Apply a palette by name: write anchor colors onto wjt.LABELS /
+   * SENTENCE_TYPES so the next render reads them. DOM-free — touches data
+   * only. Renderers must be re-run for the change to appear on screen. */
+  wjt.applyPalette = function (name) {
+    var p = wjt.PALETTES[name] || wjt.PALETTES.default;
+    Object.keys(p.labels).forEach(function (id) {
+      if (wjt.LABELS[id]) wjt.LABELS[id].color = p.labels[id];
+    });
+    // Non-anchor subtypes re-inherit from their (now updated) parent.
+    Object.keys(wjt.LABELS).forEach(function (id) {
+      var l = wjt.LABELS[id];
+      if (l.parent && !(id in p.labels) && wjt.LABELS[l.parent]) {
+        l.color = wjt.LABELS[l.parent].color;
+      }
+    });
+    Object.keys(p.types).forEach(function (axis) {
+      var o = wjt.SENTENCE_TYPES[axis] && wjt.SENTENCE_TYPES[axis].options;
+      if (o) Object.keys(p.types[axis]).forEach(function (oid) {
+        if (o[oid]) o[oid].color = p.types[axis][oid];
+      });
+    });
+    wjt.activePalette = (name in wjt.PALETTES) ? name : "default";
+  };
 })();

@@ -29,6 +29,21 @@ vm.runInContext(fs.readFileSync(path.join(root, "js", "labels.js"), "utf8"), san
 });
 const wjt = sandbox.wjt;
 
+// Optional --palette=<name>: retune the live colors to an alternate palette
+// (wjt.applyPalette is defined in labels.js, so it runs in the sandbox too).
+// Everything downstream reads colors live, so report() / check() screen it with
+// zero hardcoding — the same honest-as-the-palette-changes property.
+const paletteArg = process.argv.filter((a) => a.indexOf("--palette=") === 0).pop();
+const paletteName = paletteArg ? paletteArg.slice("--palette=".length) : "default";
+if (paletteName !== "default") {
+  if (!wjt.PALETTES || !wjt.PALETTES[paletteName]) {
+    console.error("cvd-check: unknown palette \"" + paletteName + "\". Known: " +
+      Object.keys(wjt.PALETTES || {}).join(", ") + ".");
+    process.exit(2);
+  }
+  wjt.applyPalette(paletteName);
+}
+
 // --- CVD simulation + CIEDE2000 (ported verbatim from the proposal's cvd.js) ---
 function hexToRgb(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
 function srgbToLinear(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);}
@@ -180,8 +195,39 @@ function check() {
   return 1;
 }
 
+// --- acceptance gate for an alternate palette -----------------------------
+// Stricter than the shipped-palette check(): fail if ANY normally-distinct
+// within-layer / within-axis pair collapses under a CVD (concernsIn non-empty),
+// not just same-abbreviation pairs. This is the acceptance test a candidate
+// cbSafe palette must clear before it ships.
+function checkPalette() {
+  const sets = layerSets().concat(typeSets());
+  let bad = 0;
+  sets.forEach(([title, arr]) => {
+    const concerns = concernsIn(arr);
+    if (!concerns.length) return;
+    bad += concerns.length;
+    console.error("cvd-check[" + paletteName + "]: FAIL in " + title + ":");
+    concerns.forEach((c) => {
+      console.error("  \"" + c.a + "\" vs \"" + c.b + "\": worst-CVD ΔE " +
+        c.minCVD.toFixed(1) + " (" + CVD_LABEL[c.worst] + ") < " + CONCERN +
+        "  [normal " + c.d.normal.toFixed(1) + " | protan " + c.d.protan.toFixed(1) +
+        " | deutan " + c.d.deutan.toFixed(1) + " | tritan " + c.d.tritan.toFixed(1) + "]");
+    });
+  });
+  if (!bad) {
+    console.log("cvd-check[" + paletteName + "]: OK — no within-set pair collapses under CVD.");
+    return 0;
+  }
+  console.error("cvd-check[" + paletteName + "]: " + bad + " colliding pair(s). " +
+    "Retune the offending anchors (spread L*) until every pair clears ΔE " + CONCERN + ".");
+  return 1;
+}
+
 if (process.argv.indexOf("--check") !== -1) {
-  process.exit(check());
+  // A named alternate palette gets the stricter no-collapse acceptance gate;
+  // the shipped default keeps its same-abbreviation invariant.
+  process.exit(paletteName === "default" ? check() : checkPalette());
 } else {
   report();
 }

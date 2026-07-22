@@ -111,6 +111,7 @@ node tools/smoke-test.js         # logic layer; regenerates samples/ — commit 
 node tools/gen-docs.js --check   # CI form of the doc generator
 node tools/validate-lesson.js samples/*.json docs/custom-gpt-instructions.md
 node tools/cvd-check.js --check  # color-blind guard: no same-abbr pair collapses
+node tools/cvd-check.js --palette=cbSafe --check  # opt-in CB palette: no within-set collapse
 ```
 
 Plus the browser DOM check (P2) for anything touching [render.js](../js/render.js).

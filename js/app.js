@@ -33,6 +33,25 @@
     if (btn) btn.textContent = theme === "light" ? "🌙" : "☀️";
   }
 
+  /* ---------------- grammar palette (color-blind-friendly opt-in) ----------
+   * Mirrors applyTheme, but grammar colors are DATA not CSS: wjt.applyPalette
+   * rewrites label/type colors, and the change only appears once views
+   * re-render (they re-read colors into inline `--c`). So callers pair this
+   * with wjt.rerender(). The choice is a property of the viewer's eyes, so it
+   * lives in localStorage beside the theme — never in the lesson JSON. */
+  function applyPalette(name) {
+    if (name !== "cbSafe") name = "default";
+    wjt.applyPalette(name);
+    localStorage.setItem("sentenceForge.palette", name);
+    var btn = document.getElementById("palette-toggle");
+    if (btn) {
+      btn.setAttribute("aria-pressed", name === "cbSafe" ? "true" : "false");
+      btn.title = name === "cbSafe"
+        ? "Grammar colors: color-blind-friendly (click for default)"
+        : "Grammar colors: default (click for color-blind-friendly)";
+    }
+  }
+
   /* ---------------- home (splash) view ---------------- */
   wjt.views.home = function (container) {
     container.innerHTML = "";
@@ -235,11 +254,24 @@
     return wjt.views.home(container);
   }
 
+  // Full repaint of the current view — used by the palette toggle, since a
+  // grammar-color change only takes effect when views re-read colors on render.
+  // (Re-assigning the same location.hash would NOT fire hashchange.)
+  wjt.rerender = route;
+
   /* ---------------- boot ---------------- */
   document.addEventListener("DOMContentLoaded", function () {
     applyTheme(localStorage.getItem("sentenceForge.theme") || "dark");
     document.getElementById("theme-toggle").addEventListener("click", function () {
       applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+    });
+
+    // Apply the stored grammar palette BEFORE the first route() below so the
+    // opening view paints in the chosen palette (no flash of default colors).
+    applyPalette(localStorage.getItem("sentenceForge.palette") || "default");
+    document.getElementById("palette-toggle").addEventListener("click", function () {
+      applyPalette(wjt.activePalette === "cbSafe" ? "default" : "cbSafe");
+      wjt.rerender();   // full repaint; Present resets to slide 1 (accepted trade-off)
     });
 
     var vEl = document.querySelector('[data-role="version"]');

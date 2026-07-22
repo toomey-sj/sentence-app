@@ -43,6 +43,8 @@ node tools/validate-lesson.js samples/*.json docs/custom-gpt-instructions.md
 
 node tools/cvd-check.js         # color-blind screen: pairs that collapse under CVD (report)
 node tools/cvd-check.js --check # CI form: fails only if a same-abbr pair in one layer collapses
+node tools/cvd-check.js --palette=cbSafe --check  # opt-in CB palette gate: fails if ANY
+                                #   within-layer/axis pair collapses (report: drop --check)
 ```
 
 **`tools/dom-check.html`** covers rendering and needs a real browser:
