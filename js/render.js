@@ -360,6 +360,20 @@
       ro.observe(root);
     }
 
+    // Kill the initial single-line flash. `layout()` above laid every token on
+    // one line — the state we can measure from, but wrong for any sentence that
+    // wraps. Waiting for the ResizeObserver's first callback re-wraps a frame too
+    // late: the single-line version is painted first, then snaps into place.
+    // A microtask drains after this task (so the caller has already inserted
+    // `root` and it's measurable) but *before* the first paint, so the wrapped
+    // layout is the first thing shown. If root isn't connected yet, the
+    // ResizeObserver still catches it — same as before, flash and all.
+    if (typeof Promise !== "undefined") {
+      Promise.resolve().then(function () {
+        if (root.isConnected && laidOutAvail === null) reflow();
+      });
+    }
+
     var selection = opts.interactive
       ? wjt.attachSelection(root, tokenEls, opts.onSelect || function () {})
       : null;
@@ -389,6 +403,154 @@
     }
 
     return { root: root, grid: root, tokens: tokens, tokenEls: tokenEls, selection: selection, setLayers: setLayers };
+  };
+
+  /**
+   * Self-playing "how the blocks work" demo for the library banner.
+   *
+   * Reuses the real renderer: one short sentence, fully annotated across all
+   * four layers, revealed one layer at a time (Words → Parts → Phrases →
+   * Clauses) on a loop. Because it drives `renderSentence` + `setLayers`, the
+   * demo shows exactly what a teacher builds — it isn't a separate mock-up.
+   *
+   * Returns a cleanup function; the caller must run it on view teardown so the
+   * timers stop when the user leaves the library.
+   */
+  wjt.buildBlocksDemo = function (host) {
+    host.innerHTML = "";
+    var DEMO = {
+      text: "The curious fox darted across the frozen river.",
+      annotations: [
+        // Words
+        { start: 0, end: 3, label: "determiner" },
+        { start: 4, end: 11, label: "adjective" },
+        { start: 12, end: 15, label: "noun" },
+        { start: 16, end: 22, label: "verb" },
+        { start: 23, end: 29, label: "preposition" },
+        { start: 30, end: 33, label: "determiner" },
+        { start: 34, end: 40, label: "adjective" },
+        { start: 41, end: 47, label: "noun" },
+        // Parts
+        { start: 0, end: 15, label: "subject" },
+        { start: 16, end: 47, label: "predicate" },
+        // Phrases
+        { start: 0, end: 15, label: "noun-phrase" },
+        { start: 23, end: 47, label: "prepositional-phrase" },
+        // Clauses
+        { start: 0, end: 47, label: "independent-clause" },
+      ],
+    };
+
+    var stage = document.createElement("div");
+    stage.className = "blocks-demo-stage";
+    host.appendChild(stage);
+
+    var api = wjt.renderSentence(DEMO, {
+      layers: [],                    // start bare; reveal progressively
+      reserve: wjt.LAYER_ORDER,      // reserve every layer's height up front
+    });
+    stage.appendChild(api.root);
+
+    // Step legend: one pill per layer, lit as its layer is revealed.
+    var steps = document.createElement("div");
+    steps.className = "blocks-demo-steps";
+    var pills = wjt.LAYER_ORDER.map(function (id, i) {
+      if (i) {
+        var arrow = document.createElement("span");
+        arrow.className = "blocks-demo-arrow";
+        arrow.textContent = "→";
+        steps.appendChild(arrow);
+      }
+      var pill = document.createElement("span");
+      pill.className = "blocks-demo-pill";
+      pill.textContent = wjt.LAYERS[id].short;
+      steps.appendChild(pill);
+      return pill;
+    });
+    host.appendChild(steps);
+
+    function lightPills(n) {
+      pills.forEach(function (p, i) { p.classList.toggle("is-on", i < n); });
+    }
+
+    // Replay the shared pop-in on the layer just revealed, so each new layer
+    // animates in rather than blinking on. Restarting the CSS animation is a
+    // remove-then-force-reflow-then-restore of the inline `animation`.
+    function popLayer(layerId) {
+      var els = api.root.querySelectorAll('[data-layer="' + layerId + '"]');
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        el.style.animation = "none";
+        void el.offsetWidth;
+        el.style.animation = "";
+      }
+    }
+
+    // Reduced motion: show the finished breakdown, no loop.
+    var reduce = window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) {
+      api.setLayers(wjt.LAYER_ORDER);
+      lightPills(wjt.LAYER_ORDER.length);
+      return function () {};
+    }
+
+    // Fake pointer that walks the step pills and "clicks" each one as its
+    // layer reveals — a silent walkthrough of the build order.
+    var cursor = document.createElement("div");
+    cursor.className = "blocks-demo-cursor";
+    cursor.setAttribute("aria-hidden", "true");
+    cursor.innerHTML =
+      '<svg viewBox="0 0 24 24" width="22" height="22">' +
+      '<path d="M5 2.5 L5 19 L9.2 14.8 L12 21 L14.7 19.9 L11.9 13.9 L18 13.9 Z"/></svg>';
+    host.appendChild(cursor);
+
+    function moveCursorTo(pill, instant) {
+      var hr = host.getBoundingClientRect();
+      var pr = pill.getBoundingClientRect();
+      var x = pr.left - hr.left + pr.width / 2;
+      var y = pr.top - hr.top + pr.height / 2;
+      if (instant) cursor.style.transition = "none";
+      cursor.style.transform = "translate(" + x + "px," + y + "px)";
+      if (instant) { void cursor.offsetWidth; cursor.style.transition = ""; }
+    }
+    // Restart a one-shot animation by clearing + reflowing + re-adding the class.
+    function restart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+    moveCursorTo(pills[0], true);   // start over the first pill, no glide
+
+    var timers = [];
+    var stopped = false;
+    function after(ms, fn) { timers.push(setTimeout(fn, ms)); }
+
+    function cycle() {
+      if (stopped) return;
+      timers = [];
+      api.setLayers([]);
+      lightPills(0);
+      moveCursorTo(pills[0]);       // glide back to the start for the loop
+      wjt.LAYER_ORDER.forEach(function (id, i) {
+        var revealAt = 700 + i * 1200;
+        // Arrive at the pill a beat before its layer appears.
+        after(Math.max(0, revealAt - 380), function () { moveCursorTo(pills[i]); });
+        after(revealAt, function () {
+          restart(cursor, "is-tap");
+          restart(pills[i], "is-tap");
+          api.setLayers(wjt.LAYER_ORDER.slice(0, i + 1));
+          popLayer(id);
+          lightPills(i + 1);
+        });
+      });
+      // Hold the finished breakdown, then start over.
+      after(700 + wjt.LAYER_ORDER.length * 1200 + 2200, cycle);
+    }
+    cycle();
+
+    return function () {
+      stopped = true;
+      timers.forEach(clearTimeout);
+      timers = [];
+    };
   };
 
   /**

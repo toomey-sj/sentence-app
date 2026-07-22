@@ -194,6 +194,11 @@ div.view.view-library
 │  │  ├─ button[data-act=import]   "⬆ Import JSON"
 │  │  └─ button[data-act=examples] "📚 Browse examples"
 │  └─ input[type=file][data-role=file][hidden][multiple]
+├─ section.blocks-demo[data-role=blocks-demo][aria-hidden]   ← self-playing layer demo
+│  ├─ p.blocks-demo-cap
+│  └─ div.blocks-demo-card.card[data-role=blocks-demo-host]  ← wjt.buildBlocksDemo() fills this
+│     ├─ div.blocks-demo-stage → .gl-sentence (see Sentence grid)
+│     └─ div.blocks-demo-steps  ← span.blocks-demo-pill ×4, .blocks-demo-arrow between
 ├─ section[data-role=my-lessons]
 │  ├─ h2.section-title "Your lessons"
 │  └─ div.lesson-grid[data-role=lessons]

@@ -50,6 +50,10 @@
       "  </div>" +
       '  <input type="file" accept=".json,application/json" data-role="file" hidden multiple />' +
       "</section>" +
+      '<section class="blocks-demo" data-role="blocks-demo" aria-hidden="true">' +
+      '  <p class="blocks-demo-cap">Label the same sentence at four layers — watch them stack:</p>' +
+      '  <div class="blocks-demo-card card" data-role="blocks-demo-host"></div>' +
+      "</section>" +
       '<section data-role="my-lessons">' +
       '  <h2 class="section-title">Your lessons</h2>' +
       '  <div class="lesson-grid" data-role="lessons"></div>' +
@@ -174,6 +178,11 @@
 
     renderLessons();
     renderExamples();
+
+    var demoHost = view.querySelector('[data-role="blocks-demo-host"]');
+    if (demoHost && wjt.buildBlocksDemo) {
+      wjt.onViewCleanup(wjt.buildBlocksDemo(demoHost));
+    }
   };
 
   /* ---------------- routing ---------------- */
