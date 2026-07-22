@@ -199,6 +199,24 @@
       }
       renderTypePicker();
 
+      var noteRow = document.createElement("div");
+      noteRow.className = "sentence-note-edit";
+      var noteInput = document.createElement("input");
+      noteInput.type = "text";
+      noteInput.className = "sentence-notes-input";
+      noteInput.placeholder = "Optional note about this sentence — special handling, etc.";
+      noteInput.value = s.notes || "";
+      noteInput.addEventListener("input", function () {
+        var v = noteInput.value.trim();
+        if (v) s.notes = v;
+        else delete s.notes;
+        save();
+      });
+      noteRow.innerHTML =
+        '<span class="type-picker-label" title="A short note shown in Present mode and Practice">Note</span>';
+      noteRow.appendChild(noteInput);
+      card.appendChild(noteRow);
+
       var body = document.createElement("div");
       body.className = "sentence-card-body";
       card.appendChild(body);

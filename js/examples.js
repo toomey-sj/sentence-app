@@ -12,7 +12,7 @@
   "use strict";
   var wjt = (window.wjt = window.wjt || {});
 
-  function sentence(text, specs, types) {
+  function sentence(text, specs, types, notes) {
     var anns = [];
     specs.forEach(function (spec) {
       var match = spec[0], label = spec[1], note = spec[2], nth = spec[3] || 1;
@@ -26,6 +26,7 @@
     });
     var s = { text: text, annotations: anns };
     if (types) s.types = types;
+    if (notes) s.notes = notes;
     return s;
   }
 
@@ -367,7 +368,8 @@
           ["beheld the accomplishment of my toils.", "complete-predicate"],
           ["beheld", "simple-predicate"],
           ["the accomplishment of my toils.", "direct-object", "What Victor beheld."],
-        ], { structure: "complex", purpose: "declarative" }),
+        ], { structure: "complex", purpose: "declarative" },
+        "A cleft sentence: “It was … that I beheld …” front-loads the dreary November night for emphasis. The plain form is “I beheld the accomplishment of my toils on a dreary night of November.”"),
         sentence("With an anxiety that almost amounted to agony, I collected the instruments of life around me.", [
           ["With an anxiety", "prepositional-phrase"],
           ["With", "preposition"],

@@ -258,6 +258,23 @@ check("import: partial types — good kept, bad dropped",
 check("import: bad type produces warning", withTypes.warnings.some((w) => /bogus/.test(w)));
 check("import: sentence without types has none", !withTypes.lesson.sentences[2].types);
 
+// --- import/export sentence notes (present, trimmed, empty, omitted) ---
+const withNotes = wjt.importLesson({
+  format: "sentence-forge-lesson",
+  title: "Notes",
+  sentences: [
+    { text: "It was here that it happened.", notes: "  A cleft sentence.  " },
+    { text: "Plain sentence.", notes: "   " },
+    { text: "No notes key at all." },
+  ],
+});
+check("import: note kept and trimmed", withNotes.lesson.sentences[0].notes === "A cleft sentence.");
+check("import: whitespace-only note dropped", !("notes" in withNotes.lesson.sentences[1]));
+check("import: sentence without notes has none", !("notes" in withNotes.lesson.sentences[2]));
+const notesOut = wjt.exportLesson(withNotes.lesson);
+check("export: emits notes when present", notesOut.sentences[0].notes === "A cleft sentence.");
+check("export: omits notes when empty", !("notes" in notesOut.sentences[1]) && !("notes" in notesOut.sentences[2]));
+
 // --- store CRUD ---
 const l1 = wjt.store.save(wjt.store.create("Test A"));
 wjt.store.save(wjt.store.create("Test B"));

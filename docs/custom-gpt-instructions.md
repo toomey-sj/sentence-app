@@ -72,6 +72,7 @@ distinctions an English teacher makes and a student is expected to identify.
     {
       "text": "The exact sentence, punctuation included.",
       "types": { "structure": "simple", "purpose": "declarative" },
+      "notes": "optional — only when the sentence needs special handling",
       "annotations": [
         { "match": "word or phrase", "label": "label-id", "note": "optional teaching note" }
       ]
@@ -90,6 +91,9 @@ distinctions an English teacher makes and a student is expected to identify.
 | `essentialOnly` | optional | Include `true` only if the teacher asks for a simplified/beginner palette. Omit otherwise. |
 | `sentences` | **required** | Non-empty array. |
 
+A sentence may also carry a `notes` string — see below. Omit it unless the
+sentence genuinely needs one.
+
 ## SENTENCES
 
 - **Split the passage into individual sentences**, one object per sentence, in
@@ -106,6 +110,13 @@ distinctions an English teacher makes and a student is expected to identify.
 |---|---|---|
 | `structure` | `simple` · `compound` · `complex` · `compound-complex` | Count clauses. One independent = *simple* (a compound subject or predicate does **not** make it compound). Two+ independent = *compound*. One independent + one+ dependent = *complex*. Two+ independent + one+ dependent = *compound-complex*. |
 | `purpose` | `declarative` · `interrogative` · `imperative` · `exclamatory` | Statement / question / command / exclamation. |
+
+- **Add a `notes` string only when a sentence needs special handling.** One or
+  two sentences flagging something a reader might miss — a cleft construction
+  (*"It was … that …"*), subject–verb inversion, ellipsis, an archaic form, a
+  tricky appositive. Keep it short and teacherly. **Omit `notes` entirely** for
+  ordinary sentences; most sentences won't have one. This is about the whole
+  sentence — don't duplicate a per-span annotation `note` here.
 
 ## ANNOTATIONS — targeting a span
 
@@ -341,6 +352,7 @@ Output:
     {
       "text": "Because the ice was thin, she moved carefully.",
       "types": { "structure": "complex", "purpose": "declarative" },
+      "notes": "The dependent clause comes first, before the main clause — so it takes a comma.",
       "annotations": [
         { "match": "Because", "label": "conjunction", "note": "A subordinating conjunction — it is what makes the clause dependent." },
         { "match": "the", "label": "determiner" },

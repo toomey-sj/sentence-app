@@ -139,6 +139,13 @@
         if (Object.keys(types).length) sentence.types = types;
       }
 
+      // Optional free-text note about the sentence itself (special handling,
+      // e.g. a cleft construction). Omitted when empty, never a reason to reject.
+      if (s && s.notes != null) {
+        var notes = String(s.notes).trim();
+        if (notes) sentence.notes = notes;
+      }
+
       var anns = (s && Array.isArray(s.annotations)) ? s.annotations : [];
 
       anns.forEach(function (a, ai) {
@@ -199,6 +206,7 @@
           }),
         };
         if (s.types && Object.keys(s.types).length) out.types = s.types;
+        if (s.notes) out.notes = s.notes;
         return out;
       }),
     };
@@ -225,7 +233,7 @@
    * ------------------------------------------------------------------ */
 
   wjt.buildSampleLesson = function () {
-    function sentence(text, specs, types) {
+    function sentence(text, specs, types, notes) {
       var anns = [];
       specs.forEach(function (spec) {
         var match = spec[0], label = spec[1], note = spec[2];
@@ -237,6 +245,7 @@
       });
       var s = { text: text, annotations: anns };
       if (types) s.types = types;
+      if (notes) s.notes = notes;
       return s;
     }
 

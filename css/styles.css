@@ -344,9 +344,14 @@ body {
   padding: 4px;
   max-width: 100%;
   /* Only an over-wide single line (e.g. one token longer than the container)
-     scrolls, and it scrolls alone — never the whole sentence. */
+     scrolls, and it scrolls alone — never the whole sentence. The scrollbar
+     chrome is hidden: a long annotation label wider than its token no longer
+     shows a bar (the recurring narrow-width eyesore), while an over-wide token
+     stays reachable by wheel/trackpad/touch scroll. */
   overflow-x: auto;
+  scrollbar-width: none;          /* Firefox */
 }
+.gl-grid::-webkit-scrollbar { display: none; }   /* Chromium / Edge / WebKit */
 
 .gl-token {
   font-size: 19px;
@@ -502,6 +507,43 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
   color: var(--text);
 }
 .type-pill.is-on .pill-count, .type-pill.is-on::after { color: var(--c); }
+
+/* ---------------- sentence note ---------------- */
+/* Present-mode line under the type badges; only shown when a note exists. */
+.sentence-note {
+  max-width: 640px;
+  margin: 12px auto 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.4;
+}
+.stage .sentence-note { font-size: 15px; }
+.sentence-note-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-style: normal;
+}
+/* Editor: free-text note field beneath the type picker. */
+.sentence-note-edit { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.sentence-notes-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  outline: none;
+}
+.sentence-notes-input:focus { border-color: var(--accent); }
+/* Practice feedback: note appended after the type explanation. */
+.quiz-note { color: var(--muted); font-style: italic; }
 
 /* ---------------- popover ---------------- */
 .gl-popover {

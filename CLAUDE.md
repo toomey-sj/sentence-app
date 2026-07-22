@@ -63,7 +63,7 @@ Four hard-won details, all of which produce a *silent* wrong answer:
   inline script, which has the literal strings `PASS`/`FAIL` in it. Use
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
-A healthy run is **234 passed, 0 failed**.
+A healthy run is **238 passed, 0 failed**.
 
 Report results honestly. If a check fails, say so with the output; don't
 summarize a red run as done.
@@ -103,6 +103,13 @@ cross-post content:
 **Generated files — never hand-edit:** `docs/coverage-labels.json`,
 `docs/coverage-labels.csv`, `docs/product/grammar-reference.md`, and everything
 in `samples/`. Regenerate them.
+
+**Keep the DOM map current.** [docs/project/dom-structure.md](docs/project/dom-structure.md)
+is a hand-maintained map of the HTML each view generates. If you change the
+rendered structure — the sentence-grid renderer in `js/render.js`, or any view's
+element tree, class names, or `data-*`/`--c` conventions — update that doc in the
+same change. Nothing regenerates or checks it, so stale is the default failure
+mode. Wording/CSS-only tweaks don't count; structural changes do.
 
 ## Working style that has worked here
 

@@ -106,6 +106,11 @@ Chips on each sentence card set two independent axes:
 Both are optional. Tagged sentences get badges in Present mode and become
 "name that sentence" questions in Practice.
 
+Below the chips is an optional **Note** field. Use it when a sentence needs a
+word of explanation — a cleft construction, an inversion, an unusual form. The
+note appears under the badges in Present mode and in Practice feedback; leave it
+blank and nothing shows.
+
 ### AI-assisted authoring
 
 To label a long passage quickly, use the prompt in

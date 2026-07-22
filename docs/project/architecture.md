@@ -98,6 +98,7 @@ A lesson, as stored in `localStorage` under `sentenceForge.lessons.v1`:
   sentences: [{
     text: "The curious fox darted across the frozen river.",
     types: { structure: "simple", purpose: "declarative" },   // optional
+    notes: "…",                                               // optional whole-sentence note
     annotations: [
       { id: "…", start: 0, end: 15, label: "complete-subject", note: "…" }
     ]
@@ -196,6 +197,10 @@ whole visual depends on. Don't "fix" it without replacing the grid model.
 
 The same renderer serves Edit, Present, and Practice, which is why a label looks
 identical in all three.
+
+For the actual element tree the renderer emits — grid rows, chip/bar/token
+classes, the `data-*` and `--c` conventions — and the DOM of every view, see
+[dom-structure.md](dom-structure.md).
 
 ## Routing and views
 

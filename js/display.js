@@ -145,6 +145,21 @@
       explainEl.querySelector('[data-act="close"]').addEventListener("click", hideExplain);
     }
 
+    function showNoteExplain(sentence) {
+      explainEl.innerHTML =
+        '<div class="ann-details-head">' +
+        '  <span class="swatch" style="--c:var(--accent)"></span>' +
+        "  <b>Teaching note</b>" +
+        '  <span class="muted-note">this sentence</span>' +
+        '  <span class="spacer"></span>' +
+        '  <button class="btn btn-sm" data-act="close">✕</button>' +
+        "</div>" +
+        '<div class="ann-details-quote">“' + wjt.escapeHtml(sentence.text) + "”</div>" +
+        '<p class="ann-note">📌 ' + wjt.escapeHtml(sentence.notes) + "</p>";
+      explainEl.hidden = false;
+      explainEl.querySelector('[data-act="close"]').addEventListener("click", hideExplain);
+    }
+
     function showTypeExplain(categoryId, optionId) {
       var category = wjt.SENTENCE_TYPES[categoryId];
       var opt = wjt.sentenceTypeOption(categoryId, optionId);
@@ -191,8 +206,17 @@
       });
       stageRender = r;
       stageEl.appendChild(r.root);
+      // Type badges and the note chip share one row; clicking any of them
+      // opens the explain card. The note stays a chip, not a printed line, so
+      // long teaching notes don't push the breakdown around.
       var badges = wjt.renderTypeBadges(sentence, showTypeExplain);
-      if (badges) stageEl.appendChild(badges);
+      var noteChip = wjt.renderSentenceNote(sentence, function () { showNoteExplain(sentence); });
+      if (badges || noteChip) {
+        var row = badges || document.createElement("div");
+        if (!badges) row.className = "type-badges";
+        if (noteChip) row.appendChild(noteChip);
+        stageEl.appendChild(row);
+      }
       // The tip lives in the stage full-time so a toggle can show/hide it
       // without touching the rest of the breakdown.
       tipEl = document.createElement("div");

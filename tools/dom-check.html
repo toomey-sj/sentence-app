@@ -116,6 +116,18 @@
       });
     });
 
+    // 4. Sentence-level note renders only when present, and is escaped.
+    check("sentence note: null when absent",
+      wjt.renderSentenceNote({ text: "No note." }) === null);
+    check("sentence note: null when empty string",
+      wjt.renderSentenceNote({ text: "x", notes: "" }) === null);
+    var noteEl = wjt.renderSentenceNote({ text: "x", notes: "A <cleft> & such." });
+    check("sentence note: renders a .sentence-note element",
+      !!noteEl && noteEl.classList.contains("sentence-note"));
+    check("sentence note: text is HTML-escaped",
+      !!noteEl && noteEl.innerHTML.indexOf("&lt;cleft&gt;") !== -1 &&
+      noteEl.innerHTML.indexOf("<cleft>") === -1);
+
     out.push(fails ? fails + " FAILURE(S)" : "ALL DOM CHECKS PASSED");
     document.getElementById("result").textContent = out.join("\n");
   })();

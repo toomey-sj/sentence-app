@@ -296,7 +296,8 @@
               }
               finishQuestion(right,
                 "This sentence is <b>" + wjt.escapeHtml(answerOpt.name.toLowerCase()) + "</b> (" +
-                wjt.escapeHtml(category.name.toLowerCase()) + "). " + wjt.escapeHtml(answerOpt.desc));
+                wjt.escapeHtml(category.name.toLowerCase()) + "). " + wjt.escapeHtml(answerOpt.desc) +
+                (q.sentence.notes ? ' <span class="quiz-note">' + wjt.escapeHtml(q.sentence.notes) + "</span>" : ""));
             });
             answersEl.appendChild(b);
           });

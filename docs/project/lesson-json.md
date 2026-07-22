@@ -65,6 +65,7 @@ annotations) or an object:
 |---|---|---|---|
 | `text` | string | **yes** | The exact sentence, punctuation included. Trimmed. An empty result is skipped with a warning. |
 | `types` | object | optional | `{ "structure": …, "purpose": … }`. Either key may be omitted. |
+| `notes` | string | optional | A short free-text note about the sentence itself (special handling — e.g. a cleft construction). Trimmed; omitted when empty. Surfaces under the type badges in Present mode and in Practice feedback. This is **whole-sentence** — distinct from an annotation's `note`, which is about one span. |
 | `annotations` | array | optional | Defaults to empty. |
 
 ### `types` values
@@ -183,9 +184,9 @@ worked rather than a rejected file, and finds the 2 that didn't in the console.
   are per-device and regenerated on import.
 - **Always** writes `start`/`end`, never `match`. (`match` is an import-side
   convenience for hand-authoring.)
-- **Omits** `note` when empty, `types` when empty, and `essentialOnly` unless
-  it's `true` — so the defaults stay implicit and adding the field didn't change
-  any existing file.
+- **Omits** `note` when empty, `notes` (the sentence-level note) when empty,
+  `types` when empty, and `essentialOnly` unless it's `true` — so the defaults
+  stay implicit and adding the field didn't change any existing file.
 
 Round-tripping a lesson through export → import is lossless except for those ids
 and, in the general case, a re-derived `layers` array.
@@ -194,7 +195,7 @@ and, in the general case, a re-derived `layers` array.
 
 There is one version and no migration path yet. If the format ever changes
 incompatibly, `version` is the hook — bump it, and have `importLesson` branch on
-it. Until then, keep changes **additive and optional**, the way `types` and
-`essentialOnly` were added: an old file must keep importing, and a file written
+it. Until then, keep changes **additive and optional**, the way `types`,
+`notes`, and `essentialOnly` were added: an old file must keep importing, and a file written
 by a newer app should degrade to skipped-with-a-warning in an older one rather
 than being rejected.

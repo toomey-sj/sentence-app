@@ -14,6 +14,24 @@
 
   var BAR_LAYERS = ["part", "phrase", "clause"];
 
+  // Width a classic scrollbar occupies, measured once. The wrap logic ignores
+  // available-width changes smaller than this so a scrollbar toggling on and off
+  // can't re-wrap the grid — see reflow() below. 0 on overlay-scrollbar platforms.
+  var _scrollbarPx = null;
+  function scrollbarWidth() {
+    if (_scrollbarPx !== null) return _scrollbarPx;
+    _scrollbarPx = 17; // reasonable default if we can't measure (e.g. no body yet)
+    try {
+      var probe = document.createElement("div");
+      probe.style.cssText =
+        "position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll";
+      document.body.appendChild(probe);
+      _scrollbarPx = probe.offsetWidth - probe.clientWidth;
+      document.body.removeChild(probe);
+    } catch (e) { /* keep the default */ }
+    return _scrollbarPx;
+  }
+
   /**
    * Render one sentence.
    * opts: {
@@ -303,10 +321,26 @@
     var lastKey = "0:" + (tokens.length - 1);
 
     var ro = null, pending = false;
+    // Re-wrap only when the available width really moves. As the grid collapses it
+    // grows taller, a scrollbar appears and steals a scrollbar's width, the last
+    // word no longer fits and drops to the next row, the grid shrinks, the
+    // scrollbar disappears, the width returns — and the word flashes between two
+    // rows forever. Ignoring width changes up to a scrollbar's width (plus a small
+    // margin) breaks that loop: the scrollbar toggling no longer re-wraps, and
+    // shrinking the window snaps between layouts instead of jittering. A genuine
+    // resize moves well past the threshold and still re-wraps.
+    var hysteresis = Math.max(scrollbarWidth(), 16) + 8;
+    var laidOutAvail = null;
     function reflow() {
       if (!root.isConnected) { if (ro) ro.disconnect(); return; }
+      var host = root.parentNode;
+      var probe = host && host.nodeType === 1 ? host : root;
+      var avail = probe.clientWidth;
+      if (!avail) return;
+      if (laidOutAvail !== null && Math.abs(avail - laidOutAvail) < hysteresis) return;
       var lines = computeLines();
       if (!lines) return;
+      laidOutAvail = avail;
       var key = lines.map(function (l) { return l.first + ":" + l.last; }).join(",");
       if (key === lastKey) return;
       lastKey = key;
@@ -387,6 +421,35 @@
       row.appendChild(el);
     });
     return row;
+  };
+
+  /**
+   * Render a sentence's free-text note.
+   * Returns a DOM element, or null if the sentence carries no note.
+   * With `onClick`, returns a compact chip (styled like a type badge) that
+   * calls onClick() — the full note lives in the explain card, not on the
+   * stage. Without it, falls back to the inline muted line.
+   */
+  wjt.renderSentenceNote = function (sentence, onClick) {
+    var note = sentence && sentence.notes;
+    if (!note) return null;
+    if (onClick) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "type-badge type-badge-note";
+      btn.style.setProperty("--c", "var(--accent)");
+      btn.innerHTML =
+        '<span class="type-badge-cat">Note</span>' +
+        '<span class="type-badge-name">📌</span>';
+      btn.title = note;
+      btn.addEventListener("click", function (e) { e.stopPropagation(); onClick(); });
+      return btn;
+    }
+    var el = document.createElement("div");
+    el.className = "sentence-note";
+    el.innerHTML =
+      '<span class="sentence-note-tag">Note</span> ' + wjt.escapeHtml(note);
+    return el;
   };
 
   /**
