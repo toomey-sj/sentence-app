@@ -34,7 +34,8 @@
       "  </div>" +
       '  <div class="present-actions">' +
       '    <a class="btn" href="#/edit/' + lesson.id + '">✎ Edit</a>' +
-      '    <a class="btn" href="#/quiz/' + lesson.id + '">🎯 Quiz</a>' +
+      // quiz hidden for now — restore to re-enable Quiz
+      // '    <a class="btn" href="#/quiz/' + lesson.id + '">🎯 Quiz</a>' +
       '    <button class="btn" data-act="fullscreen" hidden></button>' +
       "  </div>" +
       "</header>" +

@@ -153,13 +153,18 @@ body {
   color: transparent;
 }
 
-/* Ko-fi badge lives in the footer. Centered under the version line. */
-.appfoot .kofi { display: inline-flex; align-items: center; margin-top: 10px; }
+/* Ko-fi badge lives in the footer, pinned to the far left (see .appfoot). */
+.appfoot .kofi { display: inline-flex; align-items: center; order: -1; }
 .appfoot .kofi img { height: 36px; width: auto; border: 0; display: block; }
 
 /* With the ko-fi badge gone from the topbar, the first toggle takes over the
    margin-left:auto that used to keep this cluster pinned to the right edge. */
 #palette-toggle { margin-left: auto; }
+
+/* Theme toggle hidden for now — app is locked to dark mode. Kept in the DOM so
+   the boot listener in app.js still finds it; unhide + restore the storage read
+   to re-enable. */
+#theme-toggle { display: none; }
 
 #theme-toggle,
 #palette-toggle {
@@ -494,7 +499,8 @@ body {
 }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .section-head .section-title { margin-bottom: 0; }
-.appfoot { text-align: center; padding: 24px 12px; color: var(--muted); font-size: 12px; }
+/* Ko-fi badge (order:-1) at the far left, version at the far right, both centered. */
+.appfoot { display: flex; align-items: center; justify-content: space-between; padding: 24px 22px; color: var(--muted); font-size: 12px; }
 .section-sub { margin: -6px 0 12px; }
 .examples-block { margin-top: 8px; }
 .example-card { display: flex; flex-direction: column; border-style: dashed; }

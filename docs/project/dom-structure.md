@@ -283,7 +283,7 @@ div.view.view-library
 │        ├─ div.lesson-meta          ← "N sentences · M labels"
 │        ├─ div.lesson-layers        ← span.mini-pill per layer
 │        └─ div.btn-row.lesson-actions
-│           ├─ a[href=#/present/ID]  a[href=#/quiz/ID]  a[href=#/edit/ID]
+│           ├─ a[href=#/present/ID]  a[href=#/edit/ID]   (a[href=#/quiz/ID] hidden for now)
 │           ├─ span.spacer
 │           └─ button[data-act=export|dup|del]  (.btn-sm; del is .btn-danger)
 └─ section.examples-block[data-role=examples-block]
@@ -306,7 +306,7 @@ div.view.view-editor
 │  │  ├─ a[href=#/library] "← Library"
 │  │  ├─ span.saved-flash "Saved ✓"   ← flashes on save()
 │  │  ├─ span.spacer
-│  │  └─ a #/present · a #/quiz · button[data-act=export]
+│  │  └─ a #/present · button[data-act=export]   (a #/quiz hidden for now)
 │  ├─ input.title-input[data-role=title]
 │  ├─ input.desc-input[data-role=desc]
 │  ├─ div.layer-toggles[data-role=layers]        ← "Teaching levels:" + pill per layer
@@ -364,7 +364,7 @@ div.view.view-present   (.is-fullscreen when the Fullscreen API is active)
 ├─ header.present-head
 │  ├─ a "← Library"
 │  ├─ div.present-title  (h2 + optional p.muted-note)
-│  └─ div.present-actions  (a #/edit · a #/quiz · button[data-act=fullscreen])
+│  └─ div.present-actions  (a #/edit · button[data-act=fullscreen])   (a #/quiz hidden for now)
 ├─ div.present-controls
 │  ├─ div.layer-chips[data-role=chips]     ← pill.pill-lg[data-layer] per layer,
 │  │                                          each with span.pill-count "x / y"

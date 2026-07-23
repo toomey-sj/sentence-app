@@ -292,7 +292,8 @@
           "</div>" +
           '<div class="btn-row lesson-actions">' +
           '  <a class="btn btn-primary" href="#/present/' + lesson.id + '">▶ Present</a>' +
-          '  <a class="btn btn-accent" href="#/quiz/' + lesson.id + '">🎯 Practice</a>' +
+          // quiz hidden for now — restore to re-enable Practice
+          // '  <a class="btn btn-accent" href="#/quiz/' + lesson.id + '">🎯 Practice</a>' +
           '  <a class="btn" href="#/edit/' + lesson.id + '">✎ Edit</a>' +
           '  <span class="spacer"></span>' +
           '  <button class="btn btn-sm" data-act="export" title="Download as JSON">⬇</button>' +
@@ -413,7 +414,7 @@
 
   /* ---------------- boot ---------------- */
   document.addEventListener("DOMContentLoaded", function () {
-    applyTheme(wjt.safeStorage.get("sentenceForge.theme") || "dark");
+    applyTheme("dark");   // dark-only for now — ignore any stored light preference
     document.getElementById("theme-toggle").addEventListener("click", function () {
       applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
     });

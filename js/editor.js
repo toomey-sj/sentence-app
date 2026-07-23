@@ -48,7 +48,8 @@
       '  <span class="saved-flash" aria-live="polite">Saved ✓</span>' +
       '  <span class="spacer"></span>' +
       '  <a class="btn" href="#/present/' + lesson.id + '">▶ Present</a>' +
-      '  <a class="btn" href="#/quiz/' + lesson.id + '">🎯 Quiz</a>' +
+      // quiz hidden for now — restore to re-enable Quiz
+      // '  <a class="btn" href="#/quiz/' + lesson.id + '">🎯 Quiz</a>' +
       '  <button class="btn" data-act="export">⬇ Export JSON</button>' +
       "</div>" +
       '<input class="title-input" data-role="title" maxlength="80" placeholder="Lesson title" />' +
