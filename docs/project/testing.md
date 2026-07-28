@@ -26,6 +26,14 @@ What it asserts:
 
 - **Tokenizing** — sentence splitting, token offsets, and that `spanToTokens`
   snaps outward and `tokensToSpan` round-trips.
+- **Ids** — `wjt.uid()` on all three of its tiers. The sandbox is handed Node's
+  `crypto.webcrypto` so `crypto.randomUUID()` is reached; the suite then hides
+  `randomUUID` (tier 2, `getRandomValues` only) and deletes `crypto` outright
+  (tier 3, `Date.now()` + `Math.random()`) and re-checks each time that ids are
+  distinct, opaque strings, safe in a URL hash, and — on the crypto tiers — real
+  v4 UUIDs. The lower tiers are what a `file://` teacher may get, so they are
+  tested rather than assumed; see
+  [architecture.md](architecture.md#ids-wjtuid).
 - **Taxonomy invariants** — every label has a valid layer and tier; every subtype
   inherits its parent's layer; the tree is exactly one level deep; every Advanced
   label has an Essential parent; every layer advertises subtypes.

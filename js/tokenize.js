@@ -66,7 +66,51 @@
     return text.slice(ann.start, ann.end);
   };
 
+  /**
+   * A fresh opaque id (seam S2). Three tiers, best first:
+   *
+   *   1. `crypto.randomUUID()`      — one call, 122 random bits.
+   *   2. `crypto.getRandomValues()` — same entropy, formatted as a v4 UUID here.
+   *   3. `Date.now()` + 6 chars of `Math.random()` — the original scheme.
+   *
+   * Tier 3 stays because ids are about to start crossing machines (a lesson
+   * handed to the teacher next door, a library synced home-to-school), and a
+   * collision there merges two teachers' annotations irreversibly. Tier 1 alone
+   * would not do:
+   *
+   *   - `randomUUID()` requires a **secure context**, and `file://` is not
+   *     reliably one. Double-clicking `index.html` on a school machine is a
+   *     supported degraded mode (roadmap-platform P3), so a teacher there must
+   *     still be able to create a lesson. `crypto` support under `file://`
+   *     varies by browser, so tier 2 isn't guaranteed either.
+   *   - `tools/smoke-test.js` runs this file in a bare `vm` sandbox. It now
+   *     passes `crypto` through so tier 1 is exercised, and it also removes
+   *     `crypto` (and `randomUUID` alone) to exercise tiers 3 and 2. A fallback
+   *     nobody tests is a fallback that doesn't work.
+   *
+   * This is NOT the never-rename-a-label-id rule (CLAUDE.md #6). Label ids in
+   * `js/labels.js` are stored inside every teacher's annotations, so renaming
+   * one destroys work. These ids are volatile: `wjt.exportLesson()` drops
+   * annotation ids entirely and `wjt.importLesson()` mints fresh ones on the way
+   * back in. Changing the format of newly minted ids breaks nothing, and ids
+   * minted by any earlier version stay valid forever, because nothing anywhere
+   * parses one — every call site only ever compares an id to its siblings.
+   */
   wjt.uid = function () {
+    var c = window.crypto;
+    if (c && typeof c.randomUUID === "function") return c.randomUUID();
+    if (c && typeof c.getRandomValues === "function" && typeof Uint8Array === "function") {
+      var b = new Uint8Array(16);
+      c.getRandomValues(b);
+      b[6] = (b[6] & 0x0f) | 0x40;   // version 4
+      b[8] = (b[8] & 0x3f) | 0x80;   // variant 1 (RFC 4122)
+      var out = "";
+      for (var i = 0; i < 16; i++) {
+        out += (b[i] + 0x100).toString(16).slice(1);
+        if (i === 3 || i === 5 || i === 7 || i === 9) out += "-";
+      }
+      return out;
+    }
     return "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   };
 

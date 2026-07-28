@@ -107,14 +107,20 @@ user-visible.
       work order's As-built note, in
       [architecture.md](project/architecture.md), and in a comment above the
       adapter so it can't be silently reversed.
-- [ ] **S2 — Real ids.** [`wjt.uid()`](../js/tokenize.js#L69) is `Date.now()`
-      plus six characters of `Math.random()`. Fine in one browser, collision-prone
+- [x] **S2 — Real ids.** ~~[`wjt.uid()`](../js/tokenize.js) is `Date.now()`
+      plus six characters of `Math.random()`.~~ Fine in one browser, collision-prone
       the moment two libraries merge. Move to `crypto.randomUUID()` with a
       `crypto.getRandomValues` fallback — note `randomUUID` needs a secure context
       and may be absent under `file://`, so the fallback is load-bearing, not
-      decorative. Do this **before** lessons cross machines. It is the same lesson
-      as the never-rename-a-label-id rule in [CLAUDE.md](../CLAUDE.md).
-      → [plans/011](../plans/011-seam-real-ids.md)
+      decorative. Do this **before** lessons cross machines.
+      → **Done 2026-07-28**, [plans/done/011](../plans/done/011-seam-real-ids.md).
+      v4 UUIDs, three tiers, all three exercised by the smoke test (which now
+      passes Node's WebCrypto into the `vm` sandbox, then strips it back down).
+      One function and one test file; no migration, because export drops ids and
+      import mints new ones. The "same lesson as the never-rename-a-label-id
+      rule" line above was about the *principle* and read as a warning — it isn't
+      one; the distinction is now written down in
+      [architecture.md](project/architecture.md#ids-wjtuid) and in the code.
 - [ ] **S3 — `ownerId` on the lesson.** Nullable while there is exactly one local
       owner. Additive to the format, so it costs nothing today.
       → [plans/012](../plans/012-seam-owner-and-migrations.md)
@@ -188,7 +194,7 @@ either way.
 |---|---|
 | 1. Assignment Phases 2–3 | ~~[008 — builder and preview](../plans/done/008-assignment-phase-2-builder.md)~~ · ~~[009 — print worksheet and answer key](../plans/done/009-assignment-phase-3-print.md)~~ **both done 2026-07-28** |
 | 1b. Get the DOM check green first | ~~[014 — settle the Present checks](../plans/done/014-ui4-dom-check-settle.md)~~ **done 2026-07-28.** It unblocked the acceptance bar every step below asks for: `UI-4` was failing on a clean tree, so CI was red and "0 failed" unreachable. The DOM check is now **328 passed / 0 failed** at all four matrix sizes, so step 2 gets a clean gate rather than a count to remember. |
-| 2. Land S1–S4 | ~~[010 — storage adapter](../plans/done/010-seam-storage-adapter.md)~~ **done 2026-07-28** · [011 — real ids](../plans/011-seam-real-ids.md) · [012 — `ownerId` + migration runner](../plans/012-seam-owner-and-migrations.md) |
+| 2. Land S1–S4 | ~~[010 — storage adapter](../plans/done/010-seam-storage-adapter.md)~~ **done 2026-07-28** · ~~[011 — real ids](../plans/done/011-seam-real-ids.md)~~ **done 2026-07-28** · [012 — `ownerId` + migration runner](../plans/012-seam-owner-and-migrations.md) |
 | 3. Re-scope Assignment 4–5 behind S5 | [013 — delivery-channel interface](../plans/013-seam-delivery-channels.md) |
 | 4. Run the pilot | Not a work order — see [pilot.md](product/pilot.md). |
 | 5. Decide P7 and P8 | Not a work order. The rule above still stands: don't start this before step 4 without writing the reason here. |

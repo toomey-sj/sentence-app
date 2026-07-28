@@ -25,6 +25,11 @@ const sandbox = {
   Array,
   Object,
   setTimeout,
+  // `wjt.uid()` prefers crypto.randomUUID(), then crypto.getRandomValues(),
+  // then Date.now()+Math.random() (seam S2). Pass Node's WebCrypto through so
+  // tier 1 is actually exercised here; the uid checks below strip it back down
+  // to exercise tiers 2 and 3, which is what a teacher on file:// may get.
+  crypto: require("crypto").webcrypto,
 };
 sandbox.window = sandbox;
 vm.createContext(sandbox);
@@ -57,6 +62,45 @@ const snap = wjt.spanToTokens(toks, 6, 11); // straddles quick+fox.
 check("spanToTokens snaps outward", snap.first === 1 && snap.last === 2);
 const span = wjt.tokensToSpan(toks, 1, 2);
 check("tokensToSpan", span.start === 4 && span.end === 14);
+
+// --- ids (seam S2) ---
+// Every tier of wjt.uid() is exercised, because the app really does run in
+// environments that only have the lower ones: randomUUID needs a secure context
+// and file:// isn't reliably one. Ids only ever have to be unique and opaque —
+// nothing in the app parses one — so that is exactly what's asserted.
+const realCrypto = sandbox.crypto;
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const UID_TIERS = [
+  { name: "tier 1 (crypto.randomUUID)", crypto: realCrypto, uuid: true, n: 5000, dupes: 0 },
+  // getRandomValues but no randomUUID — an insecure context, e.g. file://.
+  {
+    name: "tier 2 (crypto.getRandomValues)", uuid: true, n: 5000, dupes: 0,
+    crypto: { getRandomValues: (a) => realCrypto.getRandomValues(a) },
+  },
+  // No crypto at all: Date.now() + 6 base36 chars of Math.random(). This tier is
+  // genuinely weaker — ~2.2e9 values per millisecond bucket, so ~1000 draws
+  // collide about once in 9000 runs — which is the whole reason tiers 1-2 exist.
+  // A small dupe allowance keeps the check from flaking while still catching any
+  // real regression (drop the random part and you get ~1 distinct id, not 998).
+  { name: "tier 3 (Date.now + Math.random)", crypto: null, uuid: false, n: 1000, dupes: 2 },
+];
+for (const tier of UID_TIERS) {
+  if (tier.crypto) sandbox.crypto = tier.crypto;
+  else delete sandbox.crypto;
+
+  const seen = {};                       // an object, so ids prove usable as keys
+  for (let i = 0; i < tier.n; i++) seen[wjt.uid()] = true;
+  const ids = Object.keys(seen);
+  const label = "uid " + tier.name + ": ";
+  check(label + tier.n + " calls give " + tier.n + " distinct ids",
+    ids.length >= tier.n - tier.dupes);
+  check(label + "non-empty strings", ids.every((id) => typeof id === "string" && id.length > 0));
+  // Ids go into the URL as #/edit/:id, so they must need no escaping.
+  check(label + "safe as a URL hash segment", ids.every((id) => encodeURIComponent(id) === id));
+  check(label + (tier.uuid ? "is a v4 UUID" : "is the legacy format"),
+    ids.every((id) => UUID_V4.test(id) === tier.uuid));
+}
+sandbox.crypto = realCrypto;
 
 // --- taxonomy sanity ---
 const layerCounts = {};

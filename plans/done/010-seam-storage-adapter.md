@@ -142,7 +142,7 @@ the teacher's actual work and must surface a `STORAGE_WRITE_FAILED` toast.
   P7 resolves.
 - `ownerId` and the migration runner — those are
   [012](../012-seam-owner-and-migrations.md), and they build on this.
-- Changing `wjt.uid()` — that's [011](../011-seam-real-ids.md).
+- Changing `wjt.uid()` — that's [011](011-seam-real-ids.md).
 - Any change to the lesson format. `version: 1` stands.
 
 ## Done when
