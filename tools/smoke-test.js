@@ -29,7 +29,9 @@ const sandbox = {
 sandbox.window = sandbox;
 vm.createContext(sandbox);
 
-for (const f of ["labels.js", "tokenize.js", "store.js", "examples.js"]) {
+const LOGIC_FILES = ["labels.js", "tokenize.js", "store.js", "examples.js",
+  "assignment-model.js", "assignment-codec.js"];
+for (const f of LOGIC_FILES) {
   vm.runInContext(fs.readFileSync(path.join(root, "js", f), "utf8"), sandbox, { filename: f });
 }
 const wjt = sandbox.wjt;
@@ -365,6 +367,394 @@ check("corrupt store: non-array JSON is preserved too",
 // Clean up so the sample-file write below starts from a good state.
 storage.delete("sentenceForge.lessons.v1");
 storage.delete("sentenceForge.lessons.v1.corrupt");
+
+/* ============================ Assignment mode ============================
+ * Phase 1: the model + the wire codec. Two things are being defended here —
+ * that a given (lesson, selections, seed) always produces the same questions,
+ * and that the student-safe payload can't carry an answer. The leak checks
+ * inspect schema keys and exact field values, never "does the correct word
+ * appear anywhere", because answer text legitimately appears in the passage. */
+console.log("\n-- assignment mode --");
+
+const ALL_SKILLS = ["pos", "part", "phrase", "clause", "structure", "purpose"];
+const asgBase = {
+  title: "Sentence Parts Review",
+  directions: "Answer each question on your own paper.",
+  skills: ALL_SKILLS,
+  count: 10,
+  seed: 12345,
+};
+
+// Every structural invariant a rendered assignment relies on.
+function assignmentIsValid(built) {
+  const a = built.assignment;
+  if (a.format !== "sentence-forge-assignment" || a.version !== 1) return false;
+  if (!a.sentences.length || !a.questions.length) return false;
+  return a.questions.every((q, i) => {
+    if (q.number !== i + 1) return false;
+    if (wjt.assignment.KINDS.indexOf(q.kind) === -1) return false;
+    if (q.sentence < 1 || q.sentence > a.sentences.length) return false;
+    if (!q.prompt || !/sentence \d+/.test(q.prompt)) return false;
+    if (q.kind === "identify" && !q.mark) return false;
+    if (q.kind !== "identify" && q.mark) return false;
+    if (q.mark) {
+      const toks = wjt.tokenize(a.sentences[q.sentence - 1].text);
+      if (q.mark.first < 0 || q.mark.last < q.mark.first || q.mark.last >= toks.length) return false;
+    }
+    if (q.kind === "list" && !(q.expected >= 2)) return false;
+    const ans = built.key.answers[i];
+    return ans.question === q.number && ans.accepted.length > 0 &&
+      ans.accepted.every((t) => typeof t === "string" && t.length > 0);
+  });
+}
+
+// --- determinism ---
+const asgA = wjt.assignment.build(sample, asgBase);
+const asgB = wjt.assignment.build(sample, asgBase);
+check("assignment: same lesson + selections + seed is byte-identical",
+  JSON.stringify(asgA.assignment) === JSON.stringify(asgB.assignment));
+check("assignment: the answer key is byte-identical too",
+  JSON.stringify(asgB.key.answers) === JSON.stringify(asgA.key.answers));
+check("assignment: honors the requested count", asgA.assignment.questions.length === 10);
+check("assignment: questions and answers line up 1..N",
+  assignmentIsValid(asgA) && asgA.key.answers.length === asgA.assignment.questions.length);
+check("assignment: the seed is stored on the assignment", asgA.assignment.seed === 12345);
+check("assignment: the key references the same assignment object",
+  asgA.key.assignment === asgA.assignment && asgA.key.format === "sentence-forge-answer-key");
+
+// --- regeneration mints a new seed and a still-valid set ---
+const asgC = wjt.assignment.build(sample, Object.assign({}, asgBase, { seed: 987654 }));
+check("assignment: a new seed changes the question set",
+  JSON.stringify(asgC.assignment.questions) !== JSON.stringify(asgA.assignment.questions));
+check("assignment: the regenerated set is still valid",
+  assignmentIsValid(asgC) && asgC.assignment.questions.length === 10);
+const seeds = new Set([0, 0, 0, 0, 0].map(() => wjt.assignment.newSeed()));
+check("assignment: newSeed mints distinct seeds", seeds.size >= 4);
+const noSeed = wjt.assignment.build(sample, { skills: ALL_SKILLS, count: 5 });
+check("assignment: omitting the seed mints one", Number.isInteger(noSeed.assignment.seed));
+
+// --- balance across skills and sentences ---
+const bal = wjt.assignment.build(sample, { skills: ["pos", "part", "phrase", "clause"], count: 8, seed: 7 });
+const perSkill = {}, perSentence = {};
+bal.key.answers.forEach((a) => {
+  perSkill[a.skill] = (perSkill[a.skill] || 0) + 1;
+  perSentence[a.sentence] = (perSentence[a.sentence] || 0) + 1;
+});
+check("assignment: 8 questions spread over all 4 label skills",
+  Object.keys(perSkill).length === 4 && Object.values(perSkill).every((n) => n === 2));
+check("assignment: and over all 4 sentences",
+  Object.keys(perSentence).length === 4 && Object.values(perSentence).every((n) => n <= 3));
+check("assignment: not one question per annotation — the pool is much bigger",
+  bal.poolSize > 40 && bal.assignment.questions.length === 8);
+
+// --- pool feedback: the count control can't lie ---
+const capped = wjt.assignment.build(sample, { skills: ALL_SKILLS, count: 999, seed: 4 });
+check("assignment: count clamps to the real pool",
+  capped.assignment.questions.length === capped.poolSize &&
+  capped.poolSize === wjt.assignment.poolSize(sample, null, ALL_SKILLS));
+const everyPrompt = new Set(capped.assignment.questions.map(
+  (q) => q.prompt + "|" + (q.mark ? q.mark.first + "-" + q.mark.last : "")));
+check("assignment: an exhausted pool repeats no prompt+target",
+  everyPrompt.size === capped.assignment.questions.length);
+
+// --- unanswerable skills are reported, never generated ---
+const skillsForS2 = wjt.assignment.availableSkills(sample, [2]);
+const phraseSkill = skillsForS2.find((s) => s.id === "phrase");
+check("assignment: a skill with no source annotations is unavailable, with a reason",
+  !phraseSkill.available && phraseSkill.count === 0 && /Phrases/.test(phraseSkill.reason));
+check("assignment: sentence-type skills stay available when a type is set",
+  skillsForS2.find((s) => s.id === "structure").available &&
+  skillsForS2.find((s) => s.id === "purpose").available);
+check("assignment: an unavailable skill generates nothing",
+  wjt.assignment.build(sample, { sentences: [2], skills: ["phrase"], count: 5, seed: 1 })
+    .assignment.questions.length === 0);
+const noTypes = wjt.importLesson({ title: "No types", sentences: [{ text: "The dog barked.", annotations: [{ match: "dog", label: "noun" }] }] }).lesson;
+check("assignment: a lesson with no sentence types disables both type skills",
+  wjt.assignment.availableSkills(noTypes, null)
+    .filter((s) => s.kind === "type").every((s) => !s.available));
+
+// --- selection renumbers: a student never sees the sentences left out ---
+const only4 = wjt.assignment.build(sample, { sentences: [4], skills: ["pos"], count: "all", seed: 3 });
+check("assignment: the selection is renumbered from 1",
+  only4.assignment.sentences.length === 1 && only4.assignment.sentences[0].number === 1 &&
+  only4.assignment.questions.every((q) => q.sentence === 1 && /sentence 1/.test(q.prompt)));
+
+// --- same-label duplicates yield every acceptable answer ---
+// Sentence 4 of the sample carries three determiners.
+const detFind = only4.key.answers.find((a, i) =>
+  /^Determiner/.test(a.source) && only4.assignment.questions[i].kind === "find");
+const detListAt = only4.key.answers.findIndex((a, i) =>
+  /^Determiner/.test(a.source) && only4.assignment.questions[i].kind === "list");
+check("assignment: find accepts every same-label span",
+  !!detFind && detFind.accepted.length === 3 && /Copy one determiner from sentence 1\./.test(
+    only4.assignment.questions[detFind.question - 1].prompt));
+check("assignment: list states the count and accepts all of them",
+  detListAt !== -1 && only4.key.answers[detListAt].accepted.length === 3 &&
+  only4.assignment.questions[detListAt].expected === 3 &&
+  /List the three determiners in sentence 1\./.test(only4.assignment.questions[detListAt].prompt));
+// "Copy the noun" only when there is exactly one; otherwise "Copy one noun".
+check("assignment: find wording matches how many answers are acceptable",
+  capped.assignment.questions.filter((q) => q.kind === "find").every((q) => {
+    const many = capped.key.answers[q.number - 1].accepted.length > 1;
+    return many ? /^Copy one .+ from sentence \d+\.$/.test(q.prompt)
+      : /^Copy the .+ from sentence \d+\.$/.test(q.prompt);
+  }));
+
+// --- the four question families, and the classify wording ---
+const families = new Set(capped.assignment.questions.map((q) => q.kind));
+check("assignment: all four question families are generated",
+  wjt.assignment.KINDS.every((k) => families.has(k)));
+const structureQ = capped.assignment.questions[
+  capped.key.answers.findIndex((a) => a.skill === "structure")];
+check("assignment: classify lists every option in the prompt",
+  /^Is sentence \d+ simple, compound, complex, or compound-complex\?$/.test(structureQ.prompt));
+const purposeQ = capped.assignment.questions[
+  capped.key.answers.findIndex((a) => a.skill === "purpose")];
+check("assignment: purpose classify reads the same way",
+  /^Is sentence \d+ declarative, interrogative, imperative, or exclamatory\?$/.test(purposeQ.prompt));
+check("assignment: identify names the layer's unit, never the answer",
+  capped.assignment.questions.filter((q) => q.kind === "identify").every((q, i) => {
+    const answer = capped.key.answers[q.number - 1].accepted[0];
+    return /marked (word|group of words|phrase|clause)/.test(q.prompt) &&
+      q.prompt.indexOf(answer) === -1;
+  }));
+
+// A label name that can't take a plural falls back to a quotable form.
+const opLesson = wjt.importLesson({
+  title: "Objects", sentences: [{
+    text: "The keys are under the mat by the door.",
+    annotations: [{ match: "the mat", label: "object-of-preposition" },
+      { match: "the door.", label: "object-of-preposition" }],
+  }],
+}).lesson;
+const opBuilt = wjt.assignment.build(opLesson, { skills: ["part"], count: "all", seed: 2 });
+check("assignment: an unpluralizable label reads as “examples of …”",
+  opBuilt.assignment.questions.some((q) =>
+    q.prompt === "List the two examples of “Object of the Preposition” in sentence 1."));
+
+// --- handwriting space per family (proposal Q4) ---
+const listQ = { kind: "list", expected: 3 };
+check("assignment: spacing presets give a list room for every answer",
+  wjt.assignment.linesFor(listQ, "compact") === 3 &&
+  wjt.assignment.linesFor(listQ, "standard") === 4 &&
+  wjt.assignment.linesFor(listQ, "generous") === 6 &&
+  wjt.assignment.linesFor({ kind: "find" }, "standard") === 2 &&
+  wjt.assignment.linesFor({ kind: "identify" }, "unknown-preset") === 1);
+
+// --- word bank: a support, not an answer sheet ---
+const banked = wjt.assignment.build(sample, { skills: ["pos"], count: 6, seed: 5, wordBank: true });
+const bank = banked.assignment.options.wordBank;
+const bankAnswers = [...new Set(banked.key.answers
+  .filter((a, i) => banked.assignment.questions[i].kind === "identify")
+  .map((a) => a.accepted[0]))];
+check("assignment: the word bank holds every identify answer",
+  bank.length > 0 && bankAnswers.every((n) => bank.includes(n)));
+check("assignment: the word bank is padded with decoys", bank.length >= bankAnswers.length + 2);
+check("assignment: the word bank is alphabetical, so it maps to no question",
+  JSON.stringify(bank) === JSON.stringify([...bank].sort((a, b) => a.localeCompare(b))));
+check("assignment: no word bank unless it was asked for",
+  asgA.assignment.options.wordBank.length === 0);
+
+/* ------------------------------ the codec ------------------------------ */
+const codec = wjt.assignmentCodec;
+const b64wire = (obj) => Buffer.from(JSON.stringify(obj), "utf8").toString("base64url");
+
+const enc = codec.encode(asgA.assignment);
+check("codec: encodes to URL-safe characters only",
+  enc.ok && /^[A-Za-z0-9_-]+$/.test(enc.payload));
+const dec = codec.decode(enc.payload);
+check("codec: round-trips the whole assignment", dec.ok &&
+  JSON.stringify(dec.assignment.questions) === JSON.stringify(asgA.assignment.questions) &&
+  JSON.stringify(dec.assignment.sentences) === JSON.stringify(asgA.assignment.sentences) &&
+  dec.assignment.title === asgA.assignment.title &&
+  dec.assignment.directions === asgA.assignment.directions);
+check("codec: options survive the trip", (() => {
+  const opts = wjt.assignment.build(sample, {
+    skills: ALL_SKILLS, count: 6, seed: 8, wordBank: true,
+    numberWords: true, grouping: "per-sentence", spacing: "generous",
+  }).assignment;
+  const back = codec.decode(codec.encode(opts).payload);
+  return back.ok && back.assignment.options.numberWords === true &&
+    back.assignment.options.grouping === "per-sentence" &&
+    back.assignment.options.spacing === "generous" &&
+    JSON.stringify(back.assignment.options.wordBank) === JSON.stringify(opts.options.wordBank);
+})());
+check("codec: defaults are omitted from the wire and restored on decode", (() => {
+  const wire = codec.toWire(asgA.assignment);
+  return !("o" in wire) && dec.assignment.options.grouping === "passage-first" &&
+    dec.assignment.options.spacing === "standard" && dec.assignment.options.numberWords === false;
+})());
+
+// Unicode: curly quotes, an em dash, accents, and an astral-plane emoji.
+const uniLesson = wjt.importLesson({
+  title: "Unicode", sentences: [{
+    text: "The café didn’t open — the fox 🦊 waited.",
+    annotations: [{ match: "fox", label: "noun" }, { match: "waited.", label: "verb" }],
+  }],
+}).lesson;
+const uni = wjt.assignment.build(uniLesson, {
+  title: "Curly “quotes” — café 🦊",
+  directions: "Écrivez vos réponses sur papier 🖊️",
+  skills: ["pos"], count: "all", seed: 6,
+});
+const uniBack = codec.decode(codec.encode(uni.assignment).payload);
+check("codec: Unicode round-trips exactly (curly quotes, accents, emoji)",
+  uniBack.ok && uniBack.assignment.title === uni.assignment.title &&
+  uniBack.assignment.directions === uni.assignment.directions &&
+  uniBack.assignment.sentences[0].text === uni.assignment.sentences[0].text);
+
+// --- rejection: malformed, hostile, oversized, wrong version ---
+const badPayloads = ["", "   ", "A", "abc*def", "eyJ", "!!!!", "%%%%", "../../etc/passwd",
+  "<script>alert(1)</script>", "x".repeat(codec.LIMITS.payload + 1), null, 42, {}, [], undefined];
+let rejectedAll = true, threwSomewhere = false;
+badPayloads.forEach((p) => {
+  let r;
+  try { r = codec.decode(p); } catch (e) { threwSomewhere = true; return; }
+  if (!r || r.ok !== false || typeof r.error !== "string" || !r.error) rejectedAll = false;
+});
+check("codec: every malformed payload is rejected with a message", rejectedAll);
+check("codec: nothing throws out of decode — the router can't be wedged", !threwSomewhere);
+
+const goodWire = codec.toWire(asgA.assignment);
+function wireVariant(mutate) {
+  const w = JSON.parse(JSON.stringify(goodWire));
+  mutate(w);
+  return codec.decode(b64wire(w));
+}
+check("codec: an unsupported major version is rejected by name",
+  /newer version/.test(wireVariant((w) => { w.v = 2; }).error));
+check("codec: an unknown format tag is rejected",
+  wireVariant((w) => { w.f = "not-ours"; }).ok === false);
+check("codec: structural damage is rejected",
+  wireVariant((w) => { w.s = []; }).ok === false &&
+  wireVariant((w) => { w.q = []; }).ok === false &&
+  wireVariant((w) => { w.q[0].s = 99; }).ok === false &&
+  wireVariant((w) => { w.q[0].k = 9; }).ok === false &&
+  wireVariant((w) => { w.q[0].p = ""; }).ok === false &&
+  wireVariant((w) => { w.q[0] = null; }).ok === false);
+check("codec: a mark that runs past its sentence is rejected",
+  wireVariant((w) => {
+    const q = w.q.find((x) => x.m);
+    q.m = [0, 500];
+  }).ok === false);
+check("codec: counts and lengths are capped before anything renders",
+  wireVariant((w) => { w.s = new Array(codec.LIMITS.sentences + 1).fill("A sentence."); }).ok === false &&
+  wireVariant((w) => { w.q = new Array(codec.LIMITS.questions + 1).fill(w.q[0]); }).ok === false &&
+  wireVariant((w) => { w.t = "T".repeat(codec.LIMITS.title + 1); }).ok === false &&
+  wireVariant((w) => { w.d = "D".repeat(codec.LIMITS.directions + 1); }).ok === false &&
+  wireVariant((w) => { w.o = { b: new Array(codec.LIMITS.bank + 1).fill("Noun") }; }).ok === false);
+check("codec: hostile strings decode as data, never as structure", (() => {
+  const evil = wireVariant((w) => {
+    w.t = "<img src=x onerror=alert(1)>";
+    w.q[0].p = "</p><script>alert(1)</script>";
+  });
+  return evil.ok && evil.assignment.title === "<img src=x onerror=alert(1)>" &&
+    evil.assignment.questions[0].prompt === "</p><script>alert(1)</script>";
+})());
+check("codec: an over-ceiling assignment is refused, never truncated", (() => {
+  const big = wjt.assignment.build(sample, { skills: ALL_SKILLS, count: "all", seed: 9 }).assignment;
+  big.directions = "x".repeat(codec.LIMITS.directions + 1);
+  const r = codec.encode(big);
+  return r.ok === false && /too long/.test(r.error);
+})());
+
+// --- privacy invariants: the wire form IS the whitelist ---
+const ALLOWED_TOP = ["f", "v", "t", "d", "s", "q", "o"];
+const ALLOWED_Q = ["k", "s", "p", "m", "n"];
+const ALLOWED_O = ["w", "b", "g", "z"];
+const fullWire = codec.toWire(capped.assignment);
+check("wire: only whitelisted top-level keys",
+  Object.keys(fullWire).every((k) => ALLOWED_TOP.includes(k)));
+check("wire: only whitelisted question keys",
+  fullWire.q.every((q) => Object.keys(q).every((k) => ALLOWED_Q.includes(k))));
+check("wire: only whitelisted option keys",
+  !fullWire.o || Object.keys(fullWire.o).every((k) => ALLOWED_O.includes(k)));
+check("wire: no seed, lesson id, notes, or annotation offsets",
+  !("seed" in fullWire) && !("id" in fullWire) && !("lesson" in fullWire) &&
+  !("answers" in fullWire) && !("key" in fullWire) &&
+  !/"(seed|note|notes|label|annotations|start|end|lessonId|accepted|answers)"/.test(JSON.stringify(fullWire)));
+check("wire: carries no label id anywhere",
+  Object.keys(wjt.LABELS).every((id) => JSON.stringify(fullWire).indexOf('"' + id + '"') === -1));
+
+// Every string the payload carries, so the leak check can look at values, not
+// at "does the correct word appear in the passage" (it legitimately does).
+function wireStrings(node, out) {
+  out = out || [];
+  if (typeof node === "string") out.push(node);
+  else if (Array.isArray(node)) node.forEach((n) => wireStrings(n, out));
+  else if (node && typeof node === "object") Object.keys(node).forEach((k) => wireStrings(node[k], out));
+  return out;
+}
+const LABEL_NAMES = Object.keys(wjt.LABELS).map((id) => wjt.LABELS[id].name);
+const TYPE_NAMES = wjt.SENTENCE_TYPE_ORDER.reduce((acc, cat) =>
+  acc.concat(Object.keys(wjt.SENTENCE_TYPES[cat].options)
+    .map((o) => wjt.SENTENCE_TYPES[cat].options[o].name)), []);
+check("wire: with the bank off, no value IS an answer (label or type name)",
+  wireStrings(fullWire).every((s) => !LABEL_NAMES.includes(s) && !TYPE_NAMES.includes(s)));
+check("wire: with the bank on, the bank is the only place an answer name appears",
+  wireStrings(codec.toWire(banked.assignment))
+    .filter((s) => LABEL_NAMES.includes(s))
+    .every((s) => banked.assignment.options.wordBank.includes(s)));
+check("wire: the answer key never rides along",
+  JSON.stringify(fullWire).indexOf(capped.key.answers[0].source) === -1);
+check("assignment: the runtime object carries no answers either",
+  !JSON.stringify(capped.assignment).includes('"accepted"') &&
+  !JSON.stringify(capped.assignment).includes('"note"') &&
+  !JSON.stringify(capped.assignment).includes('"source"'));
+
+// --- share URL, size states, and the measured thresholds ---
+const BASE = "https://example.github.io/sentence-app/";
+check("codec: the share URL is built from the current page, hash removed",
+  codec.shareUrl(BASE + "#/assign/abc123", "PAYLOAD") === BASE + "#/assignment/PAYLOAD");
+check("codec: size states sit on the documented boundaries",
+  codec.sizeState(codec.THRESHOLDS.easy) === "easy" &&
+  codec.sizeState(codec.THRESHOLDS.easy + 1) === "dense" &&
+  codec.sizeState(codec.THRESHOLDS.dense) === "dense" &&
+  codec.sizeState(codec.THRESHOLDS.dense + 1) === "too-large-qr" &&
+  codec.sizeState(codec.LIMITS.url) === "too-large-qr" &&
+  codec.sizeState(codec.LIMITS.url + 1) === "too-large-url");
+// All three QR states, on the same real lesson: the size control has to react
+// to the actual URL, not to a guess from the sentence count.
+function stateFor(count, sentences) {
+  const built = wjt.assignment.build(sample, { skills: ALL_SKILLS, count, sentences, seed: 42 });
+  const r = codec.encode(built.assignment);
+  return r.ok ? codec.measure(BASE, r.payload) : { state: "refused", length: 0, error: r.error };
+}
+check("codec: a short assignment scans easily", stateFor(5, [1, 2]).state === "easy");
+check("codec: the default 10 questions on 4 sentences is dense", stateFor(10).state === "dense");
+check("codec: 20 questions is past what a QR code should carry",
+  stateFor(20).state === "too-large-qr");
+check("codec: measure() reports the real URL it built",
+  codec.measure(BASE, enc.payload).length === codec.shareUrl(BASE, enc.payload).length);
+
+// Report real URL lengths for every built-in lesson, so the thresholds above
+// stay honest as the examples grow. 10 questions is the builder's default.
+console.log("  note: measured share-URL length, base " + BASE.length + " chars" +
+  " (easy ≤ " + codec.THRESHOLDS.easy + ", dense ≤ " + codec.THRESHOLDS.dense +
+  ", url ceiling " + codec.LIMITS.url + ")");
+wjt.EXAMPLES.forEach((ex) => {
+  const lesson = ex.build();
+  const cells = [10, 20, "all"].map((count) => {
+    const built = wjt.assignment.build(lesson, { skills: ALL_SKILLS, count, seed: 42 });
+    const r = codec.encode(built.assignment);
+    const n = String(built.assignment.questions.length).padStart(3) + "q ";
+    return r.ok
+      ? n + String(codec.shareUrl(BASE, r.payload).length).padStart(5) + " " +
+        codec.sizeState(codec.shareUrl(BASE, r.payload).length).padEnd(13)
+      : n + "refused".padStart(5) + " " +
+        (/too many questions/.test(r.error) ? "over question cap" :
+          /Sentence \d+ is too long/.test(r.error) ? "sentence over cap" : "over url cap").padEnd(13);
+  });
+  console.log("        " + ex.id.padEnd(34) +
+    String(lesson.sentences.length).padStart(3) + " sent | " + cells.join("| "));
+});
+
+// --- the new modules stay DOM-free and storage-free ---
+["assignment-model.js", "assignment-codec.js"].forEach((f) => {
+  const src = fs.readFileSync(path.join(root, "js", f), "utf8");
+  check(f + ": touches no DOM, storage, or network",
+    !/\bdocument\b|localStorage|sessionStorage|\bfetch\s*\(|XMLHttpRequest|navigator/.test(src));
+});
 
 // --- write the sample JSON file for the samples/ folder ---
 fs.mkdirSync(path.join(root, "samples"), { recursive: true });

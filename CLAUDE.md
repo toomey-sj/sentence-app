@@ -21,9 +21,12 @@ current and it explains the constraints below in detail.
    there. Same reason there is **no `fetch()` of local files** — example lessons
    live in `js/examples.js` as JavaScript, not in `samples/` as JSON.
 3. **No network calls of any kind** — no CDN, no fonts, no analytics.
-4. **Keep `js/labels.js`, `js/tokenize.js`, `js/store.js`, `js/examples.js`
-   DOM-free.** `tools/smoke-test.js` runs them in a bare `vm` sandbox; a
-   `document` reference in any of the four breaks it.
+4. **Keep the logic layer DOM-free** — `js/labels.js`, `js/tokenize.js`,
+   `js/store.js`, `js/examples.js`, `js/assignment-model.js`, and
+   `js/assignment-codec.js`. `tools/smoke-test.js` runs all six in a bare `vm`
+   sandbox; a `document` reference in any of them breaks it. (The two
+   assignment modules are additionally asserted DOM-, storage-, and
+   network-free by a source scan.)
 5. **Every path relative.** Absolute paths 404 under GitHub Pages' `/<repo>/`.
 6. **Never rename or remove a label id.** Annotations store ids; a rename
    silently destroys annotations in every teacher's browser, and there's no
