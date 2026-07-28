@@ -55,6 +55,11 @@ node tools/gen-docs.js --check  # CI form: fails instead of writing
 # any lesson JSON, through the real importer; also scans .md for ```json examples
 node tools/validate-lesson.js samples/*.json docs/custom-gpt-instructions.md
 
+# every relative [text](path) link in the .md files resolves. Moving a finished
+# work order into plans/done/ is what usually breaks these — silently.
+node tools/link-check.js        # report, with a suggested re-basing per broken link
+node tools/link-check.js --check  # CI form: fails if any link is broken
+
 node tools/cvd-check.js         # color-blind screen: pairs that collapse under CVD (report)
 node tools/cvd-check.js --check # CI form: fails only if a same-abbr pair in one layer collapses
 node tools/cvd-check.js --palette=cbSafe --check  # opt-in CB palette gate: fails if ANY

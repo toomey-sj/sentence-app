@@ -6,7 +6,7 @@ created: 2026-07-22
 # Tier A — Color-blind accessibility (cheap, do-now items)
 
 Implements **Tier A** of
-[docs/reference/color-blind-proposal.md](../docs/reference/color-blind-proposal.md).
+[docs/reference/color-blind-proposal.md](../../docs/reference/color-blind-proposal.md).
 Additive and format-safe throughout — **no taxonomy or lesson-format change**,
 no `labels.js` color/id edits.
 
@@ -35,7 +35,7 @@ the three cheap items so they're not blocked on it.
   CVD type. The deliverable is a **standing guard** (Task C), not a data edit.
 - The proposal's `cvd.js` survives only in a prior session's scratchpad and
   **hardcodes** the palette. Task C re-homes it under `tools/` and wires it to
-  read live colors from [js/labels.js](../js/labels.js).
+  read live colors from [js/labels.js](../../js/labels.js).
 
 ## Scope
 
@@ -46,9 +46,9 @@ each distinct label present in the on-screen sentence as `swatch · abbr · name
 Off by default. Removes the last color-only reliance (the abbr-only POS chip
 row); bars already print names, but the key covers them too for consistency.
 
-**New renderer helper — [js/render.js](../js/render.js)** (render.js already uses
+**New renderer helper — [js/render.js](../../js/render.js)** (render.js already uses
 `document`; it is *not* one of the four DOM-free files). Add near
-`renderTypeBadges` (~[render.js:561](../js/render.js#L561)):
+`renderTypeBadges` (~[render.js:561](../../js/render.js#L561)):
 
 ```js
 /**
@@ -68,24 +68,24 @@ wjt.renderLegend = function (sentence, layers) { … };
   in `display.js` explain cards) and `wjt.escapeHtml`.
 - Return `null` when no shown layer has annotations, so callers can `hidden` it.
 
-**Wire into Present — [js/display.js](../js/display.js):**
+**Wire into Present — [js/display.js](../../js/display.js):**
 
 - Add a Key button to the `present-controls` row (currently
-  [display.js:41-46](../js/display.js#L41-L46)), beside Show all / Hide all:
+  [display.js:41-46](../../js/display.js#L41-L46)), beside Show all / Hide all:
   `<button class="btn btn-sm" data-act="key" aria-pressed="false">🔑 Key</button>`.
 - Add a legend container to `present-main` (after the stage `<section>`,
-  [display.js:47-54](../js/display.js#L47-L54)):
+  [display.js:47-54](../../js/display.js#L47-L54)):
   `<div class="present-legend" data-role="legend" hidden></div>`.
 - Hold state in the view closure: `var legendOn = false;`.
 - A local `renderLegend()` rebuilds the container from
   `wjt.renderLegend(currentSentence, visible)` and sets
   `hidden = !legendOn || !content`. Call it from **both** `renderStage()` (sentence
   changed) and `applyVisible()` (visible layers changed) so it syncs on the exact
-  same triggers as the chips — [display.js:184-191](../js/display.js#L184-L191)
-  and [display.js:193-228](../js/display.js#L193-L228).
+  same triggers as the chips — [display.js:184-191](../../js/display.js#L184-L191)
+  and [display.js:193-228](../../js/display.js#L193-L228).
 - Key handler: flip `legendOn`, set `aria-pressed`, call the local `renderLegend()`.
 
-**CSS — [css/styles.css](../css/styles.css):** add `.present-legend` (wrapped
+**CSS — [css/styles.css](../../css/styles.css):** add `.present-legend` (wrapped
 flex row, muted panel, generous gap so it reads on a projector) and
 `.legend-item` (inline-flex swatch + abbr + name). Reuse existing tokens
 (`--muted`, `--card`, the `.swatch` sizing) — don't invent new ones.
@@ -110,8 +110,8 @@ Tier A item 1).
 `rgbToLab` / `deltaE2000` / `dE` and the `CONCERN=12`, `DISTINCT=18` thresholds
 unchanged), but **replace the hardcoded palette** with live data:
 
-- Load [js/labels.js](../js/labels.js) in a `vm` sandbox exactly as
-  [tools/smoke-test.js:5-36](../tools/smoke-test.js#L5-L36) does; read `wjt.LABELS`
+- Load [js/labels.js](../../js/labels.js) in a `vm` sandbox exactly as
+  [tools/smoke-test.js:5-36](../../tools/smoke-test.js#L5-L36) does; read `wjt.LABELS`
   (grouped by `wjt.layerOf(id).id`) and `wjt.SENTENCE_TYPES` for the type axes.
 - **Report mode (default):** per layer and per sentence-type axis, print the pairs
   distinct in normal vision (>18) but collapsing under some CVD (<12) —
@@ -123,17 +123,17 @@ unchanged), but **replace the hardcoded palette** with live data:
   passes; it fails the moment such a pair appears. Print the offending pair(s).
 
 **Wire into the check suite** alongside `gen-docs.js --check`: add the command to
-[docs/roadmap-0.1.0.md §2](../docs/roadmap-0.1.0.md) and to
-[CLAUDE.md "Checks"](../CLAUDE.md) so it's a documented gate, not folklore.
+[docs/roadmap-0.1.0.md §2](../../docs/roadmap-0.1.0.md) and to
+[CLAUDE.md "Checks"](../../CLAUDE.md) so it's a documented gate, not folklore.
 
-**Ship the document.** [docs/reference/color-blind-proposal.md](../docs/reference/color-blind-proposal.md)
+**Ship the document.** [docs/reference/color-blind-proposal.md](../../docs/reference/color-blind-proposal.md)
 is currently untracked — commit it (it belongs beside `7-20-findings.md` as a
 design record). Update its **Method note** (~proposal lines 210-214) to point at
 `tools/cvd-check.js` instead of "kept in the session scratchpad," and add the
 Task B "As built" outcome to §2.
 
 **Cleanup:** `docs/reference/color-blind-design-research` is a stale working copy
-of [docs/project/style-guide.md](../docs/project/style-guide.md) (the proposal
+of [docs/project/style-guide.md](../../docs/project/style-guide.md) (the proposal
 cites the real file). Remove it rather than tracking a duplicate.
 
 ## Done when
@@ -149,14 +149,14 @@ cites the real file). Remove it rather than tracking a duplicate.
   the raw dump): **0 failed.** The Key button + legend add DOM, so the pass
   **count moves off 238** — expected here; confirm 0 failed and record the new
   baseline.
-- [docs/project/dom-structure.md](../docs/project/dom-structure.md) updated for the
+- [docs/project/dom-structure.md](../../docs/project/dom-structure.md) updated for the
   Present view: the `🔑 Key` button in `present-controls` and the
   `.present-legend` (`data-role="legend"`) container in `present-main`.
 - Manual smoke (open `index.html` from `file://`): in Present, toggle layers on,
   click **Key** → the legend lists exactly the shown layers' labels with correct
   swatches; page to another sentence and toggle layers → the legend tracks both;
   Key off hides it. Fullscreen still works.
-- Report results honestly per [CLAUDE.md](../CLAUDE.md); a red check is not "done."
+- Report results honestly per [CLAUDE.md](../../CLAUDE.md); a red check is not "done."
 
 ## Notes
 
@@ -167,4 +167,4 @@ cites the real file). Remove it rather than tracking a duplicate.
   surrounding code. `cvd-check.js` is a Node build tool, so it may use the same
   modern JS as the other `tools/*.js`.
 - When finished: set `status: done` and `git mv plans/002-tier-a-cvd.md
-  plans/done/` in the same commit as the work (per [plans/README.md](README.md)).
+  plans/done/` in the same commit as the work (per [plans/README.md](../README.md)).

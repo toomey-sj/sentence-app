@@ -6,15 +6,15 @@ created: 2026-07-22
 # Tier B — opt-in CVD-tuned grammar palette
 
 Implements **Tier B** of
-[docs/reference/color-blind-proposal.md](../docs/reference/color-blind-proposal.md).
+[docs/reference/color-blind-proposal.md](../../docs/reference/color-blind-proposal.md).
 Additive and zero-migration — **no taxonomy or lesson-format change**; annotations
 store label *ids*, never colors, so a palette is a pure presentation switch.
 
 ## Why
 
-Tier A (shipped, [plans/done/002-tier-a-cvd.md](done/002-tier-a-cvd.md)) proved the
+Tier A (shipped, [plans/done/002-tier-a-cvd.md](002-tier-a-cvd.md)) proved the
 app already satisfies WCAG 1.4.1 — color is never the *only* carrier of meaning —
-and added a standing CVD screen ([tools/cvd-check.js](../tools/cvd-check.js)) plus a
+and added a standing CVD screen ([tools/cvd-check.js](../../tools/cvd-check.js)) plus a
 Present-mode legend. What it deliberately left parked is the **enhancement**: under
 red-green CVD the 9 POS hues collapse to ~4–5 distinguishable buckets, so the fast
 pre-attentive "all the amber words are nouns" glance the app is built to give
@@ -35,34 +35,34 @@ color-blind teacher and a sighted one. Accessibility is in scope during open alp
 ## How the pieces work today (verified from exploration)
 
 - Grammar colors are **not** CSS variables. Each label declares a hex `color:` in
-  [labels.js](../js/labels.js); renderers read it live and write it inline as `--c`
+  [labels.js](../../js/labels.js); renderers read it live and write it inline as `--c`
   (`el.style.setProperty("--c", label.color)`). So a color change has **no effect
   until the element re-renders** — unlike the CSS-only `data-theme` toggle.
 - Only **base** labels + a few subtype **overrides** declare a color; other subtypes
-  inherit via the pass at [labels.js:503-514](../js/labels.js#L503-L514)
+  inherit via the pass at [labels.js:503-514](../../js/labels.js#L503-L514)
   (`if (!l.color) l.color = p.color`). The **color anchors** = the ~35 entries that
   declare `color:` today (9 POS bases; subject/predicate ladders + object /
   complement / appositive bases in `part`; 9 phrase; 5 clause) plus the **8
   sentence-type option** colors in `wjt.SENTENCE_TYPES`.
-- The central re-render is `route()` at [app.js:223-236](../js/app.js#L223-L236): it
+- The central re-render is `route()` at [app.js:223-236](../../js/app.js#L223-L236): it
   drains view cleanups, rebuilds `#app` from the current hash, and every view clears
   `container.innerHTML` and re-reads colors — so **re-running `route()` repaints
   every inline `--c`.** It is private to the IIFE and must be exposed. Re-assigning
   the same `location.hash` does **not** fire `hashchange`.
 - Theme toggle is the UX model to mirror: header button
-  ([index.html:14](../index.html#L14)), `applyTheme()`
-  ([app.js:28-34](../js/app.js#L28-L34)) writing `localStorage["sentenceForge.theme"]`,
-  boot-applied in `DOMContentLoaded` ([app.js:239-243](../js/app.js#L239-L243)).
-- [tools/cvd-check.js](../tools/cvd-check.js) loads `labels.js` in a `vm` sandbox and
+  ([index.html:14](../../index.html#L14)), `applyTheme()`
+  ([app.js:28-34](../../js/app.js#L28-L34)) writing `localStorage["sentenceForge.theme"]`,
+  boot-applied in `DOMContentLoaded` ([app.js:239-243](../../js/app.js#L239-L243)).
+- [tools/cvd-check.js](../../tools/cvd-check.js) loads `labels.js` in a `vm` sandbox and
   reads colors live; it already has `concernsIn()` (all normally-distinct pairs that
   collapse under a CVD) and a `--check` gate for same-abbr collisions.
 
 ## Scope
 
-### Task A — palette data model + switch, in [labels.js](../js/labels.js) (DOM-free)
+### Task A — palette data model + switch, in [labels.js](../../js/labels.js) (DOM-free)
 
 Keep the default palette where it is (inline `color:` — single source of truth).
-Add, **after** the inheritance pass ([labels.js:503-514](../js/labels.js#L503-L514)):
+Add, **after** the inheritance pass ([labels.js:503-514](../../js/labels.js#L503-L514)):
 
 ```js
 // Snapshot the resolved default so switching back is exact and un-duplicated.
@@ -106,15 +106,15 @@ today); subtypes without their own entry re-inherit — the same rule the file u
 This keeps ladders (subject/predicate) as retuned ladders and lets the
 object/complement families keep one hue per family.
 
-### Task B — header toggle + boot wiring: [app.js](../js/app.js), [index.html](../index.html), [styles.css](../css/styles.css)
+### Task B — header toggle + boot wiring: [app.js](../../js/app.js), [index.html](../../index.html), [styles.css](../../css/styles.css)
 
-- **[index.html:14](../index.html#L14)** — add a sibling button before `#theme-toggle`
+- **[index.html:14](../../index.html#L14)** — add a sibling button before `#theme-toggle`
   (flex toolbar, `gap:12px`, no layout change):
   `<button id="palette-toggle" title="Toggle color-blind-friendly grammar colors" aria-pressed="false">🎨</button>`.
-- **[styles.css](../css/styles.css)** — add `#palette-toggle` to the existing
-  `#theme-toggle` button rule (~[styles.css:119-130](../css/styles.css#L119-L130));
+- **[styles.css](../../css/styles.css)** — add `#palette-toggle` to the existing
+  `#theme-toggle` button rule (~[styles.css:119-130](../../css/styles.css#L119-L130));
   no new tokens.
-- **[app.js](../js/app.js)** — mirror `applyTheme`:
+- **[app.js](../../js/app.js)** — mirror `applyTheme`:
   ```js
   function applyPalette(name) {
     if (name !== "cbSafe") name = "default";
@@ -131,8 +131,8 @@ object/complement families keep one hue per family.
   ```
 - Expose the re-render: add `wjt.rerender = route;` inside the IIFE after `route` is
   defined. Keep `route` otherwise private.
-- **Boot** ([app.js:239-243](../js/app.js#L239-L243)), **before** the first `route()`
-  ([app.js:255](../js/app.js#L255)) so the first paint honors the stored choice:
+- **Boot** ([app.js:239-243](../../js/app.js#L239-L243)), **before** the first `route()`
+  ([app.js:255](../../js/app.js#L255)) so the first paint honors the stored choice:
   ```js
   applyPalette(localStorage.getItem("sentenceForge.palette") || "default");
   document.getElementById("palette-toggle").addEventListener("click", function () {
@@ -141,13 +141,13 @@ object/complement families keep one hue per family.
   });
   ```
 
-### Task C — extend [tools/cvd-check.js](../tools/cvd-check.js) to validate the alternate palette
+### Task C — extend [tools/cvd-check.js](../../tools/cvd-check.js) to validate the alternate palette
 
 `labels.js` is in the sandbox, so `wjt.applyPalette` is available there.
 
 - Parse an optional `--palette=<name>` arg (alongside the existing `--check` dispatch
-  at [cvd-check.js:183-187](../tools/cvd-check.js#L183-L187)); after the sandbox load
-  ([:30](../tools/cvd-check.js#L30)) call `wjt.applyPalette(name)` so `report()` /
+  at [cvd-check.js:183-187](../../tools/cvd-check.js#L183-L187)); after the sandbox load
+  ([:30](../../tools/cvd-check.js#L30)) call `wjt.applyPalette(name)` so `report()` /
   `check()` run against that palette — zero hardcoding, same live-read property.
 - Add the **CB acceptance gate**: `node tools/cvd-check.js --palette=cbSafe --check`
   fails if **any** within-set pair collapses — i.e. `concernsIn(arr)` is non-empty for
@@ -171,13 +171,13 @@ Fill `wjt.PALETTES.cbSafe` iteratively against the Task-C gate:
 
 ### Task E — docs
 
-- **[docs/project/dom-structure.md](../docs/project/dom-structure.md)** — record the
+- **[docs/project/dom-structure.md](../../docs/project/dom-structure.md)** — record the
   `🎨 #palette-toggle` button in the static `.topbar`.
-- **[docs/reference/color-blind-proposal.md](../docs/reference/color-blind-proposal.md)**
+- **[docs/reference/color-blind-proposal.md](../../docs/reference/color-blind-proposal.md)**
   — add a Tier B **"As built"** note under §2 (data model, the `--palette` gate, the
   shipped `cbSafe` values or a pointer).
-- **[CLAUDE.md](../CLAUDE.md) "Checks"** and
-  **[docs/roadmap-0.1.0.md §2](../docs/roadmap-0.1.0.md)** — add
+- **[CLAUDE.md](../../CLAUDE.md) "Checks"** and
+  **[docs/roadmap-0.1.0.md §2](../../docs/roadmap-0.1.0.md)** — add
   `node tools/cvd-check.js --palette=cbSafe --check` as a documented gate.
 - No change to `docs/coverage-brief.md` / `docs/custom-gpt-instructions.md` (taxonomy
   unchanged; colors aren't in the label list there — confirm, don't assume).
@@ -213,16 +213,16 @@ Fill `wjt.PALETTES.cbSafe` iteratively against the Task-C gate:
      crash and re-revealing works.
   4. Toggle back → exact default hexes restored (snapshot round-trips).
   5. `aria-pressed` / `title` reflect state.
-- [docs/project/dom-structure.md](../docs/project/dom-structure.md) + proposal
+- [docs/project/dom-structure.md](../../docs/project/dom-structure.md) + proposal
   "As built" + CLAUDE.md / roadmap-0.1.0 check list updated.
-- Results reported honestly per [CLAUDE.md](../CLAUDE.md) — a red check is not "done."
+- Results reported honestly per [CLAUDE.md](../../CLAUDE.md) — a red check is not "done."
 
 ## Notes / risks
 
 - **ES5 house style** in app/labels files: `var`, `function`, one IIFE per file.
   `cvd-check.js` is a Node tool and may use modern JS like the other `tools/*.js`.
-- **[labels.js](../js/labels.js) stays DOM-free** — `applyPalette` touches only
-  `wjt.*` data ([smoke-test.js](../tools/smoke-test.js) runs it in a bare `vm`; a
+- **[labels.js](../../js/labels.js) stays DOM-free** — `applyPalette` touches only
+  `wjt.*` data ([smoke-test.js](../../tools/smoke-test.js) runs it in a bare `vm`; a
   `document` reference would break it).
 - **9-hue feasibility:** the hard part is Task D. If a POS pair genuinely can't clear
   ΔE 12 under one CVD without an ugly color, note it rather than silently shipping a
@@ -230,7 +230,7 @@ Fill `wjt.PALETTES.cbSafe` iteratively against the Task-C gate:
 - **First-paint order:** boot `applyPalette` must precede the first `route()`, else the
   initial view flashes default.
 - When finished: set `status: done` and `git mv plans/003-tier-b-cvd-palette.md
-  plans/done/` in the same commit as the work (per [plans/README.md](README.md)).
+  plans/done/` in the same commit as the work (per [plans/README.md](../README.md)).
 
 ## As built
 

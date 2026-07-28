@@ -5,8 +5,8 @@ created: 2026-07-22
 
 # P3 — Importer robustness (fold smart quotes + Unicode spaces in `match`)
 
-Implements **workstream P3** of [docs/roadmap-0.1.0.md](../docs/roadmap-0.1.0.md),
-folding in **items 1 & 2** of [to-do.md](../to-do.md). Additive, non-breaking,
+Implements **workstream P3** of [docs/roadmap-0.1.0.md](../../docs/roadmap-0.1.0.md),
+folding in **items 1 & 2** of [to-do.md](../../to-do.md). Additive, non-breaking,
 and **offset-safe** — anything that matches today still matches; nothing changes
 the stored passage text or the lesson format (`version: 1`).
 
@@ -18,7 +18,7 @@ typing a **straight** quote in `match` fails to find a passage containing the
 The same silent miss happens when web/Word text carries a non-breaking or
 typographic space where the `match` string has a plain ASCII space. This is the
 exact failure the docs currently *promise* at
-[lesson-json.md:96-97](../docs/project/lesson-json.md#L96-L97) (a straight-quote
+[lesson-json.md:96-97](../../docs/project/lesson-json.md#L96-L97) (a straight-quote
 `match` won't find curly-quote text).
 
 Curly-to-straight and NBSP-to-space are each **1 code unit -> 1 code unit**
@@ -28,15 +28,15 @@ the resolved `start`/`end` still slice the *untouched* original text.
 ## Scope
 
 One real touch point plus a small pure helper, a docs flip, and two tests. Keeps
-[js/store.js](../js/store.js) **DOM-free** (pure string logic) — the smoke test's
+[js/store.js](../../js/store.js) **DOM-free** (pure string logic) — the smoke test's
 `vm` sandbox stays green.
 
 ### The touch point
 
 > **Line-number note:** to-do.md and the roadmap both cite `store.js:161`, but
-> the actual `indexOf` is now at [store.js:168](../js/store.js#L168), inside the
+> the actual `indexOf` is now at [store.js:168](../../js/store.js#L168), inside the
 > `if (typeof a.match === "string" && a.match)` block
-> ([store.js:167-171](../js/store.js#L167-L171)). Verify before editing; the file
+> ([store.js:167-171](../../js/store.js#L167-L171)). Verify before editing; the file
 > has moved since those docs were written.
 
 Current code:
@@ -51,7 +51,7 @@ if (typeof a.match === "string" && a.match) {
 
 ### Task A — a pure `foldForMatch()` helper
 
-Add near the top of the [js/store.js](../js/store.js) IIFE (module-local
+Add near the top of the [js/store.js](../../js/store.js) IIFE (module-local
 `function`, not on `wjt` — it's an internal detail). Folds both classes at once.
 Use `\uXXXX` escapes, **not** literal glyphs — a literal curly `’` vs straight
 `'` is invisible in a diff and unreviewable:
@@ -92,7 +92,7 @@ The fold exists only to locate the index.
 
 ### Task C — flip the docs note
 
-**[docs/project/lesson-json.md:96-97](../docs/project/lesson-json.md#L96-L97)** —
+**[docs/project/lesson-json.md:96-97](../../docs/project/lesson-json.md#L96-L97)** —
 replace the "no normalization" note with the new, honest behavior:
 
 > `match` folds smart quotes (curly single/double -> straight) and Unicode
@@ -104,9 +104,9 @@ replace the "no normalization" note with the new, honest behavior:
 
 ### Task D — two smoke tests
 
-**[tools/smoke-test.js](../tools/smoke-test.js)** — extend the existing
+**[tools/smoke-test.js](../../tools/smoke-test.js)** — extend the existing
 "import with match addressing" block (after
-[smoke-test.js:239](../tools/smoke-test.js#L239)) with a curly-quote case and an
+[smoke-test.js:239](../../tools/smoke-test.js#L239)) with a curly-quote case and an
 NBSP case. Build the source strings with `\u` escapes so the test file itself
 stays ASCII and its intent is legible. Both assert the annotation resolves *and*
 that the offsets slice the right region of the original text:
@@ -136,7 +136,7 @@ check("import: ASCII-space match finds NBSP text", nbsp.lesson.sentences[0].anno
 
 Notes for whoever writes these:
 
-- Spans **snap outward to whole tokens** ([lesson-json.md:99](../docs/project/lesson-json.md#L99)),
+- Spans **snap outward to whole tokens** ([lesson-json.md:99](../../docs/project/lesson-json.md#L99)),
   so the resolved `start`/`end` may be wider than the `match` string. The curly
   test asserts the slice *begins with* the folded target rather than equalling
   it — don't assert exact equality against the raw `match`. Confirm the actual
@@ -169,20 +169,20 @@ Notes for whoever writes these:
   `node tools/cvd-check.js --palette=cbSafe --check` pass (unaffected — no color
   change — but they're in the standard bar).
 - **Browser DOM check is NOT required:** this change is pure model logic in
-  [store.js](../js/store.js); it touches no renderer, no element tree, no class
-  names. [dom-structure.md](../docs/project/dom-structure.md) needs no update.
+  [store.js](../../js/store.js); it touches no renderer, no element tree, no class
+  names. [dom-structure.md](../../docs/project/dom-structure.md) needs no update.
 - Manual spot-check in the app (open `index.html` from `file://`): hand-write a
   lesson JSON with a straight-quote `match` against curly-quote text, import it,
   and confirm the annotation lands instead of dropping.
-- Report results honestly, per [CLAUDE.md](../CLAUDE.md) — a red check is not
+- Report results honestly, per [CLAUDE.md](../../CLAUDE.md) — a red check is not
   "done."
 
 ## Notes
 
 - Keep the ES5 house style: `var`, `function`, `"use strict"`, one IIFE. Match
-  the surrounding code in [store.js](../js/store.js).
+  the surrounding code in [store.js](../../js/store.js).
 - After landing, tick the P3 boxes in
-  [docs/roadmap-0.1.0.md](../docs/roadmap-0.1.0.md) (including the doc-follow-up
+  [docs/roadmap-0.1.0.md](../../docs/roadmap-0.1.0.md) (including the doc-follow-up
   and the "leave item 3 deferred" line), set `status: done` here, and
   `git mv plans/002-importer-fold.md plans/done/` in the same commit — the
   convention 001 followed.

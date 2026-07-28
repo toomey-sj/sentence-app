@@ -22,6 +22,11 @@ push it, and continue on another — or hand it straight to Claude Code with
 5. When it's finished, move the file to [done/](done/) in the same commit as the
    work (`git mv plans/012-….md plans/done/`). The open set is whatever is left
    directly under `plans/`.
+6. **Re-base the links after the move**, then run `node tools/link-check.js`.
+   Everything in a work order points at `../js/…`, `../docs/…`, `../CLAUDE.md`
+   and so on; one directory deeper, every one of those needs `../../`. This step
+   was skipped on 001–004 and 008, and 130 dead links accumulated before anyone
+   noticed — which is why there is now a check for it.
 
 ## Conventions
 

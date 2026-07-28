@@ -23,6 +23,11 @@ jobs:
       - name: Generated docs are up to date
         run: node tools/gen-docs.js --check
 
+      # Relative markdown links must resolve. Moving a finished work order into
+      # plans/done/ breaks every ../ link inside it, silently — this is the guard.
+      - name: Markdown links resolve
+        run: node tools/link-check.js --check
+
       # Every shipped sample and every documented example must import cleanly.
       - name: Validate lessons and documented examples
         run: |

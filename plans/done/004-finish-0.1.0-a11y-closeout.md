@@ -5,7 +5,7 @@ created: 2026-07-22
 
 # Finish 0.1.0 — P4 a11y sweep + roadmap close-out
 
-Closes the last open items in [docs/roadmap-0.1.0.md](../docs/roadmap-0.1.0.md):
+Closes the last open items in [docs/roadmap-0.1.0.md](../../docs/roadmap-0.1.0.md):
 the two remaining **P4** boxes (keyboard/focus, ARIA), the **§5 Definition of
 Done** (checkboxes + the "As built" section), and the decided-but-undone **Q3**
 doc relabel. Everything here is additive and format-safe — no taxonomy or
@@ -16,7 +16,7 @@ checkboxes and the "As built" note; they share one browser DOM-check pass.
 
 ## Why
 
-- **Keyboard/focus.** [`route()`](../js/app.js#L333-L346) replaces `#app`'s
+- **Keyboard/focus.** [`route()`](../../js/app.js#L333-L346) replaces `#app`'s
   contents wholesale and `window.scrollTo(0,0)`, but never moves focus. After
   every navigation, focus falls back to `<body>`, so a keyboard or screen-reader
   user is dumped at the top of the document and must re-tab into the new view.
@@ -27,13 +27,13 @@ checkboxes and the "As built" note; they share one browser DOM-check pass.
   — where correct/selected state is currently conveyed by color/position alone.
 - **Close-out.** The roadmap's §5 still has three unchecked boxes and an empty
   "As built" placeholder; Q3 (relabel "pilot/frozen" → "open alpha") is decided
-  but the language still lives in [CLAUDE.md](../CLAUDE.md) and
-  [pilot.md](../docs/product/pilot.md).
+  but the language still lives in [CLAUDE.md](../../CLAUDE.md) and
+  [pilot.md](../../docs/product/pilot.md).
 
 The good news: the app already contains the correct pattern to copy.
-`wjt.confirmDialog` ([app.js:57](../js/app.js#L57), [app.js:62](../js/app.js#L62))
+`wjt.confirmDialog` ([app.js:57](../../js/app.js#L57), [app.js:62](../../js/app.js#L62))
 moves focus **in** on open and **restores** it on close, and the quiz already
-`.focus()`es its Next button ([quiz.js:240](../js/quiz.js#L240)). Mirror those;
+`.focus()`es its Next button ([quiz.js:240](../../js/quiz.js#L240)). Mirror those;
 don't invent a new mechanism.
 
 ## Scope
@@ -45,7 +45,7 @@ stay DOM-free — **this work touches only `app.js`, `editor.js`, `quiz.js`,
 
 ### Task A — Focus management on view swaps (P4, box 1)
 
-**[js/app.js](../js/app.js) `route()` ([app.js:333](../js/app.js#L333)).** After
+**[js/app.js](../../js/app.js) `route()` ([app.js:333](../../js/app.js#L333)).** After
 the view function has painted `#app`, move focus to the new view's primary
 heading so AT and keyboard users start at the top of the *content*, not the page
 chrome.
@@ -56,14 +56,14 @@ chrome.
   `.focus({ preventScroll: true })` it. `route()` already `scrollTo(0,0)`s, so
   keep the scroll and suppress the focus-scroll to avoid a double jump.
 - `route()` currently `return`s the view call directly
-  ([app.js:341-345](../js/app.js#L341-L345)); refactor so the focus step runs
+  ([app.js:341-345](../../js/app.js#L341-L345)); refactor so the focus step runs
   after dispatch (e.g. drop the early `return`s into a `switch`/assignment, then
   do the focus move once at the end).
 - Guard for "no heading found" (defensive; every view has one today) — fall back
   to focusing `#app` itself with `tabindex="-1"`.
 - Add a **skip-to-content** affordance only if it's cheap: a visually-hidden
   "Skip to content" link as the first child of `body` in
-  [index.html](../index.html) that targets `#app`. Nice-to-have; drop it if it
+  [index.html](../../index.html) that targets `#app`. Nice-to-have; drop it if it
   complicates the focus move.
 
 *Do not* trap focus in a whole view — this is about *landing* focus, not
@@ -71,10 +71,10 @@ trapping. Trapping is Task B, and only for the modal palette popover.
 
 ### Task B — ARIA on the palette popover + quiz (P4, box 2)
 
-**Palette popover — [js/editor.js](../js/editor.js) `openPalette()`
-([editor.js:367](../js/editor.js#L367)).** It builds a floating `div.palette` of
+**Palette popover — [js/editor.js](../../js/editor.js) `openPalette()`
+([editor.js:367](../../js/editor.js#L367)).** It builds a floating `div.palette` of
 `.palette-label` buttons via `wjt.showPopover` and already has
-dismiss-on-outside/Escape wiring ([editor.js:434-472](../js/editor.js#L434-L472)).
+dismiss-on-outside/Escape wiring ([editor.js:434-472](../../js/editor.js#L434-L472)).
 Make it a real modal picker:
 
 - `role="dialog"` + `aria-modal="true"` + `aria-label` naming the target span
@@ -83,41 +83,41 @@ Make it a real modal picker:
   popover while open; restore focus to the annotated span on close (mirror
   `confirmDialog`). The Escape/dismiss path already exists — hang the restore off
   it.
-- The label buttons are grouped by layer ([editor.js:400](../js/editor.js#L400))
+- The label buttons are grouped by layer ([editor.js:400](../../js/editor.js#L400))
   — expose the groups with `role="group"` + `aria-label={layer name}` so a
   screen reader announces which layer a label belongs to.
 
-**Quiz — [js/quiz.js](../js/quiz.js).**
+**Quiz — [js/quiz.js](../../js/quiz.js).**
 
-- The feedback region ([quiz.js:216](../js/quiz.js#L216),
+- The feedback region ([quiz.js:216](../../js/quiz.js#L216),
   `data-role="feedback"` `hidden`) is populated after each answer. Give it
   `role="status"` / `aria-live="polite"` so correct/incorrect + explanation is
   announced, not just shown.
-- Correct/incorrect on the `.quiz-option` buttons ([quiz.js:256](../js/quiz.js#L256),
-  [:285](../js/quiz.js#L285)) is color-only today. After answering, set
+- Correct/incorrect on the `.quiz-option` buttons ([quiz.js:256](../../js/quiz.js#L256),
+  [:285](../../js/quiz.js#L285)) is color-only today. After answering, set
   `aria-pressed`/`aria-label` (e.g. append " — correct answer" / " — your
   choice, incorrect") so the outcome isn't lost without color. The buttons are
   already real `<button type=button>` — keep that.
 - Wrap the answer options in `role="group"` + `aria-label` echoing the prompt.
 
-**Present mode — [js/display.js](../js/display.js).** Already carries 12
+**Present mode — [js/display.js](../../js/display.js).** Already carries 12
 aria/role refs incl. the Tier-A Key legend. **Audit only**; add label/`aria-live`
 gaps if the slide-change announcement is missing, but don't rework it.
 
 Keep additions to attributes and small helpers — no structural DOM rewrite.
 Where a rendered element tree, class, or `data-*` changes, update
-[dom-structure.md](../docs/project/dom-structure.md) in the same change (Task D).
+[dom-structure.md](../../docs/project/dom-structure.md) in the same change (Task D).
 
 ### Task C — Close out the roadmap (§5 + Q3)
 
-- **Tick §5** in [docs/roadmap-0.1.0.md](../docs/roadmap-0.1.0.md): P1–P4
+- **Tick §5** in [docs/roadmap-0.1.0.md](../../docs/roadmap-0.1.0.md): P1–P4
   complete, "all checks green / DOM check honestly reported", and write the
   **"As built"** section (the house convention — note anything that diverged:
   the focus-landing approach chosen, any surface where ARIA was deliberately left
   minimal, and the DOM-check count delta).
 - **Q3 relabel** (decided in §3, still open): replace the "pilot / frozen"
-  framing with "open alpha" in **[CLAUDE.md](../CLAUDE.md)** ("## The pilot"
-  section) and **[docs/product/pilot.md](../docs/product/pilot.md)**.
+  framing with "open alpha" in **[CLAUDE.md](../../CLAUDE.md)** ("## The pilot"
+  section) and **[docs/product/pilot.md](../../docs/product/pilot.md)**.
   **Verify first** — commit `6001ce5` did an "Alpha rebrand"; confirm what it
   already covered and only change what's still stale, so this doesn't re-do
   landed work.
@@ -131,7 +131,7 @@ Where a rendered element tree, class, or `data-*` changes, update
   `role`/`aria-*`/`tabindex` attributes and a focus target **will move the pass
   count** — that's expected here. Confirm **0 failed**, sanity-check the new
   count, and update the baseline note in the roadmap.
-- Update [dom-structure.md](../docs/project/dom-structure.md) for any changed
+- Update [dom-structure.md](../../docs/project/dom-structure.md) for any changed
   element tree / attributes (palette popover dialog semantics, quiz option/
   feedback roles, any skip link).
 
@@ -167,10 +167,10 @@ Where a rendered element tree, class, or `data-*` changes, update
 
 ## Notes
 
-- **Copy, don't invent:** `wjt.confirmDialog` ([app.js:44-65](../js/app.js#L44-L65))
+- **Copy, don't invent:** `wjt.confirmDialog` ([app.js:44-65](../../js/app.js#L44-L65))
   is the reference for focus-in / trap / restore; the quiz Next-button `.focus()`
-  ([quiz.js:240](../js/quiz.js#L240)) is the reference for post-render focus.
-- `wjt.onViewCleanup` ([app.js:107](../js/app.js#L107)) runs on the next
+  ([quiz.js:240](../../js/quiz.js#L240)) is the reference for post-render focus.
+- `wjt.onViewCleanup` ([app.js:107](../../js/app.js#L107)) runs on the next
   `route()` — use it to tear down any Tab-trap key handler the palette adds, so
   listeners don't leak across views.
 - This may split naturally into two commits (A+B a11y code, C+D docs/close-out)
