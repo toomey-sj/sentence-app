@@ -16,11 +16,22 @@ current and it explains the constraints below in detail.
 
 1. **No build step, no bundler, no npm dependency, no `package.json`.** Classic
    `<script>` tags under a `wjt` global namespace.
-2. **No ES modules.** The app must run from `file://` when a teacher
+2. **No ES modules.** The app must keep running from `file://` when a teacher
    double-clicks `index.html` on a school machine; modules are CORS-blocked
    there. Same reason there is **no `fetch()` of local files** — example lessons
    live in `js/examples.js` as JavaScript, not in `samples/` as JSON.
-3. **No network calls of any kind** — no CDN, no fonts, no analytics.
+   *`file://` is a **supported degraded mode**, not a veto
+   ([P3](docs/roadmap-platform.md#decisions), confirmed 2026-07-28): authoring,
+   the local library, and printing must work there, while features that
+   genuinely need HTTP(S) may be unavailable — and must say so, in teacher
+   language, rather than failing silently. The rules in this item are unchanged
+   by that, because degraded mode is what still requires them.*
+3. **No network calls of any kind** — no CDN, no fonts, no analytics. Still true
+   of every line in the repo today. When it changes it changes **only on the
+   teacher path** (accounts and sync, gated on
+   [P7/P8](docs/roadmap-platform.md#decisions)); the student path stays anonymous
+   and offline-capable, and `SECURITY.md` gets rewritten by the change that first
+   adds a network call — not before it.
 4. **Keep the logic layer DOM-free** — `js/labels.js`, `js/tokenize.js`,
    `js/store.js`, `js/examples.js`, `js/assignment-model.js`, and
    `js/assignment-codec.js`. `tools/smoke-test.js` runs all six in a bare `vm`

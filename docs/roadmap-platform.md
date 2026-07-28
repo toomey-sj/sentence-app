@@ -70,12 +70,22 @@ Numbered `P` so they don't collide with `Q1–Q5` in
 |---|---|---|---|
 | P1 | Is this a portable app or a teaching platform? | **A platform.** A place to build, keep, and sequence teaching material — not a single-file utility. | The engine (taxonomy, annotation model, renderer, Edit/Present/Practice) is already a teaching tool. What is missing is everything *above* the lesson: durability, sequencing, and sharing. |
 | P2 | Who gets an account? | **Teachers only.** Students stay anonymous. | Teachers are adults: teacher accounts buy a durable library, cross-machine sync, and colleague sharing at almost no compliance cost. Student accounts mean holding minors' PII — COPPA consent, a district DPA, retention and deletion policy, breach obligations — for value the anonymous channels already deliver. This also preserves "Sentence Forge never collects a student answer," which is currently a *tested invariant*, not a promise. |
-| P3 | Does `file://` survive? | **Demoted from hard constraint to a supported degraded mode.** Authoring, the local library, and printing keep working from a double-clicked `index.html`. Accounts, sync, and link sharing require HTTP(S) and say so. | The constraint has been load-bearing for five other constraints (no ES modules, no `fetch()` of local data, hash routing, examples-as-JS, no build step). Keeping it as a *veto* would block the platform; dropping it entirely would break the USB-stick story for no gain. Degraded mode keeps both. **Confirm this one** — it is the decision with the widest blast radius. |
+| P3 | Does `file://` survive? | **Demoted from hard constraint to a supported degraded mode.** Authoring, the local library, and printing keep working from a double-clicked `index.html`. Accounts, sync, and link sharing require HTTP(S) and say so. **Confirmed 2026-07-28.** | The constraint has been load-bearing for five other constraints (no ES modules, no `fetch()` of local data, hash routing, examples-as-JS, no build step). Keeping it as a *veto* would block the platform; dropping it entirely would break the USB-stick story for no gain. Degraded mode keeps both. |
 | P4 | Is URL delivery the digital channel? | **No. Delivery is a set of channels**, with URL/QR as the first implementation and file, print, and account-delivery as peers. | Already structurally true: `wjt.assignment` produces an assignment with no idea a URL exists, and `wjt.assignmentCodec` is one adapter. Generalizing is a rename, not a rewrite. |
 | P5 | Does the `0.2.0` student-as-creator pivot need student accounts? | **No.** Students build and tag locally and hand work back through the anonymous channels. | Resolves half the fork parked in [roadmap-0.1.0.md §4](roadmap-0.1.0.md#4-explicitly-out-of-scope-for-010). Follows directly from P2 and keeps that milestone free of a compliance dependency. |
 | P6 | Do we adopt a build step / ES modules now that `file://` is demoted? | **Deferred. Not part of this pivot.** | Nothing in P1–P5 requires either. Spending the pivot on tooling is how a direction change turns into a rewrite. Revisit only against a concrete need. |
 | P7 | Where does teacher data actually live? | **Deferred — but the seam lands now.** A storage adapter behind `store.js` (see [S1](#seams-to-land-first)) makes the choice reversible. | The real fork is managed backend vs. self-host vs. bring-your-own-cloud, and it should be decided against hosting cost, uptime expectations, and school procurement — none of which are answerable today. What is *not* deferrable is stopping `localStorage` from being welded into the model. |
 | P8 | Auth mechanism? | **Leaning school SSO (Google Sign-In).** Not committed. | It is what teachers in schools already have, it removes password reset and lockout support burden entirely, and it aligns with the districts most likely to adopt. Decide with P7. |
+
+> **2026-07-28 — P3 confirmed, and it bought no tooling change.** The demotion is
+> now the working assumption and [CLAUDE.md](../CLAUDE.md) constraints 2–3 have
+> been reworded to match. **P6 is unaffected and still deferred:** no build step,
+> no ES modules, no framework. Every concrete rule that sat under the old
+> constraint — classic `<script>` tags, no `fetch()` of local data, examples as
+> JavaScript, relative paths, hash routing — survives *unchanged*, because
+> degraded mode is precisely what still requires them. What changed is that
+> `file://` can no longer **veto** a feature; it now means the feature degrades
+> and says why. See [S5](#seams-to-land-first), where that becomes code.
 
 ## Seams to land first
 
@@ -89,6 +99,7 @@ user-visible.
       `list/get/save/remove` interface with localStorage as implementation #1.
       Highest value, lowest cost; do it first. The corrupt-library salvage
       behavior (audit P1-2) must survive the extraction.
+      → [plans/010](../plans/010-seam-storage-adapter.md)
 - [ ] **S2 — Real ids.** [`wjt.uid()`](../js/tokenize.js#L69) is `Date.now()`
       plus six characters of `Math.random()`. Fine in one browser, collision-prone
       the moment two libraries merge. Move to `crypto.randomUUID()` with a
@@ -96,15 +107,19 @@ user-visible.
       and may be absent under `file://`, so the fallback is load-bearing, not
       decorative. Do this **before** lessons cross machines. It is the same lesson
       as the never-rename-a-label-id rule in [CLAUDE.md](../CLAUDE.md).
+      → [plans/011](../plans/011-seam-real-ids.md)
 - [ ] **S3 — `ownerId` on the lesson.** Nullable while there is exactly one local
       owner. Additive to the format, so it costs nothing today.
+      → [plans/012](../plans/012-seam-owner-and-migrations.md)
 - [ ] **S4 — A migration runner.** `version: 1` exists with nothing that acts on
       it. Once two clients sync at different versions you need one, and writing it
       retroactively means guessing what old data looked like.
+      → [plans/012](../plans/012-seam-owner-and-migrations.md)
 - [ ] **S5 — The delivery-channel interface.** Generalize the assignment codec
       from "the URL encoder" to one channel behind a common shape (`available()`,
       `deliver()`, a size/readiness report). Print, file, and link are the first
       three; account-delivery slots in later.
+      → [plans/013](../plans/013-seam-delivery-channels.md)
 
 Sharing a *lesson* teacher-to-teacher may not need a backend at all: the
 assignment codec already proves the pattern — compact payload, base64url, URL
@@ -153,3 +168,24 @@ Pin these; a platform pivot is exactly when they erode quietly.
 Do not reorder 4 ahead of 2 — the seams are cheap now and expensive after real
 lessons exist. Do not reorder 5 ahead of 4 without a deliberate note here saying
 why.
+
+### The queue
+
+**2026-07-28 — steps 1–3 are now work orders** in [plans/](../plans/README.md),
+each self-contained enough to be picked up by another machine or a cold session.
+The 1 → 2 order above is being honored deliberately: print is valuable in every
+scenario this document describes and needs no network, and the seams stay cheap
+either way.
+
+| Step | Work orders |
+|---|---|
+| 1. Assignment Phases 2–3 | [008 — builder and preview](../plans/008-assignment-phase-2-builder.md) · [009 — print worksheet and answer key](../plans/009-assignment-phase-3-print.md) |
+| 2. Land S1–S4 | [010 — storage adapter](../plans/010-seam-storage-adapter.md) · [011 — real ids](../plans/011-seam-real-ids.md) · [012 — `ownerId` + migration runner](../plans/012-seam-owner-and-migrations.md) |
+| 3. Re-scope Assignment 4–5 behind S5 | [013 — delivery-channel interface](../plans/013-seam-delivery-channels.md) |
+| 4. Run the pilot | Not a work order — see [pilot.md](product/pilot.md). |
+| 5. Decide P7 and P8 | Not a work order. The rule above still stands: don't start this before step 4 without writing the reason here. |
+
+The `0.1.0` release gate is a **parallel track**, not a dependency. The manual
+cross-browser pass still owed by
+[roadmap-0.1.0.md](roadmap-0.1.0.md) blocks the `v0.1.0` tag; it does not block
+any work order above, and none of them assume the tag exists.

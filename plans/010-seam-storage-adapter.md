@@ -1,0 +1,145 @@
+---
+status: todo   # todo | doing | done | superseded
+created: 2026-07-28
+---
+
+# S1 — a storage adapter behind `store.js`
+
+Seam **S1** of [the platform roadmap](../docs/roadmap-platform.md#seams-to-land-first),
+step 2 of its sequencing. **No user-visible change.** Do this one first of the
+seams — highest value, lowest cost.
+
+## Why
+
+[js/store.js](../js/store.js) welds `localStorage` into the lesson model.
+`readAll()` and `writeAll()` ([js/store.js:30-65](../js/store.js#L30-L65)) are
+whole-list reads and writes against a hardcoded `KEY`, and every method on
+`wjt.store` calls straight through to them.
+
+That is fine while a library lives in exactly one browser. It stops being fine
+the moment the answer to
+[P7 — where does teacher data actually live?](../docs/roadmap-platform.md#decisions)
+is anything other than "here." P7 is *deferred on purpose* — the fork between a
+managed backend, self-hosting, and bring-your-own-cloud should be decided against
+hosting cost and school procurement, none of which are answerable today. What is
+**not** deferrable is stopping `localStorage` from being welded in while the
+decision is pending.
+
+This seam is cheap now and brutal after teachers have real work stored. That is
+the whole argument for doing it before the pilot, and the roadmap says so
+explicitly: *do not reorder step 4 ahead of step 2.*
+
+## Scope
+
+One file. `js/store.js` and nothing else.
+
+### Task A — extract the interface
+
+Introduce a storage adapter with four methods — `list()`, `get(id)`,
+`save(lesson)`, `remove(id)` — and a localStorage implementation as #1.
+`readAll()`/`writeAll()` become that implementation's internals rather than the
+model's vocabulary.
+
+**`wjt.store`'s public surface must stay byte-identical.** There are ~20 call
+sites across [js/app.js](../js/app.js), [js/editor.js](../js/editor.js),
+[js/display.js](../js/display.js), and [js/quiz.js](../js/quiz.js), plus
+`wjt.exportAllLessons()` inside `store.js` itself. **Zero** of them should need
+editing. If a call site changes, the extraction went too far.
+
+The model-level behavior stays on `wjt.store`, not in the adapter: `create()`,
+`duplicate()`, the `updatedAt` stamp in `save()`, the sort in `list()`, and the
+two sentence transforms (`mergeSentence`, `rewriteSentenceText`). The adapter
+knows about *persisting lesson objects*; it knows nothing about what a lesson
+means.
+
+### Task B — the one real design decision: keep it synchronous
+
+**Record this rationale in the code comment, not just here.** It is the kind of
+decision that gets silently reversed by a later session that "notices" the
+adapter isn't async.
+
+An async (`Promise`-returning) interface would be the obvious shape for a future
+network adapter — and it would force a rewrite of every view, because
+`wjt.store.list()` is called inline during render in all four of them. That is a
+large, risky, entirely user-invisible change, which is precisely the failure mode
+[P6](../docs/roadmap-platform.md#decisions) exists to prevent: *spending the
+pivot on tooling is how a direction change turns into a rewrite.*
+
+A networked adapter later does **not** need the interface to be async. It needs a
+read-through cache with a background flush: reads answer from memory, writes go
+to memory and localStorage immediately and to the network in the background.
+That keeps the synchronous surface, keeps the app working offline (which
+[P3's degraded mode](../docs/roadmap-platform.md#decisions) requires anyway), and
+confines the change to this one file. Sync now is not a shortcut — it is the
+design.
+
+### Task C — preserve the corrupt-library salvage exactly
+
+This is the part most likely to be lost in a refactor, and losing it destroys
+recoverable teacher work.
+
+Keep verbatim, from [js/store.js:44-53](../js/store.js#L44-L53):
+
+- the copy-aside to `KEY + ".corrupt"` **before** anything can overwrite the raw
+  value;
+- the once-only guard (`if (localStorage.getItem(CORRUPT_KEY) == null)`) so
+  repeated reads never clobber the copy;
+- the `wjt.store.corruptBackup` flag, which [js/app.js:472-482](../js/app.js#L472-L482)
+  reads at boot to offer the teacher a download;
+- the "valid JSON but not our array shape" path, treated as corruption;
+- the outer `try/catch` around `getItem` that returns `[]` when storage access
+  itself is disabled — nothing to read *or* salvage.
+
+**The storage key strings are asserted by the test**, not just the behavior: the
+audit P1-2 checks in [tools/smoke-test.js:350-368](../tools/smoke-test.js#L350-L368)
+read `sentenceForge.lessons.v1` and `sentenceForge.lessons.v1.corrupt` out of the
+sandbox map directly. Those checks must pass **unmodified**. If you find yourself
+editing a check to make it green, the extraction is wrong — revert and try again.
+
+### Task D — stay DOM-free
+
+`store.js` is one of the six files [tools/smoke-test.js](../tools/smoke-test.js)
+runs in a bare `vm` sandbox (`LOGIC_FILES`, lines 32-33). A single `document`
+reference breaks the whole suite. The sandbox provides `localStorage` as a `Map`
+shim ([tools/smoke-test.js:16-20](../tools/smoke-test.js#L16-L20)) — it has only
+`getItem`/`setItem`/`removeItem`, so the adapter must not reach for `length`,
+`key()`, or `clear()`.
+
+### Task E — note the boundary with `wjt.safeStorage`
+
+`wjt.safeStorage` ([js/app.js:146-156](../js/app.js#L146-L156)) is a *different*
+thing: a try/catch shim over **preference** keys (theme, palette, the `seeded`
+flag) that lives in the DOM layer and flips `wjt.storageOK` so boot can warn once
+(audit P0-2, DOM-checked at [tools/dom-check.html:279-295](../tools/dom-check.html#L279-L295)).
+
+Leave it alone, and leave a comment saying so. The two look mergeable and are
+not: one guards small scalar preferences and may fail silently, the other holds
+the teacher's actual work and must surface a `STORAGE_WRITE_FAILED` toast.
+
+## Out of scope
+
+- **Any second adapter.** One interface, one implementation. A stub "remote
+  adapter" with no backend behind it is dead code that will be wrong by the time
+  P7 resolves.
+- `ownerId` and the migration runner — those are
+  [012](012-seam-owner-and-migrations.md), and they build on this.
+- Changing `wjt.uid()` — that's [011](011-seam-real-ids.md).
+- Any change to the lesson format. `version: 1` stands.
+
+## Done when
+
+- `node tools/smoke-test.js` reports **0 failed** with the audit P1-2 checks
+  **unedited**, and `samples/` regenerates unchanged.
+- `git diff --name-only` lists **`js/store.js` only**.
+- The app boots, creates, edits, duplicates, deletes, exports, and imports
+  lessons exactly as before — verify in the browser, don't infer it from the
+  smoke test.
+- `tools/dom-check.html` reports 0 failed (it boots the real app, so a broken
+  store shows up there).
+
+## Notes
+
+- [docs/project/architecture.md](../docs/project/architecture.md) describes the
+  storage layer; update it if the described shape changes.
+- Nothing here requires P7 or P8 to be decided. That is the point — the seam is
+  what makes the decision reversible.
