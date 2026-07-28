@@ -1,9 +1,16 @@
 ---
 status: todo   # todo | doing | done | superseded
 created: 2026-07-28
+updated: 2026-07-28
 ---
 
 # UI-4 is a harness bug, not a renderer bug — settle the Present checks before measuring
+
+**No dependencies.** It touches [tools/dom-check.html](../tools/dom-check.html)
+and nothing else; no other open work order modifies that file. But read
+[Relationship to 005](#relationship-to-005) before starting — 005 is `doing`,
+owns the audit item this check is named after, and records a green run that is no
+longer true.
 
 ## Why
 
@@ -25,7 +32,34 @@ more than its "cosmetic layout bug" appearance.
 [quick-todo item 5](quick-todo.md) wrote this up as *possibly* a renderer bug in
 `computeLines()`/`layoutFitted()`, with a harness artifact as the alternative. It
 is the alternative. **The renderer is correct; the check measures the wrong
-moment.**
+moment — and has done since it was written.**
+
+### It did not "always fail", and that matters
+
+[005](005-presentation-ui-remediation.md) records the whole DOM check at **0
+failed on 2026-07-22**, so something changed. Bisected: green at `60154eb`, red at
+`34452b5`. But `34452b5` only touches CSS, and reverting its diff **does not fix
+it** — checked out that tree with `css/styles.css` restored byte-identical to
+`60154eb` and UI-4 still failed. `34452b5` is a coincidence of adjacency, not a
+cause.
+
+The two commits in between are what did it: **`5409707` and `8d55297`, which add
+the Declaration of Independence example lessons.** UI-4's fixture is whichever
+example has the most annotations, and the Declaration took that title:
+
+| | densest example | its longest sentence |
+|---|---|---:|
+| before | `romeo-juliet-prologue` (138 anns) | **53 chars** |
+| after | `declaration-of-independence` (511 anns) | **406 chars** |
+
+A 53-character sentence laid out on one line fits inside the 718px stage, so the
+pre-wrap measurement was *indistinguishable from a correct one* and the check
+passed. A 406-character sentence on one line is about 5,700px wide — which is
+exactly the `worst overflow 5714px` in the failure message.
+
+So UI-4 was **passing by luck for its entire life**, and adding example data
+removed the luck. Keep that in mind for the audit item below: this is direct
+evidence that a geometry check in this block can be green without being right.
 
 ## What was actually measured (2026-07-28)
 
@@ -97,8 +131,10 @@ In [tools/dom-check.html](../tools/dom-check.html):
 - Audit the *other* checks in `presentationChecks()` for the same latent problem.
   UI-1's `inViewport(stage)` and the `noDocScroll()` calls also read geometry in
   the same synchronous run; they pass today, but they may be passing against the
-  single-line layout rather than the real one. A check that is right by accident
-  is worth converting deliberately.
+  single-line layout rather than the real one. **This is not hypothetical — UI-4
+  itself passed for months that way**, and only a change to example *data*
+  exposed it. Convert them deliberately and note which ones changed verdict, if
+  any (a check that starts failing here is a real find, not a setback).
 - Keep the assertion itself. UI-4 exists because a wide span label silently
   scrolled a line sideways under `.gl-grid`'s hidden scrollbar; that guard should
   survive, just against the settled layout.
@@ -133,6 +169,33 @@ rewrite history to look tidier than it was.
   red. A check that can't fail is not a check.
 - [quick-todo item 5](quick-todo.md) removed, `CLAUDE.md`'s Known-red note
   updated, and the pass count in `CLAUDE.md` refreshed.
+
+## Relationship to 005
+
+[005 — presentation UI remediation](005-presentation-ui-remediation.md) is
+`doing`, and this is its territory in two ways. Neither blocks this work, but
+neither should be discovered halfway through it.
+
+- **`UI-4` is one of 005's audit items, not just a check name.** 005 Task B is
+  *"Give Present a real viewport shell (UI-1, UI-4, UI-8)"*, and the check names in
+  `presentationChecks()` were taken from
+  [docs/ui-audit-0.1.0.md](../docs/ui-audit-0.1.0.md). So "UI-4" means the audit
+  finding in 005 and the assertion in the harness. This work order is about the
+  **assertion**; the audit item it guards is remediated and is not being reopened.
+- **005's recorded status is now wrong, and its code work is not the reason.**
+  Its implementation-status blockquote says the automated gate is green at all four
+  matrix sizes — true on 2026-07-22, false since `8d55297`. 005's Tasks A–F are
+  implemented; its only remaining gate is the **manual** cross-browser matrix. So
+  there is no in-flight code to collide with, but 005 needs a one-line note that
+  its automated gate went red for a fixture reason and that 014 owns it.
+  Do that in the same commit as this work, so the two files can't disagree.
+
+Also add 014 to the sequencing table in
+[docs/roadmap-platform.md](../docs/roadmap-platform.md#sequencing) — it was filed
+outside that queue and is currently invisible to anyone reading the roadmap as
+the work list. It belongs ahead of step 2, because
+[010](010-seam-storage-adapter.md) refactors the file holding every teacher's
+lesson and wants a clean DOM check as its gate.
 
 ## Notes
 

@@ -100,10 +100,15 @@ A healthy run reports **0 failed** (the stable contract). The pass *count* is an
 implementation detail — it grows as checks are added (currently 327).
 
 **Known red as of 2026-07-28:** `UI-4` fails at every matrix size — the Present
-breakdown renders as one unwrapped line. It is pre-existing (reproduced on a
-clean `main` before work order 008) and is written up as
-[quick-todo item 5](plans/quick-todo.md). Everything else passes; don't take this
-note as licence to accept any *other* failure.
+breakdown measures as one unwrapped line, overflowing by 5714px. It is **not**
+caused by anything recent: the *check* has always measured Present before its
+wrap has run, and it only started failing when the Declaration of Independence
+examples made the densest example lesson one whose longest sentence is 406
+characters instead of 53. The renderer is fine. Diagnosis, measurements, and the
+fix are [plans/014](plans/014-ui4-dom-check-settle.md). Everything else passes;
+don't take this note as licence to accept any *other* failure — and note that
+`0 failed` is not currently reachable, so a work order asking for it means
+"1 failed, and it is exactly `UI-4`".
 
 Report results honestly. If a check fails, say so with the output; don't
 summarize a red run as done.

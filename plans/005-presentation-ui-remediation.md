@@ -23,6 +23,17 @@ release is ready to tag; the later UI audit supersedes that claim.
 > This order stays `doing` until the **manual** cross-browser matrix below
 > (Firefox, Safari/iPad, Fullscreen, 125%/150% zoom, touch, light/CB-safe/reduced
 > motion) is walked and recorded — that is the remaining gate before `done`.
+>
+> **Correction (2026-07-28): the automated gate above is no longer green.** `UI-4`
+> fails at every matrix size. It is **not** a regression in this order's code —
+> bisected to `5409707`/`8d55297`, which add the Declaration of Independence
+> examples. UI-4's fixture is the densest example lesson, so the Declaration took
+> over from `romeo-juliet-prologue` and the longest sentence in the fixture went
+> from 53 to 406 characters. That exposed a latent bug in the *harness*, which has
+> always measured Present before its wrap has run: at 53 characters the unwrapped
+> single line fitted the stage and the check passed anyway. Tasks A–F stand, and
+> the Present shell itself is fine. **[014](014-ui4-dom-check-settle.md) owns the
+> fix** — don't reopen Task B for it.
 
 ## Table of contents
 
