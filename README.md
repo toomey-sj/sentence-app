@@ -13,7 +13,7 @@ JavaScript, and it runs by double-clicking a file.
 
 ## Try it
 
-▶ **[Open Sentence Forge](https://wildbil2me.github.io/sentence-app/)**
+▶ **[Open Sentence Forge](https://toomey-sj.github.io/sentence-app/)**
 
 Or run it locally — clone the repo and double-click `index.html`. Really; that's
 the whole setup. To serve it instead:

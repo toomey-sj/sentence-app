@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: 🧪 Try Sentence Forge
-    url: https://wildbil2me.github.io/sentence-app/
+    url: https://toomey-sj.github.io/sentence-app/
     about: Open the live app before filing — the bug may already be fixed.
   - name: 💬 Ask a question / share a lesson idea
-    url: https://github.com/wildbil2me/sentence-app/discussions
+    url: https://github.com/toomey-sj/sentence-app/discussions
     about: For anything that isn't a bug or a specific request.

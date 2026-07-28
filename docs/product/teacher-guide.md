@@ -279,5 +279,5 @@ that the levels you selected in the setup screen are actually annotated in the
 lesson.
 
 **"Nothing works / the page is blank."** Press F12 → Console and
-[open an issue](https://github.com/wildbil2me/sentence-app/issues/new?template=bug_report.yml) with what's in red,
+[open an issue](https://github.com/toomey-sj/sentence-app/issues/new?template=bug_report.yml) with what's in red,
 your browser, and the lesson file if one's involved.

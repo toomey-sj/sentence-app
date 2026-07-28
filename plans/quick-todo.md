@@ -8,14 +8,11 @@ When implementing the items in this file,  give them a completed date stamp.
 4) hide the "quiz" interface for now. — done 2026-07-23
 5) **`tools/dom-check.html` UI-4 fails — the Present breakdown never wraps.**
    Found 2026-07-28 while running the checks for
-   [008](done/008-assignment-phase-2-builder.md); **pre-existing**, reproduced on
-   a clean `main` (298 passed / 1 failed) before that work started, and it fails
-   at all four matrix sizes. Symptom: after `[data-act="all"]` in Present, the
-   densest example renders as **one** `.gl-grid` overflowing its 718px stage by
-   ~5,700px — i.e. `computeLines()` put the whole sentence on a single line
-   rather than the two-stage fit splitting it. The wrap-stress fixture (fixed
-   640px host) still passes, so it looks like *when* the width is measured, not
-   the algorithm. Diagnose against `js/render.js` `computeLines()` /
-   `layoutFitted()`; check whether the rAF-deferred relayout is what the shell
-   depends on (headless virtual time may not service it, in which case this is a
-   harness artifact and the check needs a settle, not the renderer).
+   [008](done/008-assignment-phase-2-builder.md); **pre-existing**, and it fails
+   at all four matrix sizes and in CI. → **Promoted to a real work order:
+   [014](014-ui4-dom-check-settle.md).** Diagnosed 2026-07-28: it is a *harness*
+   bug, not a renderer bug — `presentationChecks()` measures in the same
+   synchronous task it renders in, so it reads the deliberate pre-wrap
+   single-line layout. Don't touch `js/render.js`; the reasoning and the four
+   measurements are in 014. Too big for this list — leave it here only as a
+   pointer.
