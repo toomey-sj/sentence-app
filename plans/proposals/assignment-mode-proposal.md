@@ -7,9 +7,16 @@ target: 1.0.0
 
 # Assignment mode — printable worksheets or private, read-only URL delivery
 
-> **2026-07-28 — Phase 1 delivered.** The model, generator, and wire codec are
-> built; see [Phase 1 decisions](#phase-1-decisions) and
-> [As built — Phase 1](#as-built--phase-1).
+> **2026-07-28 — Phase 1 delivered, and delivery is being generalized.**
+> Phase 1 (model, generator, wire codec) is built; see
+> [Phase 1 decisions](#phase-1-decisions) and [As built — Phase 1](#as-built--phase-1).
+>
+> This document treats a URL and QR code as *the* digital delivery method.
+> [docs/roadmap-platform.md](../../docs/roadmap-platform.md) **P4** makes that one
+> channel among several — file, print, link, and later account-delivery — behind
+> the **S5** channel interface. Read Phases 4 and 5 with that in mind; the
+> privacy boundary, question design, print requirements, and encoding rules are
+> unaffected.
 
 ## Summary
 

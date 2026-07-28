@@ -15,6 +15,18 @@ source: plans/proposals/assignment-mode-proposal.md
 > **As built** note are recorded in the proposal.
 >
 > **Next block to paste: Phase 2.**
+>
+> **Phases 4–5 are partly superseded** by
+> [docs/roadmap-platform.md](../../docs/roadmap-platform.md). They treat a URL and
+> a QR code as *the* digital delivery method; decision **P4** makes that one
+> channel among several (file, print, link, later account-delivery), landing
+> behind the **S5** channel interface. Re-scope those two blocks against that
+> document before pasting either — do not paste them as written.
+>
+> Phases 2, 3, and 6 are unaffected. Standing context still applies, with one
+> amendment: constraint 3's `file://` requirement is now a **supported degraded
+> mode** rather than a veto (**P3**) — authoring and printing must still work
+> from a double-clicked `index.html`, which is what these phases already assume.
 
 The proposal is the spec. This file is the **prompt**: what to paste into a fresh
 Opus 5 session to get the work done.
@@ -218,7 +230,13 @@ independently testable on purpose. Do not paste two phase blocks at once.
 
 ---
 
-## Phase 4 — Student URL
+## Phase 4 — Student URL ⚠️ re-scope before pasting
+
+> **Partly superseded** by [docs/roadmap-platform.md](../../docs/roadmap-platform.md)
+> **P4/S5**: the URL is one delivery channel, not *the* digital one, and belongs
+> behind the channel interface alongside file and print. Everything below about
+> encoding, validation, hostile input, the read-only student route, and the
+> `file:` fallback still stands.
 
 > **Goal.** A teacher on an HTTP(S) deployment copies one self-contained URL that
 > opens the same assignment, read-only, on any student device.
@@ -262,7 +280,13 @@ independently testable on purpose. Do not paste two phase blocks at once.
 
 ---
 
-## Phase 5 — QR delivery
+## Phase 5 — QR delivery ⚠️ re-scope before pasting
+
+> **Partly superseded** alongside Phase 4 — QR is a *rendering* of the link
+> channel, so it lands wherever P4/S5 puts that channel. The encoder choice,
+> licensing, size-state behavior, and scan testing below are unchanged. Note the
+> Phase 1 measurements: a typical 10-question assignment is **dense**, not easy to
+> scan, which raises the priority of the compression question in Phase 4.
 
 > **Goal.** The teacher can put the assignment on the projector or a handout as a
 > QR code that a low-end student phone can actually scan — generated entirely

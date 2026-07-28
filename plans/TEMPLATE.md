@@ -1,7 +1,11 @@
 ---
-status: todo   # todo | doing | done
+status: todo   # todo | doing | done | superseded
 created: YYYY-MM-DD
 ---
+
+<!-- If status is `superseded`, put a blockquote here saying what overtook this
+     and what (if anything) is still worth doing. A stale work order that reads
+     as current is worse than no work order. -->
 
 # <Title — the change in one line>
 

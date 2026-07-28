@@ -28,6 +28,14 @@ push it, and continue on another — or hand it straight to Claude Code with
 - **One file per work order.** Keep them small; split a big effort into several.
 - **`status:` frontmatter** — `todo` → `doing` → `done`. Set `doing` when you
   start so a second device doesn't double-pick it.
+- **`status: superseded` when a decision overtakes a work order.** These files
+  are written to be picked up by someone — or some session — with no other
+  context, which is exactly what makes a stale one dangerous: it reads as
+  current. Set the status *and* open the file with a blockquote naming what
+  superseded it and what's still worth doing. Don't delete it; the reasoning is
+  the value. Only stamp what actually changed — marking sound work as suspect
+  costs you the ability to trust the label.
+  Current direction records live in [docs/](../docs/README.md#-direction-records).
 - **Not a substitute for the roadmap.** Design decisions and taxonomy rationale
   still live in [docs/roadmap.md](../docs/roadmap.md); a work order is the
   short-lived "go do this" note, not the durable record.
