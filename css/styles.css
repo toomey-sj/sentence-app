@@ -1561,6 +1561,108 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
         than by overriding rule by rule. The dark theme's --muted and --line are
         near-invisible on paper; one place fixes all of them. */
 
+/* ====================================================================
+   Study mode — a self-paced student unit (js/study.js)
+   ====================================================================
+   The question screens deliberately reuse the .quiz-* chrome: a question here
+   IS a quiz question, and reusing it keeps them identical everywhere. Only the
+   unit map and the teach screens need styles of their own. */
+
+.study-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.study-head h2 { font-size: 24px; }
+.study-head > div { flex: 1; min-width: 240px; }
+
+.study-intro p { max-width: 62ch; }
+.study-source { margin-top: 8px; font-style: italic; }
+.study-promo { margin-top: 22px; }
+.study-promo h2 { font-size: 20px; }
+
+.study-cluster { margin-top: 26px; }
+
+/* One column per stop, wrapping. Cards stay the same height in a row so the
+   path reads as a sequence rather than a ragged pile. */
+.study-stops {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.study-stop {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+a.study-stop:hover { transform: translateY(-3px); border-color: var(--accent); }
+.study-stop p { margin: 4px 0 0; }
+
+.study-stop-n {
+  flex: 0 0 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  font-weight: 800;
+  font-size: 14px;
+}
+.study-stop-body { min-width: 0; }
+.study-stop-state { font-size: 12px; font-weight: 700; color: var(--muted); }
+
+.study-stop.is-done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.study-stop.is-done .study-stop-n {
+  background: color-mix(in srgb, var(--ok) 22%, var(--card-2));
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.study-stop.is-done .study-stop-state { color: var(--ok); }
+
+/* The one place a student should look next. */
+.study-stop.is-next { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent); }
+.study-stop.is-next .study-stop-n { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.study-stop.is-todo { opacity: 0.55; cursor: default; border-style: dashed; }
+
+/* A teach screen has no sentence and a question has no prose, so both of these
+   containers are empty half the time — and .quiz-stage carries its own padding
+   and background, which would otherwise render as an empty box. */
+.study-body:empty,
+.view-study .quiz-stage:empty { display: none; }
+
+/* ---- teach screens ---- */
+.study-body { max-width: 68ch; }
+.study-body p { margin-top: 10px; }
+.study-body i { color: var(--muted); }
+
+.study-labels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.study-label {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-2);
+}
+.study-label-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.study-label p { margin: 6px 0 0; font-size: 14px; }
+.study-label-eg { color: var(--muted); font-style: italic; }
+.study-label-id { font-size: 11px; color: var(--muted); }
+
+/* Question options carry prose (with <i> and <b>), so they need to wrap rather
+   than sit on one line like a bare label name. */
+.study-choice { text-align: left; white-space: normal; max-width: 100%; }
+.study-stop-label { margin-left: auto; }
+
 /* Mounted only while a print is in flight, and never visible on screen. */
 #print-root { display: none; }
 

@@ -20,6 +20,7 @@ keeping accurate, because everything visual depends on it.
 - [Editor view](#editor-view)
 - [Present view](#present-view)
 - [Quiz view](#quiz-view)
+- [Study view](#study-view)
 - [Assignment view](#assignment-view)
   — including [the print documents](#the-print-documents-wjtassignmentprint)
 
@@ -570,6 +571,85 @@ div.view.view-quiz
 
 At ≥80% a transient `div.confetti` (spans of emoji) is appended and removed
 after 4s.
+
+## Study view
+
+Built by `wjt.views.study(container, unitId, stopId)` in
+[`js/study.js`](../../js/study.js). Two screens share `div.view.view-study`, each
+rebuilt wholesale via `innerHTML`. The **question screens deliberately reuse the
+`.quiz-*` classes** — a question here is a quiz question, and sharing the chrome is
+what keeps them identical. Only the map and the teach screens have classes of their
+own.
+
+**Unit map** (`renderMap`, route `#/study/<unitId>`):
+
+```
+div.view.view-study
+├─ header.study-head
+│  ├─ div  > h2 + p.muted-note
+│  └─ a.btn.btn-ghost[href=#/library]
+├─ section.card.study-intro
+│  ├─ p                                   ← the unit's `intro`
+│  ├─ p.muted-note.study-source           ← the passage's provenance
+│  └─ div.btn-row
+│     ├─ a.btn.btn-primary.btn-big        ← Start/Continue → the next stop
+│     ├─ span.muted-note                  "N of M complete"
+│     └─ button[data-act=reset]           ← only once there IS progress
+└─ section.study-cluster                  ← one per cluster, in path order
+   ├─ h3.section-title
+   └─ div.study-stops                     ← auto-fill grid, min 240px
+      └─ a.study-stop | div.study-stop    ← <a> when reachable, <div> when todo
+         ├─ div.study-stop-n              ← number, ✓ when done, • when todo
+         └─ div.study-stop-body
+            ├─ b + p.muted-note
+            └─ p.study-stop-state         ← "Best score N%" or "Coming soon"
+```
+
+Stop-card state is carried by three classes, and the map is the only place a
+student sees progress — so these are load-bearing, not decorative:
+`.is-done` (finished), `.is-next` (the one highlighted to do next, exactly one),
+`.is-todo` (declared but unauthored — rendered as a `div`, never a link, and
+`aria-disabled="true"`).
+
+**A stop** (`renderStop`, route `#/study/<unitId>/<stopId>`):
+
+```
+div.view.view-study
+├─ header.quiz-head                       ← reuses Practice's header
+│  ├─ a.btn.btn-ghost.btn-sm[href=#/study/<unitId>]   "✕"
+│  ├─ div.quiz-progress > div.quiz-progress-fill[style=width:%]
+│  ├─ span.muted-note.study-stop-label
+│  └─ span.quiz-score                     ← only once something is answered
+└─ section.card.quiz-card
+   ├─ div.quiz-count#study-count          "Step i of N · question j of M"
+   ├─ h3.quiz-prompt[data-role=prompt][tabindex=-1][aria-describedby=study-count]
+   ├─ div.study-body[data-role=body]      ← `teach` prose only; empty otherwise
+   │  └─ div.study-labels                 ← auto-fill grid of label cards
+   │     └─ div.study-label
+   │        ├─ div.study-label-head  span.swatch[--c] + b + code.study-label-id
+   │        └─ p + p.study-label-eg       ← the label's own desc and example
+   ├─ div.quiz-stage[data-role=stage]     ← the sentence, via wjt.renderSentence
+   ├─ div.quiz-answers[data-role=answers][role=group][aria-label=<the prompt>]
+   └─ div.quiz-feedback[data-role=feedback][role=status][aria-live=polite][hidden]
+```
+
+What sits in `[data-role=answers]` is the only thing that varies by step kind:
+
+| Step kind | Stage | Answers |
+|---|---|---|
+| `teach` | empty | `button[data-act=next]` ("Got it →") |
+| `choice` | empty | `button.quiz-option.study-choice` per option — `.study-choice` exists because options carry prose and must wrap |
+| `tap` | `renderSentence(…, {layers:["pos"], showAnnotations:false, interactive:true})` + `div.sentence-tip` | `button[data-act=check]` + `button[data-act=clear]` |
+
+After an answer, `.quiz-feedback` is unhidden, gains `.is-right`/`.is-wrong`, and
+holds the explanation plus `button[data-act=next]`, which takes focus. Correct and
+incorrect are also written into each option's `aria-label` — colour alone does not
+reach a screen reader. On a `tap`, the stage is re-rendered with
+`highlight:{start,end}` so the answer appears as `.gl-token.is-hl`.
+
+**Results screen** (`finish`): `section.card.quiz-results` with `div.score-ring`,
+an `h2` that takes focus, and `div[data-role=missed]` holding one `div.missed-row`
+per miss — the same shapes Practice's results use.
 
 ## Assignment view
 

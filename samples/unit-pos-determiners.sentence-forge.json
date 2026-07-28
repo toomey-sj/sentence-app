@@ -1,0 +1,421 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Lesson 2 — Determiners",
+  "description": "Poe, \"The Cask of Amontillado\": the determiner, the article, and the definite/indefinite contrast.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "It was about dusk, one evening during the supreme madness of the carnival season, that I encountered my friend.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 6,
+          "label": "verb"
+        },
+        {
+          "start": 7,
+          "end": 12,
+          "label": "preposition"
+        },
+        {
+          "start": 13,
+          "end": 18,
+          "label": "noun"
+        },
+        {
+          "start": 19,
+          "end": 22,
+          "label": "determiner",
+          "note": "\"One evening\" does not mean a single evening — it means a certain evening. That is a determiner's job."
+        },
+        {
+          "start": 23,
+          "end": 30,
+          "label": "noun"
+        },
+        {
+          "start": 31,
+          "end": 37,
+          "label": "preposition"
+        },
+        {
+          "start": 38,
+          "end": 41,
+          "label": "determiner",
+          "note": "Both \"the\"s here are determiners too. Every word that introduces a noun belongs to this family."
+        },
+        {
+          "start": 42,
+          "end": 49,
+          "label": "adjective"
+        },
+        {
+          "start": 50,
+          "end": 57,
+          "label": "noun"
+        },
+        {
+          "start": 58,
+          "end": 60,
+          "label": "preposition"
+        },
+        {
+          "start": 61,
+          "end": 64,
+          "label": "determiner"
+        },
+        {
+          "start": 65,
+          "end": 73,
+          "label": "adjective"
+        },
+        {
+          "start": 74,
+          "end": 81,
+          "label": "noun"
+        },
+        {
+          "start": 82,
+          "end": 86,
+          "label": "conjunction"
+        },
+        {
+          "start": 87,
+          "end": 88,
+          "label": "pronoun"
+        },
+        {
+          "start": 89,
+          "end": 100,
+          "label": "verb"
+        },
+        {
+          "start": 101,
+          "end": 103,
+          "label": "adjective"
+        },
+        {
+          "start": 104,
+          "end": 111,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "For me it is no matter.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "preposition"
+        },
+        {
+          "start": 4,
+          "end": 6,
+          "label": "pronoun"
+        },
+        {
+          "start": 7,
+          "end": 9,
+          "label": "pronoun"
+        },
+        {
+          "start": 10,
+          "end": 12,
+          "label": "verb"
+        },
+        {
+          "start": 13,
+          "end": 15,
+          "label": "determiner",
+          "note": "\"No\" introduces \"matter\" and tells you how much of it there is: none. A determiner."
+        },
+        {
+          "start": 16,
+          "end": 23,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "The vaults are insufferably damp.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "article",
+          "note": "\"A\", \"an\", and \"the\" are the three articles — by far the most common determiners in English."
+        },
+        {
+          "start": 4,
+          "end": 10,
+          "label": "noun"
+        },
+        {
+          "start": 11,
+          "end": 14,
+          "label": "verb"
+        },
+        {
+          "start": 15,
+          "end": 27,
+          "label": "adverb"
+        },
+        {
+          "start": 28,
+          "end": 33,
+          "label": "adjective"
+        }
+      ]
+    },
+    {
+      "text": "\"A mason,\" I replied.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "article",
+          "note": "Two words, and one of them is an article. You can hardly write a sentence without one."
+        },
+        {
+          "start": 3,
+          "end": 10,
+          "label": "noun"
+        },
+        {
+          "start": 11,
+          "end": 12,
+          "label": "pronoun"
+        },
+        {
+          "start": 13,
+          "end": 21,
+          "label": "verb"
+        }
+      ]
+    },
+    {
+      "text": "\"He is an ignoramus,\" interrupted my friend, as he stepped unsteadily forward, while I followed immediately at his heels.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "pronoun"
+        },
+        {
+          "start": 4,
+          "end": 6,
+          "label": "verb"
+        },
+        {
+          "start": 7,
+          "end": 9,
+          "label": "indefinite-article",
+          "note": "\"An\", not \"a\", because \"ignoramus\" starts with a vowel sound. It is still the indefinite article."
+        },
+        {
+          "start": 10,
+          "end": 21,
+          "label": "noun"
+        },
+        {
+          "start": 22,
+          "end": 33,
+          "label": "verb"
+        },
+        {
+          "start": 34,
+          "end": 36,
+          "label": "adjective"
+        },
+        {
+          "start": 37,
+          "end": 44,
+          "label": "noun"
+        },
+        {
+          "start": 45,
+          "end": 47,
+          "label": "conjunction"
+        },
+        {
+          "start": 48,
+          "end": 50,
+          "label": "pronoun"
+        },
+        {
+          "start": 51,
+          "end": 58,
+          "label": "verb"
+        },
+        {
+          "start": 59,
+          "end": 69,
+          "label": "adverb"
+        },
+        {
+          "start": 70,
+          "end": 78,
+          "label": "adverb"
+        },
+        {
+          "start": 79,
+          "end": 84,
+          "label": "conjunction"
+        },
+        {
+          "start": 85,
+          "end": 86,
+          "label": "pronoun"
+        },
+        {
+          "start": 87,
+          "end": 95,
+          "label": "verb"
+        },
+        {
+          "start": 96,
+          "end": 107,
+          "label": "adverb"
+        },
+        {
+          "start": 108,
+          "end": 110,
+          "label": "preposition"
+        },
+        {
+          "start": 111,
+          "end": 114,
+          "label": "adjective"
+        },
+        {
+          "start": 115,
+          "end": 121,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "It was not the cry of a drunken man.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 6,
+          "label": "verb"
+        },
+        {
+          "start": 7,
+          "end": 10,
+          "label": "adverb"
+        },
+        {
+          "start": 11,
+          "end": 14,
+          "label": "definite-article",
+          "note": "\"The cry\" — one particular cry you already know about. Definite."
+        },
+        {
+          "start": 15,
+          "end": 18,
+          "label": "noun"
+        },
+        {
+          "start": 19,
+          "end": 21,
+          "label": "preposition"
+        },
+        {
+          "start": 22,
+          "end": 23,
+          "label": "indefinite-article",
+          "note": "\"A drunken man\" — any drunken man, mentioned for the first time. Indefinite."
+        },
+        {
+          "start": 24,
+          "end": 31,
+          "label": "adjective"
+        },
+        {
+          "start": 32,
+          "end": 36,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "The wall was now nearly upon a level with my breast.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "definite-article",
+          "note": "Both articles in one sentence: the wall we have been reading about, and a level we have not."
+        },
+        {
+          "start": 4,
+          "end": 8,
+          "label": "noun"
+        },
+        {
+          "start": 9,
+          "end": 12,
+          "label": "verb"
+        },
+        {
+          "start": 13,
+          "end": 16,
+          "label": "adverb"
+        },
+        {
+          "start": 17,
+          "end": 23,
+          "label": "adverb"
+        },
+        {
+          "start": 24,
+          "end": 28,
+          "label": "preposition"
+        },
+        {
+          "start": 29,
+          "end": 30,
+          "label": "indefinite-article"
+        },
+        {
+          "start": 31,
+          "end": 36,
+          "label": "noun"
+        },
+        {
+          "start": 37,
+          "end": 41,
+          "label": "preposition"
+        },
+        {
+          "start": 42,
+          "end": 44,
+          "label": "adjective"
+        },
+        {
+          "start": 45,
+          "end": 52,
+          "label": "noun"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

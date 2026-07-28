@@ -1,0 +1,303 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Lesson 9 — Interjections",
+  "description": "Poe, \"The Cask of Amontillado\": the one part of speech that stands outside the sentence.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "\"Ugh! ugh! ugh! — ugh! ugh! ugh! — ugh! ugh! ugh! — ugh! ugh! ugh! — ugh! ugh! ugh!\"",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 5,
+          "label": "interjection",
+          "note": "Fifteen interjections and not one other part of speech. This is a whole paragraph of Poe's story, and there is no subject and no verb anywhere in it."
+        },
+        {
+          "start": 6,
+          "end": 10,
+          "label": "interjection"
+        },
+        {
+          "start": 11,
+          "end": 15,
+          "label": "interjection"
+        },
+        {
+          "start": 18,
+          "end": 22,
+          "label": "interjection"
+        },
+        {
+          "start": 23,
+          "end": 27,
+          "label": "interjection"
+        },
+        {
+          "start": 28,
+          "end": 32,
+          "label": "interjection"
+        },
+        {
+          "start": 35,
+          "end": 39,
+          "label": "interjection"
+        },
+        {
+          "start": 40,
+          "end": 44,
+          "label": "interjection"
+        },
+        {
+          "start": 45,
+          "end": 49,
+          "label": "interjection"
+        },
+        {
+          "start": 52,
+          "end": 56,
+          "label": "interjection"
+        },
+        {
+          "start": 57,
+          "end": 61,
+          "label": "interjection"
+        },
+        {
+          "start": 62,
+          "end": 66,
+          "label": "interjection"
+        },
+        {
+          "start": 69,
+          "end": 73,
+          "label": "interjection"
+        },
+        {
+          "start": 74,
+          "end": 78,
+          "label": "interjection"
+        },
+        {
+          "start": 79,
+          "end": 84,
+          "label": "interjection"
+        }
+      ]
+    },
+    {
+      "text": "\"Ha! ha! ha! — he! he! he! — a very good joke indeed — an excellent jest.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 4,
+          "label": "interjection"
+        },
+        {
+          "start": 5,
+          "end": 8,
+          "label": "interjection"
+        },
+        {
+          "start": 9,
+          "end": 12,
+          "label": "interjection"
+        },
+        {
+          "start": 15,
+          "end": 18,
+          "label": "interjection",
+          "note": "\"He!\" here is laughter, not the pronoun \"he.\" Same three letters, completely different job — which is what a part of speech is about."
+        },
+        {
+          "start": 19,
+          "end": 22,
+          "label": "interjection"
+        },
+        {
+          "start": 23,
+          "end": 26,
+          "label": "interjection"
+        },
+        {
+          "start": 29,
+          "end": 30,
+          "label": "determiner",
+          "note": "Once the laughing stops, ordinary parts of speech start again: a determiner, an adverb, an adjective, a noun."
+        },
+        {
+          "start": 31,
+          "end": 35,
+          "label": "adverb"
+        },
+        {
+          "start": 36,
+          "end": 40,
+          "label": "adjective"
+        },
+        {
+          "start": 41,
+          "end": 45,
+          "label": "noun"
+        },
+        {
+          "start": 46,
+          "end": 52,
+          "label": "adverb"
+        },
+        {
+          "start": 55,
+          "end": 57,
+          "label": "determiner"
+        },
+        {
+          "start": 58,
+          "end": 67,
+          "label": "adjective"
+        },
+        {
+          "start": 68,
+          "end": 73,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "\"Good!\" he said.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 7,
+          "label": "interjection",
+          "note": "Remove \"Good!\" and \"he said\" is still a complete sentence. That is the test: an interjection can always be lifted out."
+        },
+        {
+          "start": 8,
+          "end": 10,
+          "label": "pronoun"
+        },
+        {
+          "start": 11,
+          "end": 16,
+          "label": "verb"
+        }
+      ]
+    },
+    {
+      "text": "\"Yes, yes,\" I said; \"yes, yes.\"",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 5,
+          "label": "interjection",
+          "note": "Yes and no are interjections when they stand on their own like this."
+        },
+        {
+          "start": 6,
+          "end": 11,
+          "label": "interjection"
+        },
+        {
+          "start": 12,
+          "end": 13,
+          "label": "pronoun"
+        },
+        {
+          "start": 14,
+          "end": 19,
+          "label": "verb"
+        },
+        {
+          "start": 20,
+          "end": 25,
+          "label": "interjection"
+        },
+        {
+          "start": 26,
+          "end": 31,
+          "label": "interjection"
+        }
+      ]
+    },
+    {
+      "text": "\"Enough,\" he said; \"the cough is a mere nothing; it will not kill me.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 9,
+          "label": "interjection",
+          "note": "\"Enough\" is usually a determiner or an adjective. Thrown out on its own, with feeling, it is an interjection."
+        },
+        {
+          "start": 10,
+          "end": 12,
+          "label": "pronoun"
+        },
+        {
+          "start": 13,
+          "end": 18,
+          "label": "verb"
+        },
+        {
+          "start": 19,
+          "end": 23,
+          "label": "determiner"
+        },
+        {
+          "start": 24,
+          "end": 29,
+          "label": "noun"
+        },
+        {
+          "start": 30,
+          "end": 32,
+          "label": "verb"
+        },
+        {
+          "start": 33,
+          "end": 34,
+          "label": "determiner"
+        },
+        {
+          "start": 35,
+          "end": 39,
+          "label": "adjective"
+        },
+        {
+          "start": 40,
+          "end": 48,
+          "label": "pronoun"
+        },
+        {
+          "start": 49,
+          "end": 51,
+          "label": "pronoun"
+        },
+        {
+          "start": 52,
+          "end": 56,
+          "label": "verb"
+        },
+        {
+          "start": 57,
+          "end": 60,
+          "label": "adverb"
+        },
+        {
+          "start": 61,
+          "end": 65,
+          "label": "verb"
+        },
+        {
+          "start": 66,
+          "end": 69,
+          "label": "pronoun"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

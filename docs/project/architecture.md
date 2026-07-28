@@ -14,6 +14,7 @@ handful of decisions that everything else follows from.
 - [Routing and views](#routing-and-views)
 - [Delivery channels](#delivery-channels-wjtassignmentchannels)
 - [Quiz generation](#quiz-generation)
+- [Study mode](#study-mode-a-self-paced-unit-above-the-lesson)
 - [Where docs must stay in sync](#the-taxonomy-is-documented-in-five-places)
 
 ---
@@ -62,6 +63,9 @@ Load order matters — each file only depends on the ones above it.
 | `js/editor.js` | 523 | ✎ Edit view — selection, the drill-down palette, notes, sentence type chips, merge/delete. |
 | `js/display.js` | 494 | ▶ Present view — one sentence at a time, layer toggles, keyboard nav. |
 | `js/quiz.js` | 461 | 🎯 Practice view — question generation, distractor choice, scoring, results. |
+| `js/study-model.js` | 367 | **Study mode's engine.** Step assembly, label-scoped question generation, answer checking, local progress. Zero DOM. |
+| `js/unit-pos.js` | 547 | **Unit 1 — The Nine Parts of Speech.** Eleven Poe passages, teach screens, and the authored question bank. Zero DOM. |
+| `js/study.js` | 382 | 🎓 Study view — the unit map, teach screens, quiz screens, results. |
 | `js/app.js` | 486 | Hash routing, the library view, import, theme, toasts, first-run seeding. |
 
 `tools/` is **not shipped** — it holds the two check suites, the doc generator,
@@ -314,6 +318,8 @@ classes, the `data-*` and `--c` conventions — and the DOM of every view, see
 | `#/present/<id>` | `wjt.views.present` |
 | `#/quiz/<id>` | `wjt.views.quiz` |
 | `#/assign/<id>` | `wjt.views.assignment` |
+| `#/study/<unitId>` | `wjt.views.study` — the unit map |
+| `#/study/<unitId>/<stopId>` | `wjt.views.study` — one stop |
 
 Each view **replaces `#app` wholesale**. Any view that attaches a document-level
 listener or a timer must register teardown with `wjt.onViewCleanup(fn)`; the
@@ -388,6 +394,60 @@ notes are worth writing.
 
 Nothing is persisted. There's no attempt log, no score history, and deliberately
 no way to reconstruct an individual student's answers.
+
+## Study mode: a self-paced unit above the lesson
+
+`roadmap-platform.md` **P1** names sequencing as the thing missing *above* the
+lesson. Study mode is the first of it: **Unit 1 — The Nine Parts of Speech**, a
+student-facing course that teaches a part of speech and then checks recall.
+Design record: [curriculum-unit-1-parts-of-speech.md](../../plans/proposals/curriculum-unit-1-parts-of-speech.md).
+
+It exists as a separate surface for one concrete reason. **Both existing question
+generators select by *layer*, never by label family** — `annsForLayers` in
+`quiz.js`, `skills` in `assignment-model.js` — so neither can ask "find the
+possessive noun" without also asking about every other part of speech in the
+passage. `study-model.js` filters by label id, which is the whole difference.
+
+Three files, mirroring the assignment split:
+
+- **`unit-pos.js`** — content. Eleven Poe passages, each an ordinary lesson
+  registered into `wjt.EXAMPLES` with an additive `group: "unit-pos"`, plus the
+  teach screens and the authored question bank. Passages are labelled **one POS
+  label per token** by a `line()` helper that takes a label per token in order:
+  substring matching silently mislabels short function words (`"he"` matches
+  inside `"The"`), and a base *and* its subtype on one span would generate two
+  questions with one highlighted word and two right answers.
+- **`study-model.js`** — the engine. `steps()` assembles a stop, generating one
+  `tap` question per (sentence, focus label) with `accept` covering every
+  same-label span, the fairness rule `quiz.js` uses. `check()` is pure and takes
+  plain data — the view reads `selection.get()` and hands over `{first,last}`, so
+  no element ever reaches the model.
+- **`study.js`** — the view. Reuses `wjt.renderSentence` and the `.quiz-*` chrome,
+  so a question here behaves like a question anywhere else.
+
+Unit passages carry **no `types` badges and no part/phrase/clause annotations**.
+That is what keeps `tools/completeness.js` satisfiable: a sentence with no badge
+is treated as an intentional fragment, so only the POS-on-every-word rule applies.
+Sentence structure is a later unit's subject.
+
+### What study mode stores, and what it refuses to
+
+One key, `sentenceForge.study.<unitId>.v1`, through `wjt.safeStorage` — so a
+browser that refuses storage yields a *forgetful* unit, never a blank page:
+
+```js
+{ v: 1, at: "<stopId>", done: { nouns: 1 }, best: { nouns: 0.9 }, updatedAt: "…" }
+```
+
+A resume point, a done flag, and a best score. **No per-question record, ever** —
+which keeps `roadmap-platform.md` **P2** ("Sentence Forge never collects a student
+answer") literally true: nothing is transmitted, and nothing per-answer is written
+even locally. An unreadable or foreign-version value is **discarded, not guessed
+at**; this is disposable data, unlike a teacher's lessons, so it stays well away
+from `wjt.store`, its adapter, and the migration runner.
+
+Because school machines are shared, a prominent **Reset my progress** control is
+part of the contract, not a nicety.
 
 ## The taxonomy is documented in five places
 

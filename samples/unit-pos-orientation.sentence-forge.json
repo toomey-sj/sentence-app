@@ -1,0 +1,149 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Orientation — All Nine at Once",
+  "description": "Poe, \"The Cask of Amontillado\": four short sentences containing all nine parts of speech.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "The man wore motley.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "determiner"
+        },
+        {
+          "start": 4,
+          "end": 7,
+          "label": "noun"
+        },
+        {
+          "start": 8,
+          "end": 12,
+          "label": "verb"
+        },
+        {
+          "start": 13,
+          "end": 20,
+          "label": "noun",
+          "note": "Motley is the patched costume of a jester — here it is a thing, so it is a noun."
+        }
+      ]
+    },
+    {
+      "text": "The wine sparkled in his eyes and the bells jingled.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "determiner"
+        },
+        {
+          "start": 4,
+          "end": 8,
+          "label": "noun"
+        },
+        {
+          "start": 9,
+          "end": 17,
+          "label": "verb"
+        },
+        {
+          "start": 18,
+          "end": 20,
+          "label": "preposition",
+          "note": "\"In\" shows a relationship of place, so it is a preposition."
+        },
+        {
+          "start": 21,
+          "end": 24,
+          "label": "adjective",
+          "note": "\"His\" sits in front of a noun and describes it, so it works as an adjective here."
+        },
+        {
+          "start": 25,
+          "end": 29,
+          "label": "noun"
+        },
+        {
+          "start": 30,
+          "end": 33,
+          "label": "conjunction",
+          "note": "\"And\" joins two complete ideas, so it is a conjunction."
+        },
+        {
+          "start": 34,
+          "end": 37,
+          "label": "determiner"
+        },
+        {
+          "start": 38,
+          "end": 43,
+          "label": "noun"
+        },
+        {
+          "start": 44,
+          "end": 52,
+          "label": "verb"
+        }
+      ]
+    },
+    {
+      "text": "Indeed, it is very damp.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 7,
+          "label": "adverb"
+        },
+        {
+          "start": 8,
+          "end": 10,
+          "label": "pronoun",
+          "note": "\"It\" stands in for a thing already named, so it is a pronoun."
+        },
+        {
+          "start": 11,
+          "end": 13,
+          "label": "verb"
+        },
+        {
+          "start": 14,
+          "end": 18,
+          "label": "adverb",
+          "note": "\"Very\" modifies the adjective \"damp\" — an adverb can modify more than a verb."
+        },
+        {
+          "start": 19,
+          "end": 24,
+          "label": "adjective"
+        }
+      ]
+    },
+    {
+      "text": "\"Good!\" he said.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 7,
+          "label": "interjection",
+          "note": "An interjection expresses sudden feeling and stands outside the sentence's structure."
+        },
+        {
+          "start": 8,
+          "end": 10,
+          "label": "pronoun"
+        },
+        {
+          "start": 11,
+          "end": 16,
+          "label": "verb"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

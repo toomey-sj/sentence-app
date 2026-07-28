@@ -6,8 +6,9 @@ Guidance for Claude Code working in this repository.
 
 **Sentence Forge** — a build-free vanilla-JS web app where teachers annotate a
 paragraph with grammar labels at four layers, then present it or quiz students on
-it. ~8,300 lines of JS in thirteen files, no dependencies, no framework, no build
-step, no server.
+it. It also carries a self-paced student **unit** on the nine parts of speech
+(`js/study.js` + `js/unit-pos.js`). ~9,650 lines of JS in sixteen files, no
+dependencies, no framework, no build step, no server.
 
 Start with [docs/project/architecture.md](docs/project/architecture.md). It is
 current and it explains the constraints below in detail.
@@ -34,13 +35,15 @@ current and it explains the constraints below in detail.
    adds a network call — not before it.
 4. **Keep the logic layer DOM-free** — `js/labels.js`, `js/tokenize.js`,
    `js/store.js`, `js/examples.js`, `js/assignment-model.js`,
-   `js/assignment-codec.js`, and `js/assignment-channels.js`.
-   `tools/smoke-test.js` runs all seven in a bare `vm` sandbox; a `document`
-   reference in any of them breaks it. (The three `assignment-*` modules are
-   additionally asserted DOM-, storage-, and network-free by a source scan —
-   `assignment-channels.js` delegates every actual delivery to
-   `wjt.assignmentPrint` / `wjt.downloadJson` precisely so it can stay in that
-   set.)
+   `js/assignment-codec.js`, `js/assignment-channels.js`, `js/study-model.js`,
+   and `js/unit-pos.js`.
+   `tools/smoke-test.js` runs all nine in a bare `vm` sandbox; a `document`
+   reference in any of them breaks it. (The three `assignment-*` modules plus
+   the two study-mode modules are additionally asserted DOM-, storage-, and
+   network-free by a source scan — `assignment-channels.js` delegates every
+   actual delivery to `wjt.assignmentPrint` / `wjt.downloadJson`, and
+   `study-model.js` reaches storage only through `wjt.safeStorage`, precisely so
+   both can stay in that set.)
 5. **Every path relative.** Absolute paths 404 under GitHub Pages' `/<repo>/`.
 6. **Never rename or remove a label id.** Annotations store ids; a rename
    silently destroys annotations in every teacher's browser, and there's no
@@ -100,7 +103,7 @@ Hard-won details, all of which produce a *silent* wrong answer:
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
 A healthy run reports **0 failed** (the stable contract). The pass *count* is an
-implementation detail — it grows as checks are added (currently 339).
+implementation detail — it grows as checks are added (currently 408).
 
 Note that `tools/dom-check.html` is itself loaded over `file:///`, which makes it
 the place to assert degraded-mode behavior ([P3](docs/roadmap-platform.md#decisions))

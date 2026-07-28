@@ -69,8 +69,15 @@ way to feel productive while learning nothing.
 in a teacher's browser and in files they exported. Changes must stay additive;
 see [lesson-json.md](../project/lesson-json.md#compatibility).
 
-**The three modes.** No fourth mode, no gradebook, no accounts. See the
-[non-goals](overview.md#deliberate-non-goals).
+**No gradebook, no accounts.** See the [non-goals](overview.md#deliberate-non-goals).
+
+> **Amended 2026-07-28.** This item used to read *"The three modes. No fourth
+> mode, no gradebook, no accounts."* The change that added **Study mode** — the
+> self-paced student unit ([curriculum-unit-1.md](curriculum-unit-1.md)) — is the
+> change that rewrites it, rather than leaving a promise the code no longer keeps.
+> There is now a fourth mode. The gradebook and accounts halves are untouched and
+> still hold: a student's progress is a resume point and a best score on their own
+> machine, nothing is transmitted, and no teacher can read it.
 
 Bug fixes, wording, and accessibility are always in scope.
 

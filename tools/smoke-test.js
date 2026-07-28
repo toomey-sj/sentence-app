@@ -35,7 +35,10 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 
 const LOGIC_FILES = ["labels.js", "tokenize.js", "store.js", "examples.js",
-  "assignment-model.js", "assignment-codec.js", "assignment-channels.js"];
+  "assignment-model.js", "assignment-codec.js", "assignment-channels.js",
+  // Study mode: the engine, then the unit content that registers against it.
+  // Running them here is what proves they are DOM-free.
+  "study-model.js", "unit-pos.js"];
 for (const f of LOGIC_FILES) {
   vm.runInContext(fs.readFileSync(path.join(root, "js", f), "utf8"), sandbox, { filename: f });
 }
@@ -1056,11 +1059,285 @@ check("channels: nothing throws out of deliver() — a click handler can't be we
 })());
 
 // --- the new modules stay DOM-free and storage-free ---
-["assignment-model.js", "assignment-codec.js", "assignment-channels.js"].forEach((f) => {
+["assignment-model.js", "assignment-codec.js", "assignment-channels.js",
+  "study-model.js", "unit-pos.js"].forEach((f) => {
   const src = fs.readFileSync(path.join(root, "js", f), "utf8");
   check(f + ": touches no DOM, storage, or network",
     !/\bdocument\b|localStorage|sessionStorage|\bfetch\s*\(|XMLHttpRequest|navigator/.test(src));
 });
+
+/* ====================================================================
+ * Study mode — Unit 1: The Nine Parts of Speech
+ * Design record: plans/proposals/curriculum-unit-1-parts-of-speech.md
+ * ==================================================================== */
+console.log("\n-- study: unit 1 --");
+{
+  const unit = wjt.study.unit("pos");
+  check("study: unit `pos` is registered", !!unit);
+
+  const stops = wjt.study.stops("pos");
+  check("study: 15 stops declared", stops.length === 15);
+  check("study: stop ids are unique",
+    new Set(stops.map((s) => s.id)).size === stops.length);
+  check("study: every stop has a title and a blurb",
+    stops.every((s) => !!s.title && !!s.blurb));
+
+  // --- the label budget cannot drift ---
+  const POS = wjt.labelsForLayer("pos");
+  check("study: the POS layer still holds 54 labels", POS.length === 54);
+
+  const EXCLUDED = unit.excluded;
+  check("study: 6 labels are excluded, and each one really exists",
+    EXCLUDED.length === 6 && EXCLUDED.every((id) => !!wjt.LABELS[id]));
+  const budget = POS.filter((id) => EXCLUDED.indexOf(id) === -1);
+  check("study: the budget is 48 labels", budget.length === 48);
+
+  const focusUnion = [];
+  stops.forEach((s) => (s.focus || []).forEach((id) => focusUnion.push(id)));
+  check("study: every focus label exists and is a POS label",
+    focusUnion.every((id) => wjt.LABELS[id] && wjt.LABELS[id].layer === "pos"));
+  check("study: no focus label is one of the six excluded",
+    focusUnion.every((id) => EXCLUDED.indexOf(id) === -1));
+  check("study: every focus label is inside the 48-label budget",
+    focusUnion.every((id) => budget.indexOf(id) !== -1));
+
+  /* The nine focus lessons partition the budget: each of the 48 labels is
+   * taught by exactly one of them. Orientation deliberately re-uses the nine
+   * base labels to introduce them, so it is exempt from the partition — and the
+   * reviews and capstone carry no focus of their own.
+   *
+   * This is checkable now even though only two stops are authored, because every
+   * stop DECLARES its focus up front so the unit map can render the whole path. */
+  const focusLessons = stops.filter((s) => "ABCD".indexOf(s.cluster) !== -1 && s.lessonId);
+  const lessonFocus = [];
+  focusLessons.forEach((s) => (s.focus || []).forEach((id) => lessonFocus.push(id)));
+  check("study: nine focus lessons, one per part of speech", focusLessons.length === 9);
+  check("study: no two focus lessons claim the same label",
+    new Set(lessonFocus).size === lessonFocus.length);
+  check("study: the nine focus lessons cover the budget exactly (48)",
+    lessonFocus.length === budget.length &&
+    budget.every((id) => lessonFocus.indexOf(id) !== -1));
+
+  const orientation = wjt.study.stop("pos", "orientation");
+  const bases = wjt.baseLabelsForLayer("pos");
+  check("study: the POS layer has exactly nine base labels", bases.length === 9);
+  check("study: orientation introduces exactly the nine bases",
+    orientation.focus.length === 9 && bases.every((id) => orientation.focus.indexOf(id) !== -1));
+
+  const authored = stops.filter((s) => !s.todo);
+
+  /* --- an authored stop really teaches what it claims ---
+   *
+   * The check that catches a lesson quietly failing to cover a focus label.
+   *
+   * A stop may declare `handTaught` for labels the STORY CANNOT SUPPLY — Poe uses
+   * no possessive pronoun and asks no question opening with an interrogative
+   * pronoun, and the proposal's rule is to change the passage, never the labelling,
+   * and never Poe's words. Those labels are covered by a written `choice` item
+   * instead, and both halves of that bargain are asserted here: the missing set
+   * must be EXACTLY the declared set (so a real gap cannot hide behind the
+   * declaration, and the declaration cannot rot once a passage changes), and every
+   * declared label must be claimed by an item. */
+  authored.forEach((stop) => {
+    if (!stop.lessonId) return;
+    const lesson = wjt.study.lessonFor(stop.lessonId);
+    check("study: " + stop.id + " has its passage", !!lesson);
+    if (!lesson) return;
+    const used = {};
+    lesson.sentences.forEach((s) => (s.annotations || []).forEach((a) => { used[a.label] = true; }));
+    const hand = (stop.handTaught || []).slice().sort();
+    const missing = (stop.focus || []).filter((id) => !used[id]).sort();
+    check("study: " + stop.id + " has a real instance of every focus label the story " +
+      "can supply (" + (stop.focus.length - hand.length) + " of " + stop.focus.length + ")" +
+      (missing.join(",") !== hand.join(",") ? " — missing: [" + missing.join(", ") +
+        "], declared hand-taught: [" + hand.join(", ") + "]" : ""),
+      missing.join(",") === hand.join(","));
+
+    hand.forEach((id) => {
+      check("study: " + stop.id + " covers hand-taught " + id + " with a written item",
+        (stop.items || []).some((it) => it.label === id));
+      check("study: " + stop.id + " hand-taught " + id + " is still a focus label",
+        (stop.focus || []).indexOf(id) !== -1);
+    });
+  });
+
+  // --- authored questions are well formed ---
+  authored.forEach((stop) => {
+    (stop.items || []).forEach((it, i) => {
+      const correct = it.options.filter((o) => o.correct);
+      check("study: " + stop.id + " item " + (i + 1) + " has exactly one correct option",
+        correct.length === 1);
+      check("study: " + stop.id + " item " + (i + 1) + " has a stem and feedback on every option",
+        !!it.stem && it.options.length >= 2 && it.options.every((o) => !!o.text && !!o.feedback));
+    });
+    (stop.teach || []).forEach((t, i) => {
+      check("study: " + stop.id + " teach screen " + (i + 1) + " names only real focus labels",
+        (t.labels || []).every((id) => (stop.focus || []).indexOf(id) !== -1));
+    });
+  });
+
+  // --- step assembly and scoring ---
+  authored.forEach((stop) => {
+    const steps = wjt.study.steps("pos", stop.id);
+    const scorable = wjt.study.scorable(steps);
+    check("study: " + stop.id + " assembles steps (" + steps.length + ", " +
+      scorable.length + " scored)", steps.length > 0 && scorable.length > 0);
+    check("study: " + stop.id + " step ids are unique",
+      new Set(steps.map((s) => s.id)).size === steps.length);
+    check("study: " + stop.id + " generates at least one tap question",
+      steps.some((s) => s.kind === "tap"));
+    check("study: " + stop.id + " every tap question is about a focus label",
+      steps.filter((s) => s.kind === "tap")
+        .every((s) => stop.focus.indexOf(s.label) !== -1));
+
+    // A check that can't fail is not a check: assert BOTH verdicts.
+    const taps = steps.filter((s) => s.kind === "tap");
+    check("study: " + stop.id + " check() accepts each tap's own range",
+      taps.every((s) => wjt.study.check(s, s.accept[0]).correct));
+    check("study: " + stop.id + " check() rejects a deliberately wrong range",
+      taps.every((s) => {
+        const bad = { first: s.accept[0].first + 7, last: s.accept[0].last + 9 };
+        return !wjt.study.check(s, bad).correct;
+      }));
+    check("study: " + stop.id + " check() rejects an empty tap response",
+      taps.every((s) => !wjt.study.check(s, null).correct));
+
+    const choices = steps.filter((s) => s.kind === "choice");
+    check("study: " + stop.id + " check() scores every choice both ways",
+      choices.every((s) => {
+        const right = s.options.reduce((acc, o, i) => (o.correct ? i : acc), -1);
+        const wrong = s.options.reduce((acc, o, i) => (!o.correct ? i : acc), -1);
+        return wjt.study.check(s, right).correct && !wjt.study.check(s, wrong).correct;
+      }));
+  });
+
+  // A `tap` question must never ask about a span that carries two POS labels —
+  // that would be two right answers for one highlighted word (decision C5).
+  check("study: no passage token carries two POS labels", (() => {
+    let clean = true;
+    stops.filter((s) => !s.todo && s.lessonId).forEach((stop) => {
+      const lesson = wjt.study.lessonFor(stop.lessonId);
+      lesson.sentences.forEach((s) => {
+        const seen = {};
+        (s.annotations || []).forEach((a) => {
+          if (wjt.layerOf(a.label).id !== "pos") return;
+          const key = a.start + ":" + a.end;
+          if (seen[key]) clean = false;
+          seen[key] = true;
+        });
+      });
+    });
+    return clean;
+  })());
+
+  /* A `tap` question about a BASE label must not be answerable by a word this
+   * passage labelled with one of that base's own subtypes — "select the noun"
+   * cannot be fair in a sentence where another noun is tagged `proper-noun`,
+   * because `accept` holds only the same-label spans. Phase 1 kept this rule
+   * implicitly, per sentence; Phase 2 made it explicit because the determiner
+   * family breaks the moment you forget it.
+   *
+   * `article` is the same hazard without the parent link: it, `definite-article`
+   * and `indefinite-article` are all SIBLINGS under `determiner`, so the tree
+   * cannot tell you that "the" labelled `article` and "the" labelled
+   * `definite-article` are two right answers to one question. Declared instead. */
+  const SIBLING_SUPERSETS = { article: ["definite-article", "indefinite-article"] };
+  check("study: no passage sentence mixes a label with a narrower one", (() => {
+    let clean = true;
+    stops.filter((s) => !s.todo && s.lessonId).forEach((stop) => {
+      const lesson = wjt.study.lessonFor(stop.lessonId);
+      lesson.sentences.forEach((s) => {
+        const here = new Set((s.annotations || []).map((a) => a.label));
+        here.forEach((id) => {
+          const narrower = wjt.childrenOf(id);
+          narrower.concat(SIBLING_SUPERSETS[id] || []).forEach((sub) => {
+            if (here.has(sub)) {
+              console.log("       " + stop.id + ": " + id + " + " + sub + " in " +
+                JSON.stringify(s.text.slice(0, 60)));
+              clean = false;
+            }
+          });
+        });
+      });
+    });
+    return clean;
+  })());
+
+  // --- progress: a resume point and a score, and nothing else ---
+  const P = wjt.study.progress;
+  // The sandbox has no wjt.safeStorage (that lives in app.js), so the model must
+  // degrade to a working, forgetful unit rather than throw. Give it one.
+  let mem = {};
+  wjt.safeStorage = {
+    get: (k) => (k in mem ? mem[k] : null),
+    set: (k, v) => { mem[k] = String(v); return true; },
+  };
+
+  check("study: progress starts fresh", (() => {
+    const r = P.read("pos");
+    return r.v === 1 && r.at === "" && Object.keys(r.done).length === 0;
+  })());
+  check("study: visit() records a resume point without completing anything", (() => {
+    P.visit("pos", "nouns");
+    const r = P.read("pos");
+    return r.at === "nouns" && !r.done.nouns;
+  })());
+  check("study: complete() marks done and keeps the BEST score, not the latest", (() => {
+    P.complete("pos", "nouns", 0.9);
+    P.complete("pos", "nouns", 0.4);
+    const r = P.read("pos");
+    return r.done.nouns === 1 && r.best.nouns === 0.9;
+  })());
+  check("study: stored record holds NO per-answer data", (() => {
+    const raw = JSON.parse(mem[wjt.study.progressKey("pos")]);
+    const allowed = ["v", "at", "done", "best", "updatedAt"];
+    return Object.keys(raw).every((k) => allowed.indexOf(k) !== -1);
+  })());
+  check("study: a foreign version is discarded, not guessed at", (() => {
+    mem[wjt.study.progressKey("pos")] = JSON.stringify({ v: 99, done: { nouns: 1 } });
+    const r = P.read("pos");
+    return r.v === 1 && Object.keys(r.done).length === 0;
+  })());
+  check("study: unparseable progress is discarded, not thrown on", (() => {
+    mem[wjt.study.progressKey("pos")] = "{not json";
+    const r = P.read("pos");
+    return r.v === 1 && r.at === "";
+  })());
+  check("study: reset() clears everything", (() => {
+    P.complete("pos", "nouns", 1);
+    P.reset("pos");
+    const r = P.read("pos");
+    return Object.keys(r.done).length === 0 && Object.keys(r.best).length === 0;
+  })());
+  check("study: nextStop() skips done and todo stops", (() => {
+    P.reset("pos");
+    const first = wjt.study.nextStop("pos", P.read("pos"));
+    P.complete("pos", "orientation", 1);
+    const second = wjt.study.nextStop("pos", P.read("pos"));
+    return first.id === "orientation" && second.id === "nouns";
+  })());
+  check("study: the model survives storage being refused outright", (() => {
+    const saved = wjt.safeStorage;
+    wjt.safeStorage = { get: () => null, set: () => false };
+    let threw = false;
+    try {
+      P.complete("pos", "nouns", 1);
+      P.visit("pos", "nouns");
+      P.read("pos");
+      P.reset("pos");
+    } catch (e) { threw = true; }
+    wjt.safeStorage = saved;
+    return !threw;
+  })());
+  P.reset("pos");
+
+  check("study: clusters group the stops in path order", (() => {
+    const cl = wjt.study.clusters("pos");
+    const flat = [];
+    cl.forEach((c) => c.stops.forEach((s) => flat.push(s.id)));
+    return cl.length === 6 && flat.join(",") === stops.map((s) => s.id).join(",");
+  })());
+}
 
 // --- write the sample JSON file for the samples/ folder ---
 fs.mkdirSync(path.join(root, "samples"), { recursive: true });

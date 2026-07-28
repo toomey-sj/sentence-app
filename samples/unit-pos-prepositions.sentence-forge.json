@@ -1,0 +1,421 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Lesson 7 — Prepositions",
+  "description": "Poe, \"The Cask of Amontillado\": the words that relate one thing to another in place, time, and direction.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "I took from their sconces two flambeaux, and giving one to Fortunato, bowed him through several suites of rooms to the archway that led into the vaults.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "pronoun"
+        },
+        {
+          "start": 2,
+          "end": 6,
+          "label": "verb"
+        },
+        {
+          "start": 7,
+          "end": 11,
+          "label": "preposition",
+          "note": "From, to, through, of, to, into — six prepositions, and every one of them starts a little phrase that says where."
+        },
+        {
+          "start": 12,
+          "end": 17,
+          "label": "adjective"
+        },
+        {
+          "start": 18,
+          "end": 25,
+          "label": "noun"
+        },
+        {
+          "start": 26,
+          "end": 29,
+          "label": "adjective"
+        },
+        {
+          "start": 30,
+          "end": 40,
+          "label": "noun"
+        },
+        {
+          "start": 41,
+          "end": 44,
+          "label": "conjunction"
+        },
+        {
+          "start": 45,
+          "end": 51,
+          "label": "verb"
+        },
+        {
+          "start": 52,
+          "end": 55,
+          "label": "pronoun"
+        },
+        {
+          "start": 56,
+          "end": 58,
+          "label": "preposition"
+        },
+        {
+          "start": 59,
+          "end": 69,
+          "label": "noun"
+        },
+        {
+          "start": 70,
+          "end": 75,
+          "label": "verb"
+        },
+        {
+          "start": 76,
+          "end": 79,
+          "label": "pronoun"
+        },
+        {
+          "start": 80,
+          "end": 87,
+          "label": "preposition"
+        },
+        {
+          "start": 88,
+          "end": 95,
+          "label": "adjective"
+        },
+        {
+          "start": 96,
+          "end": 102,
+          "label": "noun"
+        },
+        {
+          "start": 103,
+          "end": 105,
+          "label": "preposition"
+        },
+        {
+          "start": 106,
+          "end": 111,
+          "label": "noun"
+        },
+        {
+          "start": 112,
+          "end": 114,
+          "label": "preposition"
+        },
+        {
+          "start": 115,
+          "end": 118,
+          "label": "determiner"
+        },
+        {
+          "start": 119,
+          "end": 126,
+          "label": "noun"
+        },
+        {
+          "start": 127,
+          "end": 131,
+          "label": "pronoun"
+        },
+        {
+          "start": 132,
+          "end": 135,
+          "label": "verb"
+        },
+        {
+          "start": 136,
+          "end": 140,
+          "label": "preposition"
+        },
+        {
+          "start": 141,
+          "end": 144,
+          "label": "determiner"
+        },
+        {
+          "start": 145,
+          "end": 152,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "We came at length to the foot of the descent, and stood together on the damp ground of the catacombs of the Montresors.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 7,
+          "label": "verb"
+        },
+        {
+          "start": 8,
+          "end": 10,
+          "label": "preposition"
+        },
+        {
+          "start": 11,
+          "end": 17,
+          "label": "noun"
+        },
+        {
+          "start": 18,
+          "end": 20,
+          "label": "preposition"
+        },
+        {
+          "start": 21,
+          "end": 24,
+          "label": "determiner"
+        },
+        {
+          "start": 25,
+          "end": 29,
+          "label": "noun"
+        },
+        {
+          "start": 30,
+          "end": 32,
+          "label": "preposition",
+          "note": "\"Of\" is the commonest preposition in English, and this one sentence uses it three times to hook nouns onto each other."
+        },
+        {
+          "start": 33,
+          "end": 36,
+          "label": "determiner"
+        },
+        {
+          "start": 37,
+          "end": 45,
+          "label": "noun"
+        },
+        {
+          "start": 46,
+          "end": 49,
+          "label": "conjunction"
+        },
+        {
+          "start": 50,
+          "end": 55,
+          "label": "verb"
+        },
+        {
+          "start": 56,
+          "end": 64,
+          "label": "adverb"
+        },
+        {
+          "start": 65,
+          "end": 67,
+          "label": "preposition"
+        },
+        {
+          "start": 68,
+          "end": 71,
+          "label": "determiner"
+        },
+        {
+          "start": 72,
+          "end": 76,
+          "label": "adjective"
+        },
+        {
+          "start": 77,
+          "end": 83,
+          "label": "noun"
+        },
+        {
+          "start": 84,
+          "end": 86,
+          "label": "preposition"
+        },
+        {
+          "start": 87,
+          "end": 90,
+          "label": "determiner"
+        },
+        {
+          "start": 91,
+          "end": 100,
+          "label": "noun"
+        },
+        {
+          "start": 101,
+          "end": 103,
+          "label": "preposition"
+        },
+        {
+          "start": 104,
+          "end": 107,
+          "label": "determiner"
+        },
+        {
+          "start": 108,
+          "end": 119,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "Its walls had been lined with human remains, piled to the vault overhead, in the fashion of the great catacombs of Paris.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "adjective"
+        },
+        {
+          "start": 4,
+          "end": 9,
+          "label": "noun"
+        },
+        {
+          "start": 10,
+          "end": 13,
+          "label": "verb"
+        },
+        {
+          "start": 14,
+          "end": 18,
+          "label": "verb"
+        },
+        {
+          "start": 19,
+          "end": 24,
+          "label": "verb"
+        },
+        {
+          "start": 25,
+          "end": 29,
+          "label": "preposition"
+        },
+        {
+          "start": 30,
+          "end": 35,
+          "label": "adjective"
+        },
+        {
+          "start": 36,
+          "end": 44,
+          "label": "noun"
+        },
+        {
+          "start": 45,
+          "end": 50,
+          "label": "adjective"
+        },
+        {
+          "start": 51,
+          "end": 53,
+          "label": "preposition"
+        },
+        {
+          "start": 54,
+          "end": 57,
+          "label": "determiner"
+        },
+        {
+          "start": 58,
+          "end": 63,
+          "label": "noun"
+        },
+        {
+          "start": 64,
+          "end": 73,
+          "label": "adverb",
+          "note": "\"Overhead\" looks like it belongs with the prepositions, but nothing follows it — no object, so it is an adverb."
+        },
+        {
+          "start": 74,
+          "end": 76,
+          "label": "preposition"
+        },
+        {
+          "start": 77,
+          "end": 80,
+          "label": "determiner"
+        },
+        {
+          "start": 81,
+          "end": 88,
+          "label": "noun"
+        },
+        {
+          "start": 89,
+          "end": 91,
+          "label": "preposition"
+        },
+        {
+          "start": 92,
+          "end": 95,
+          "label": "determiner"
+        },
+        {
+          "start": 96,
+          "end": 101,
+          "label": "adjective"
+        },
+        {
+          "start": 102,
+          "end": 111,
+          "label": "noun"
+        },
+        {
+          "start": 112,
+          "end": 114,
+          "label": "preposition"
+        },
+        {
+          "start": 115,
+          "end": 121,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "He leaned upon it heavily.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 9,
+          "label": "verb"
+        },
+        {
+          "start": 10,
+          "end": 14,
+          "label": "preposition",
+          "note": "A preposition always takes an object: \"upon\" has \"it.\" That is the test that separates a preposition from an adverb."
+        },
+        {
+          "start": 15,
+          "end": 17,
+          "label": "pronoun"
+        },
+        {
+          "start": 18,
+          "end": 26,
+          "label": "adverb"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

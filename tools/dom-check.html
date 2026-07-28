@@ -87,6 +87,9 @@
   <script src="../js/editor.js"></script>
   <script src="../js/display.js"></script>
   <script src="../js/quiz.js"></script>
+  <script src="../js/study-model.js"></script>
+  <script src="../js/unit-pos.js"></script>
+  <script src="../js/study.js"></script>
   <script src="../js/app.js"></script>
 
   <script>
@@ -313,6 +316,10 @@
         { name: "present teardown checks", fn: presentLeave },
         { name: "practice checks", fn: practiceChecks },
         { name: "assignment checks", fn: assignmentChecks },
+        { name: "study map checks", fn: studyMapChecks },
+        { name: "study review checks", fn: studyReviewChecks },
+        { name: "study stop checks", fn: studyStopChecks },
+        { name: "study walk-every-stop checks", fn: studyWalkAllChecks },
       ], finish);
     });
 
@@ -870,6 +877,364 @@
           (q.querySelector(".assign-q-prompt").textContent || ""));
       });
       return out.join(" | ");
+    }
+
+    /* -------------------------------------------------------------------- *
+     * Study-mode checks (S-*) — Unit 1, through the real routes.
+     *
+     * Like the D-* checks, these run over file:///, which is the degraded mode
+     * P3 describes. The unit is the one surface a STUDENT reaches with no
+     * teacher, no account, and possibly no network, so "it works when you
+     * double-click index.html" is the claim under test — measured here rather
+     * than assumed.
+     * -------------------------------------------------------------------- */
+    function studyMapChecks() {
+      wjt.study.progress.reset("pos");
+
+      location.hash = "#/study/pos";
+      wjt.rerender();
+      var view = app.querySelector(".view-study");
+      check("S-1: #/study/pos renders the unit map", !!view);
+      if (!view) return;
+
+      var stops = wjt.study.stops("pos");
+      var cards = view.querySelectorAll(".study-stop");
+      check("S-1: the map shows the whole path (" + cards.length + "/" + stops.length + ")",
+        cards.length === stops.length);
+      check("S-1: unauthored stops are shown but not linkable",
+        view.querySelectorAll(".study-stop.is-todo").length ===
+          stops.filter(function (s) { return s.todo; }).length &&
+        view.querySelectorAll("a.study-stop.is-todo").length === 0);
+      check("S-1: every authored stop is a real link into the unit",
+        view.querySelectorAll("a.study-stop").length ===
+          stops.filter(function (s) { return !s.todo; }).length);
+      check("S-2: with no progress, the first stop is the highlighted next one",
+        view.querySelectorAll(".study-stop.is-next").length === 1 &&
+        view.querySelector(".study-stop.is-next").getAttribute("href") ===
+          "#/study/pos/orientation");
+      check("S-2: no Reset control is offered before anything is done",
+        !view.querySelector('[data-act="reset"]'));
+
+      // Progress the model already holds must SHOW on the map — this is the
+      // "notice it isn't yours" property a shared school machine needs.
+      wjt.study.progress.complete("pos", "orientation", 0.75);
+      wjt.rerender();
+      view = app.querySelector(".view-study");
+      var doneCard = view.querySelector('a.study-stop[href="#/study/pos/orientation"]');
+      check("S-3: a completed stop is marked done on the map",
+        !!doneCard && doneCard.classList.contains("is-done"));
+      check("S-3: the completed stop shows its best score",
+        !!doneCard && /75%/.test(doneCard.textContent || ""));
+      check("S-3: the next stop advances past the completed one",
+        (view.querySelector(".study-stop.is-next") || {}).getAttribute &&
+        view.querySelector(".study-stop.is-next").getAttribute("href") === "#/study/pos/nouns");
+      check("S-3: Reset appears once there is progress to reset",
+        !!view.querySelector('[data-act="reset"]'));
+
+      wjt.study.progress.reset("pos");
+      wjt.rerender();
+      check("S-4: reset clears the map back to the start",
+        app.querySelector(".view-study").querySelectorAll(".study-stop.is-done").length === 0);
+
+      /* An unauthored stop must say so rather than render an empty quiz.
+       * `capstone` is the last one left (plans/017); this check moved off `verbs`
+       * when plans/016 authored it. Read the flag rather than naming a stop, so
+       * the check cannot quietly stop testing anything at all. */
+      var pending = stops.filter(function (s) { return s.todo; })[0];
+      check("S-5: at least one stop is still unauthored, so this check tests something",
+        !!pending);
+      if (pending) {
+        location.hash = "#/study/pos/" + pending.id;
+        wjt.rerender();
+        check("S-5: an unauthored stop (" + pending.id + ") shows a 'not ready' state, " +
+          "not a broken quiz",
+          !!app.querySelector(".view-study .empty-state") &&
+          !app.querySelector(".view-study .quiz-card"));
+      }
+    }
+
+    /* A review stop has no lesson of its own: study-model.js assembles its `tap`
+     * questions out of the passages of the stops it reviews. That indirection is
+     * the one genuinely new thing plans/016 leaned on, so assert it end to end
+     * rather than trusting it — every generated question must be traceable to a
+     * sentence in a REVIEWED stop's lesson, and to no other. */
+    function studyReviewChecks() {
+      wjt.study.progress.reset("pos");
+      var reviews = wjt.study.stops("pos").filter(function (s) {
+        return !s.todo && s.reviews && s.reviews.length;
+      });
+      check("S-12: the unit declares review stops (" + reviews.length + ")",
+        reviews.length === 4);
+
+      reviews.forEach(function (stop) {
+        check("S-12: " + stop.id + " has no lesson of its own", !stop.lessonId);
+
+        // Every sentence text reachable from the stops this one reviews.
+        var pool = {};
+        stop.reviews.forEach(function (rid) {
+          var src = wjt.study.stop("pos", rid);
+          var lesson = src && wjt.study.lessonFor(src.lessonId);
+          (lesson ? lesson.sentences : []).forEach(function (s) { pool[s.text] = rid; });
+        });
+
+        var taps = wjt.study.steps("pos", stop.id).filter(function (s) {
+          return s.kind === "tap";
+        });
+        var drawnFrom = {};
+        var stray = taps.filter(function (q) {
+          if (!pool[q.sentence.text]) return true;
+          drawnFrom[pool[q.sentence.text]] = true;
+          return false;
+        });
+        check("S-12: " + stop.id + " draws real questions (" + taps.length + ") and every " +
+          "one comes from a reviewed passage", taps.length > 0 && stray.length === 0);
+        check("S-12: " + stop.id + " draws from every cluster it reviews (" +
+          Object.keys(drawnFrom).length + "/" + stop.reviews.length + ")",
+          Object.keys(drawnFrom).length === stop.reviews.length);
+
+        // And it must render, not just assemble.
+        location.hash = "#/study/pos/" + stop.id;
+        wjt.rerender();
+        check("S-12: " + stop.id + " renders a quiz rather than a 'not ready' state",
+          !!app.querySelector(".view-study .quiz-card") &&
+          !app.querySelector(".view-study .empty-state"));
+      });
+    }
+
+    /* One action on whatever the study view is currently showing, whatever kind
+     * of step that is. Returns false when there is nothing left to do (the
+     * results screen), which is what lets a caller walk a stop to its end.
+     *
+     * Order matters: an open feedback panel owns the flow, and a `tap` question
+     * must be given a SELECTION before Check — pressing Check empty is designed
+     * to refuse and not score, so clicking it blindly loops forever. */
+    function studyAdvance() {
+      var v = app.querySelector(".view-study");
+      if (!v) return false;
+
+      var fb = v.querySelector(".quiz-feedback");
+      if (fb && !fb.hidden) {
+        var fbNext = fb.querySelector('[data-act="next"]');
+        if (fbNext) { fbNext.click(); return true; }
+      }
+
+      var chk = v.querySelector('[data-act="check"]');
+      if (chk) {
+        var tok = v.querySelector('[data-role="stage"] .gl-token');
+        if (tok) { tok.focus(); key(tok, { key: "Enter" }); }
+        chk.click();
+        return true;
+      }
+
+      var opt = v.querySelector(".quiz-option:not(:disabled)");
+      if (opt) { opt.click(); return true; }
+
+      var nx = v.querySelector('[data-act="next"]');
+      if (nx) { nx.click(); return true; }
+
+      return false;
+    }
+
+    /* Walk EVERY authored stop from its first teach screen to its results screen,
+     * over file:/// — the automated form of "play the unit end to end", which is
+     * what plans/016 asks for by hand. It catches the whole family of faults a
+     * per-stop check misses: a stop that cannot terminate, a step kind the view
+     * cannot render, a tap whose sentence has no selectable token, a choice with
+     * no clickable option.
+     *
+     * The tap questions are answered by selecting the FIRST token, so most will
+     * be wrong. That is deliberate — a wrong answer exercises the reveal path,
+     * and the score is not what is being asserted here. */
+    function studyWalkAllChecks() {
+      wjt.study.progress.reset("pos");
+      var authored = wjt.study.stops("pos").filter(function (s) { return !s.todo; });
+      var stalled = [], unfinished = [], unrecorded = [];
+
+      authored.forEach(function (stop) {
+        location.hash = "#/study/pos/" + stop.id;
+        wjt.rerender();
+
+        var acts = 0;
+        while (acts++ < 400 && studyAdvance()) { /* walk */ }
+        if (acts >= 400) stalled.push(stop.id);
+
+        var v = app.querySelector(".view-study");
+        if (!v || !v.querySelector(".quiz-results")) unfinished.push(stop.id);
+        if (wjt.study.progress.read("pos").done[stop.id] !== 1) unrecorded.push(stop.id);
+      });
+
+      check("S-13: every authored stop is walkable (" + authored.length + " of 15)",
+        authored.length === 14);
+      check("S-13: no stop stalls or loops" +
+        (stalled.length ? " (stalled: " + stalled.join(", ") + ")" : ""), !stalled.length);
+      check("S-13: every stop reaches its results screen" +
+        (unfinished.length ? " (never finished: " + unfinished.join(", ") + ")" : ""),
+        !unfinished.length);
+      check("S-13: every finished stop is recorded as done" +
+        (unrecorded.length ? " (not recorded: " + unrecorded.join(", ") + ")" : ""),
+        !unrecorded.length);
+
+      // Having walked them all, the map must agree there is nothing left but the
+      // one stop plans/017 still owes.
+      location.hash = "#/study/pos";
+      wjt.rerender();
+      var mapView = app.querySelector(".view-study");
+      check("S-13: with every authored stop done, the map offers no next stop",
+        !wjt.study.nextStop("pos", wjt.study.progress.read("pos")) &&
+        !mapView.querySelector(".study-stop.is-next"));
+      check("S-13: the map ticks all 14 and still shows the capstone as coming soon",
+        mapView.querySelectorAll(".study-stop.is-done").length === 14 &&
+        mapView.querySelectorAll(".study-stop.is-todo").length === 1);
+
+      wjt.study.progress.reset("pos");
+    }
+
+    function studyStopChecks() {
+      wjt.study.progress.reset("pos");
+
+      location.hash = "#/study/pos/nouns";
+      wjt.rerender();
+      var view = app.querySelector(".view-study");
+      check("S-6: #/study/pos/nouns renders a stop", !!view);
+      if (!view) return;
+
+      var steps = wjt.study.steps("pos", "nouns");
+      check("S-6: the first step is the teach screen, with its label cards",
+        !!view.querySelector(".study-body") &&
+        view.querySelectorAll(".study-label").length ===
+          (steps[0].labels || []).length);
+      check("S-6: entering a stop records a resume point without completing it",
+        wjt.study.progress.read("pos").at === "nouns" &&
+        !wjt.study.progress.read("pos").done.nouns);
+
+      // Walk to the first scored step.
+      var guard = 0;
+      while (view.querySelector('.study-body') && guard++ < 5) {
+        var got = view.querySelector('[data-act="next"]');
+        if (!got) break;
+        got.click();
+        view = app.querySelector(".view-study");
+      }
+
+      var opts = view.querySelectorAll(".quiz-option");
+      check("S-7: a choice question renders its options", opts.length >= 2);
+      if (opts.length) {
+        // Answer it WRONG on purpose: the wrong path is the one that has to
+        // reveal the right answer and name it for a screen reader.
+        var stepIdx = 0;
+        steps.forEach(function (s, i) { if (s.kind === "choice" && !stepIdx) stepIdx = i; });
+        var step = steps[stepIdx];
+        var wrongAt = -1;
+        step.options.forEach(function (o, i) { if (!o.correct && wrongAt < 0) wrongAt = i; });
+        opts[wrongAt].click();
+        view = app.querySelector(".view-study");
+        var fb = view.querySelector(".quiz-feedback");
+        check("S-7: a wrong answer is reported wrong", !!fb && fb.classList.contains("is-wrong"));
+        check("S-7: the correct option is revealed",
+          view.querySelectorAll(".quiz-option.is-right").length === 1);
+        check("S-7: right/wrong reaches a screen reader, not just the colour",
+          /incorrect/.test(view.querySelector(".quiz-option.is-wrong").getAttribute("aria-label") || "") &&
+          /correct answer/.test(view.querySelector(".quiz-option.is-right").getAttribute("aria-label") || ""));
+        check("S-7: every option is disabled once answered",
+          Array.prototype.every.call(view.querySelectorAll(".quiz-option"),
+            function (o) { return o.disabled; }));
+      }
+
+      // Walk to the first `tap` question and answer it from the keyboard path.
+      var hops = 0;
+      while (hops++ < 60) {
+        view = app.querySelector(".view-study");
+        if (view.querySelector('[data-act="check"]')) break;
+        if (!studyAdvance()) break;
+      }
+      view = app.querySelector(".view-study");
+
+      var tapStage = app.querySelector('.view-study [data-act="check"]');
+      check("S-8: a tap question is reachable by walking the stop", !!tapStage);
+      if (tapStage) {
+        view = app.querySelector(".view-study");
+        var tokens = view.querySelectorAll(".gl-token");
+        check("S-8: the tap sentence renders interactive tokens", tokens.length > 0);
+        check("S-8: the passage shows NO labels — naming the word is the question",
+          view.querySelectorAll(".view-study .gl-chip").length === 0);
+
+        // Check with nothing selected must not score the question.
+        var before = view.querySelector(".quiz-feedback").hidden;
+        view.querySelector('[data-act="check"]').click();
+        view = app.querySelector(".view-study");
+        check("S-8: Check with no selection does not score the question",
+          before === true && view.querySelector(".quiz-feedback").hidden === true);
+
+        /* Answer it correctly THROUGH THE KEYBOARD PATH — Tab to a word, press
+         * Enter. That is the route a keyboard or AT user takes, and the audit
+         * (P0-1/P0-3) is the reason it exists, so it is the one worth asserting.
+         * Selection is driven by `pointerdown`, not mousedown; a click path
+         * would have to say so. */
+        var stage = view.querySelector('[data-role="stage"]');
+        var toks = stage.querySelectorAll(".gl-token");
+        var wantFirst = 0;
+        view.__step = null;
+        // The step the view is showing is the first tap step of this stop.
+        wjt.study.steps("pos", "nouns").forEach(function (s) {
+          if (s.kind === "tap" && view.__step === null) { view.__step = s; wantFirst = s.accept[0].first; }
+        });
+        var target = toks[wantFirst];
+        check("S-9: the target word is a focusable token",
+          !!target && target.getAttribute("role") === "button");
+        if (target) {
+          target.focus();
+          key(target, { key: "Enter" });
+          check("S-9: Enter on a focused word selects exactly that word",
+            view.querySelectorAll('[data-role="stage"] .gl-token.is-sel').length === 1 &&
+            view.querySelectorAll('[data-role="stage"] .gl-token.is-sel')[0] === target);
+          view.querySelector('[data-act="check"]').click();
+          view = app.querySelector(".view-study");
+          var tfb = view.querySelector(".quiz-feedback");
+          check("S-9: a tap answer is scored and explained", !!tfb && tfb.hidden === false);
+          check("S-9: the keyboard answer was scored CORRECT",
+            !!tfb && tfb.classList.contains("is-right"));
+          check("S-9: the answer is revealed as a highlight on the sentence",
+            view.querySelectorAll('[data-role="stage"] .gl-token.is-hl').length > 0);
+        }
+      }
+
+      // Run the stop out to its results screen and confirm it records.
+      var out = 0;
+      while (out++ < 300 && studyAdvance()) { /* walk */ }
+      check("S-10: the stop terminates rather than looping (" + out + " actions)", out < 300);
+      view = app.querySelector(".view-study");
+      check("S-10: walking a stop to the end reaches a results screen",
+        !!view.querySelector(".quiz-results") && !!view.querySelector(".score-ring"));
+      var rec = wjt.study.progress.read("pos");
+      check("S-10: finishing a stop marks it done and stores a score",
+        rec.done.nouns === 1 && typeof rec.best.nouns === "number");
+      check("S-10: the stored record holds no per-answer data", (function () {
+        var raw = JSON.parse(wjt.safeStorage.get(wjt.study.progressKey("pos")) || "{}");
+        return Object.keys(raw).every(function (k) {
+          return ["v", "at", "done", "best", "updatedAt"].indexOf(k) !== -1;
+        });
+      })());
+
+      // The unit must survive a browser that refuses storage — a locked-down
+      // school machine gives a forgetful unit, never a blank page.
+      var proto = Object.getPrototypeOf(localStorage);
+      var origGet = proto.getItem, origSet = proto.setItem, savedOK = wjt.storageOK;
+      try {
+        proto.getItem = function () { throw new Error("storage disabled"); };
+        proto.setItem = function () { throw new Error("storage disabled"); };
+        location.hash = "#/study/pos";
+        wjt.rerender();
+        check("S-11: the unit map still renders with storage refused",
+          !!app.querySelector(".view-study .study-stop"));
+        location.hash = "#/study/pos/orientation";
+        wjt.rerender();
+        check("S-11: a stop still renders with storage refused",
+          !!app.querySelector(".view-study .quiz-card"));
+      } finally {
+        proto.getItem = origGet; proto.setItem = origSet; wjt.storageOK = savedOK;
+      }
+
+      wjt.study.progress.reset("pos");
     }
 
     function printChecks(view, lesson) {

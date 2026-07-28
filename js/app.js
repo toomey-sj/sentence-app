@@ -189,6 +189,8 @@
     view.className = "view view-home";
     container.appendChild(view);
 
+    var studyUnit = wjt.study && wjt.study.unit ? wjt.study.unit("pos") : null;
+
     view.innerHTML =
       '<section class="hero">' +
       '  <h1>Sentence <span class="fx">Forge</span><span class="hero-alpha">Alpha</span></h1>' +
@@ -203,7 +205,20 @@
       '  <button class="btn btn-primary btn-big" data-act="new">＋ New lesson</button>' +
       '  <button class="btn btn-big" data-act="import">⬆ Import JSON</button>' +
       '  <button class="btn btn-big" data-act="library">📚 Library</button>' +
-      "</div>";
+      "</div>" +
+      // Students arrive here too: the unit is a self-paced path through the
+      // taxonomy that needs no teacher and no account.
+      (studyUnit
+        ? '<section class="card study-promo">' +
+          "  <h2>🎓 " + wjt.escapeHtml(studyUnit.title) + "</h2>" +
+          '  <p class="muted-note">' + wjt.escapeHtml(studyUnit.subtitle) + "</p>" +
+          '  <div class="btn-row">' +
+          '    <a class="btn btn-primary" href="#/study/' + studyUnit.id +
+          '">Start the unit →</a>' +
+          '    <span class="muted-note">Work at your own pace — nothing is sent anywhere.</span>' +
+          "  </div>" +
+          "</section>"
+        : "");
 
     var fileInput = view.querySelector('[data-role="file"]');
 
@@ -256,10 +271,12 @@
       '  <h2 class="section-title">📚 Example library</h2>' +
       '  <p class="muted-note section-sub">Ready-made, fully labeled passages from literature. Loading one adds an editable copy to your lessons.</p>' +
       '  <div class="lesson-grid" data-role="examples"></div>' +
-      "</section>";
+      "</section>" +
+      '<div data-role="example-groups"></div>';
 
     var lessonsEl = view.querySelector('[data-role="lessons"]');
     var examplesEl = view.querySelector('[data-role="examples"]');
+    var groupsEl = view.querySelector('[data-role="example-groups"]');
 
     function newLesson() {
       try {
@@ -349,27 +366,68 @@
       });
     }
 
+    function exampleCard(ex) {
+      var card = document.createElement("article");
+      card.className = "card example-card";
+      card.innerHTML =
+        "<h3>" + wjt.escapeHtml(ex.title) + "</h3>" +
+        '<p class="lesson-desc">' + wjt.escapeHtml(ex.subtitle) + "</p>" +
+        '<div class="btn-row lesson-actions">' +
+        '  <button class="btn btn-primary" data-act="load">＋ Add to my lessons</button>' +
+        "</div>";
+      card.querySelector('[data-act="load"]').addEventListener("click", function () {
+        try {
+          var lesson = wjt.store.save(ex.build());
+          wjt.toast("Loaded “" + lesson.title + "”.");
+          location.hash = "#/present/" + lesson.id;
+        } catch (e) {
+          wjt.toast(e.message, 6000);
+        }
+      });
+      return card;
+    }
+
+    /* Ungrouped literature examples keep the existing heading and order; each
+     * `group` gets its own section below them. A curriculum unit's passages are
+     * still ordinary lessons a teacher can Present or Edit, but they shouldn't be
+     * shuffled in among Gatsby and Dracula. */
     function renderExamples() {
       examplesEl.innerHTML = "";
+      groupsEl.innerHTML = "";
+      var groups = [], byId = {};
+
       (wjt.EXAMPLES || []).forEach(function (ex) {
-        var card = document.createElement("article");
-        card.className = "card example-card";
-        card.innerHTML =
-          "<h3>" + wjt.escapeHtml(ex.title) + "</h3>" +
-          '<p class="lesson-desc">' + wjt.escapeHtml(ex.subtitle) + "</p>" +
-          '<div class="btn-row lesson-actions">' +
-          '  <button class="btn btn-primary" data-act="load">＋ Add to my lessons</button>' +
-          "</div>";
-        card.querySelector('[data-act="load"]').addEventListener("click", function () {
-          try {
-            var lesson = wjt.store.save(ex.build());
-            wjt.toast("Loaded “" + lesson.title + "”.");
-            location.hash = "#/present/" + lesson.id;
-          } catch (e) {
-            wjt.toast(e.message, 6000);
-          }
-        });
-        examplesEl.appendChild(card);
+        if (!ex.group) { examplesEl.appendChild(exampleCard(ex)); return; }
+        if (!byId[ex.group]) {
+          byId[ex.group] = { id: ex.group, items: [] };
+          groups.push(byId[ex.group]);
+        }
+        byId[ex.group].items.push(ex);
+      });
+
+      groups.forEach(function (g) {
+        var unit = wjt.study && wjt.study.unit ? wjt.study.unit(g.id.replace(/^unit-/, "")) : null;
+        var section = document.createElement("section");
+        section.className = "examples-block";
+        section.setAttribute("data-group", g.id);
+        section.innerHTML =
+          '<div class="section-head">' +
+          '  <h2 class="section-title">🎓 ' +
+          wjt.escapeHtml(unit ? unit.title : g.id) + "</h2>" +
+          '  <span class="spacer"></span>' +
+          (unit ? '  <a class="btn btn-sm btn-primary" href="#/study/' + unit.id +
+            '">Start the unit →</a>' : "") +
+          "</div>" +
+          '<p class="muted-note section-sub">' +
+          (unit
+            ? wjt.escapeHtml(unit.subtitle) + " These passages are the unit's lessons — " +
+              "students work them through the unit; you can present or edit them like any other lesson."
+            : "") +
+          "</p>" +
+          '<div class="lesson-grid" data-role="group-grid"></div>';
+        var grid = section.querySelector('[data-role="group-grid"]');
+        g.items.forEach(function (ex) { grid.appendChild(exampleCard(ex)); });
+        groupsEl.appendChild(section);
       });
     }
 
@@ -415,6 +473,8 @@
     else if (parts[0] === "present" && parts[1]) wjt.views.present(container, parts[1]);
     else if (parts[0] === "quiz" && parts[1]) wjt.views.quiz(container, parts[1]);
     else if (parts[0] === "assign" && parts[1]) wjt.views.assignment(container, parts[1]);
+    // #/study/<unitId> is the unit map; #/study/<unitId>/<stopId> is one stop.
+    else if (parts[0] === "study" && parts[1]) wjt.views.study(container, parts[1], parts[2] || "");
     else if (parts[0] === "library") wjt.views.library(container);
     else wjt.views.home(container);
 

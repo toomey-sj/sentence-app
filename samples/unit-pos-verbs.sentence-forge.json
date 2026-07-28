@@ -1,0 +1,634 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Lesson 4 — Verbs",
+  "description": "Poe, \"The Cask of Amontillado\": action, linking, helping, modal, transitive, intransitive, regular, and irregular verbs.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "I again paused, and holding the flambeaux over the mason-work, threw a few feeble rays upon the figure within.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "pronoun"
+        },
+        {
+          "start": 2,
+          "end": 7,
+          "label": "adverb"
+        },
+        {
+          "start": 8,
+          "end": 15,
+          "label": "verb",
+          "note": "Three verbs in one sentence: paused, holding, threw. A sentence can carry as many as it needs."
+        },
+        {
+          "start": 16,
+          "end": 19,
+          "label": "conjunction"
+        },
+        {
+          "start": 20,
+          "end": 27,
+          "label": "verb"
+        },
+        {
+          "start": 28,
+          "end": 31,
+          "label": "determiner"
+        },
+        {
+          "start": 32,
+          "end": 41,
+          "label": "noun"
+        },
+        {
+          "start": 42,
+          "end": 46,
+          "label": "preposition"
+        },
+        {
+          "start": 47,
+          "end": 50,
+          "label": "determiner"
+        },
+        {
+          "start": 51,
+          "end": 62,
+          "label": "noun"
+        },
+        {
+          "start": 63,
+          "end": 68,
+          "label": "verb"
+        },
+        {
+          "start": 69,
+          "end": 70,
+          "label": "determiner"
+        },
+        {
+          "start": 71,
+          "end": 74,
+          "label": "adjective"
+        },
+        {
+          "start": 75,
+          "end": 81,
+          "label": "adjective"
+        },
+        {
+          "start": 82,
+          "end": 86,
+          "label": "noun"
+        },
+        {
+          "start": 87,
+          "end": 91,
+          "label": "preposition"
+        },
+        {
+          "start": 92,
+          "end": 95,
+          "label": "determiner"
+        },
+        {
+          "start": 96,
+          "end": 102,
+          "label": "noun"
+        },
+        {
+          "start": 103,
+          "end": 110,
+          "label": "adverb"
+        }
+      ]
+    },
+    {
+      "text": "He accosted me with excessive warmth, for he had been drinking much.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 11,
+          "label": "action-verb",
+          "note": "\"Accosted\" is something he did — an action verb."
+        },
+        {
+          "start": 12,
+          "end": 14,
+          "label": "pronoun"
+        },
+        {
+          "start": 15,
+          "end": 19,
+          "label": "preposition"
+        },
+        {
+          "start": 20,
+          "end": 29,
+          "label": "adjective"
+        },
+        {
+          "start": 30,
+          "end": 37,
+          "label": "noun"
+        },
+        {
+          "start": 38,
+          "end": 41,
+          "label": "conjunction"
+        },
+        {
+          "start": 42,
+          "end": 44,
+          "label": "pronoun"
+        },
+        {
+          "start": 45,
+          "end": 48,
+          "label": "helping-verb",
+          "note": "\"Had been\" does no acting of its own. It props up \"drinking\" and tells you when — helping verbs."
+        },
+        {
+          "start": 49,
+          "end": 53,
+          "label": "helping-verb"
+        },
+        {
+          "start": 54,
+          "end": 62,
+          "label": "action-verb"
+        },
+        {
+          "start": 63,
+          "end": 68,
+          "label": "adverb"
+        }
+      ]
+    },
+    {
+      "text": "You are rich, respected, admired, beloved; you are happy, as once I was.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "pronoun"
+        },
+        {
+          "start": 4,
+          "end": 7,
+          "label": "linking-verb",
+          "note": "\"Are\" is not an action. It links \"You\" to the words that describe you — a linking verb. Every form of BE can do this."
+        },
+        {
+          "start": 8,
+          "end": 13,
+          "label": "adjective"
+        },
+        {
+          "start": 14,
+          "end": 24,
+          "label": "adjective"
+        },
+        {
+          "start": 25,
+          "end": 33,
+          "label": "adjective"
+        },
+        {
+          "start": 34,
+          "end": 42,
+          "label": "adjective"
+        },
+        {
+          "start": 43,
+          "end": 46,
+          "label": "pronoun"
+        },
+        {
+          "start": 47,
+          "end": 50,
+          "label": "linking-verb"
+        },
+        {
+          "start": 51,
+          "end": 57,
+          "label": "adjective"
+        },
+        {
+          "start": 58,
+          "end": 60,
+          "label": "conjunction"
+        },
+        {
+          "start": 61,
+          "end": 65,
+          "label": "adverb"
+        },
+        {
+          "start": 66,
+          "end": 67,
+          "label": "pronoun"
+        },
+        {
+          "start": 68,
+          "end": 72,
+          "label": "linking-verb"
+        }
+      ]
+    },
+    {
+      "text": "We will go back; you will be ill, and I cannot be responsible.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 7,
+          "label": "modal-verb",
+          "note": "\"Will\" and \"cannot\" are modals: they add possibility, ability, or necessity to the verb they sit in front of."
+        },
+        {
+          "start": 8,
+          "end": 10,
+          "label": "action-verb"
+        },
+        {
+          "start": 11,
+          "end": 16,
+          "label": "adverb"
+        },
+        {
+          "start": 17,
+          "end": 20,
+          "label": "pronoun"
+        },
+        {
+          "start": 21,
+          "end": 25,
+          "label": "modal-verb"
+        },
+        {
+          "start": 26,
+          "end": 28,
+          "label": "linking-verb"
+        },
+        {
+          "start": 29,
+          "end": 33,
+          "label": "adjective"
+        },
+        {
+          "start": 34,
+          "end": 37,
+          "label": "conjunction"
+        },
+        {
+          "start": 38,
+          "end": 39,
+          "label": "pronoun"
+        },
+        {
+          "start": 40,
+          "end": 46,
+          "label": "modal-verb",
+          "note": "\"Cannot\" is one token here, and it is a modal with the negative fused onto it."
+        },
+        {
+          "start": 47,
+          "end": 49,
+          "label": "linking-verb"
+        },
+        {
+          "start": 50,
+          "end": 62,
+          "label": "adjective"
+        }
+      ]
+    },
+    {
+      "text": "He laughed and threw the bottle upwards with a gesticulation I did not understand.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 10,
+          "label": "intransitive-verb",
+          "note": "\"Laughed\" what? The question has no answer — nothing receives the laughing. Intransitive."
+        },
+        {
+          "start": 11,
+          "end": 14,
+          "label": "conjunction"
+        },
+        {
+          "start": 15,
+          "end": 20,
+          "label": "transitive-verb",
+          "note": "\"Threw\" what? The bottle. That answer is a direct object, which makes \"threw\" transitive."
+        },
+        {
+          "start": 21,
+          "end": 24,
+          "label": "determiner"
+        },
+        {
+          "start": 25,
+          "end": 31,
+          "label": "noun"
+        },
+        {
+          "start": 32,
+          "end": 39,
+          "label": "adverb"
+        },
+        {
+          "start": 40,
+          "end": 44,
+          "label": "preposition"
+        },
+        {
+          "start": 45,
+          "end": 46,
+          "label": "determiner"
+        },
+        {
+          "start": 47,
+          "end": 60,
+          "label": "noun"
+        },
+        {
+          "start": 61,
+          "end": 62,
+          "label": "pronoun"
+        },
+        {
+          "start": 63,
+          "end": 66,
+          "label": "helping-verb"
+        },
+        {
+          "start": 67,
+          "end": 70,
+          "label": "adverb"
+        },
+        {
+          "start": 71,
+          "end": 82,
+          "label": "transitive-verb"
+        }
+      ]
+    },
+    {
+      "text": "For a brief moment I hesitated — I trembled.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "preposition"
+        },
+        {
+          "start": 4,
+          "end": 5,
+          "label": "determiner"
+        },
+        {
+          "start": 6,
+          "end": 11,
+          "label": "adjective"
+        },
+        {
+          "start": 12,
+          "end": 18,
+          "label": "noun"
+        },
+        {
+          "start": 19,
+          "end": 20,
+          "label": "pronoun"
+        },
+        {
+          "start": 21,
+          "end": 30,
+          "label": "intransitive-verb",
+          "note": "You cannot hesitate something or tremble something. Both verbs stop where they are."
+        },
+        {
+          "start": 33,
+          "end": 34,
+          "label": "pronoun"
+        },
+        {
+          "start": 35,
+          "end": 44,
+          "label": "intransitive-verb"
+        }
+      ]
+    },
+    {
+      "text": "I placed my hand upon the solid fabric of the catacombs, and felt satisfied.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "pronoun"
+        },
+        {
+          "start": 2,
+          "end": 8,
+          "label": "regular-verb",
+          "note": "Place → placed. Add -ed and you have the past tense: a regular verb."
+        },
+        {
+          "start": 9,
+          "end": 11,
+          "label": "adjective"
+        },
+        {
+          "start": 12,
+          "end": 16,
+          "label": "noun"
+        },
+        {
+          "start": 17,
+          "end": 21,
+          "label": "preposition"
+        },
+        {
+          "start": 22,
+          "end": 25,
+          "label": "determiner"
+        },
+        {
+          "start": 26,
+          "end": 31,
+          "label": "adjective"
+        },
+        {
+          "start": 32,
+          "end": 38,
+          "label": "noun"
+        },
+        {
+          "start": 39,
+          "end": 41,
+          "label": "preposition"
+        },
+        {
+          "start": 42,
+          "end": 45,
+          "label": "determiner"
+        },
+        {
+          "start": 46,
+          "end": 56,
+          "label": "noun"
+        },
+        {
+          "start": 57,
+          "end": 60,
+          "label": "conjunction"
+        },
+        {
+          "start": 61,
+          "end": 65,
+          "label": "irregular-verb",
+          "note": "Feel → felt, not \"feeled.\" The word itself changes, so it is irregular."
+        },
+        {
+          "start": 66,
+          "end": 76,
+          "label": "adjective"
+        }
+      ]
+    },
+    {
+      "text": "I laid the second tier, and the third, and the fourth; and then I heard the furious vibrations of the chain.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "pronoun"
+        },
+        {
+          "start": 2,
+          "end": 6,
+          "label": "irregular-verb",
+          "note": "Lay → laid. Hear → heard. Neither one just adds -ed, so both are irregular."
+        },
+        {
+          "start": 7,
+          "end": 10,
+          "label": "determiner"
+        },
+        {
+          "start": 11,
+          "end": 17,
+          "label": "adjective"
+        },
+        {
+          "start": 18,
+          "end": 23,
+          "label": "noun"
+        },
+        {
+          "start": 24,
+          "end": 27,
+          "label": "conjunction"
+        },
+        {
+          "start": 28,
+          "end": 31,
+          "label": "determiner"
+        },
+        {
+          "start": 32,
+          "end": 38,
+          "label": "adjective"
+        },
+        {
+          "start": 39,
+          "end": 42,
+          "label": "conjunction"
+        },
+        {
+          "start": 43,
+          "end": 46,
+          "label": "determiner"
+        },
+        {
+          "start": 47,
+          "end": 54,
+          "label": "adjective"
+        },
+        {
+          "start": 55,
+          "end": 58,
+          "label": "conjunction"
+        },
+        {
+          "start": 59,
+          "end": 63,
+          "label": "adverb"
+        },
+        {
+          "start": 64,
+          "end": 65,
+          "label": "pronoun"
+        },
+        {
+          "start": 66,
+          "end": 71,
+          "label": "irregular-verb"
+        },
+        {
+          "start": 72,
+          "end": 75,
+          "label": "determiner"
+        },
+        {
+          "start": 76,
+          "end": 83,
+          "label": "adjective"
+        },
+        {
+          "start": 84,
+          "end": 94,
+          "label": "noun"
+        },
+        {
+          "start": 95,
+          "end": 97,
+          "label": "preposition"
+        },
+        {
+          "start": 98,
+          "end": 101,
+          "label": "determiner"
+        },
+        {
+          "start": 102,
+          "end": 108,
+          "label": "noun"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

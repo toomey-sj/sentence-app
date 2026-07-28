@@ -80,8 +80,14 @@ Saying no to these keeps the app teachable in five minutes:
 - **No automatic parsing or AI labelling inside the app.** (You can generate a
   lesson *outside* it — see [custom-gpt-instructions.md](../custom-gpt-instructions.md)
   — and import the result, which keeps the teacher in the reviewing seat.)
-- **No gradebook, no rosters, no student accounts.** Practice mode scores a
-  session and forgets it. Nothing to protect means no student-data obligations.
+- **No gradebook, no rosters, no student accounts, and nothing transmitted.**
+  Practice mode scores a session and forgets it. The self-paced
+  [unit](curriculum-unit-1.md) does keep a resume point and a best score per
+  lesson — but **on that one machine, in that one browser, and readable by nobody
+  else**. There is no account, no roster, no upload, and no per-question record at
+  all, so there is still nothing to protect and no student-data obligation. A
+  teacher cannot see how a student did; if they need evidence, the printed
+  worksheet is the tool for that.
 - **No punctuation, usage-error, verb-tense, or Reed–Kellogg-diagram layers.**
   Each breaks the core model — every annotation is a span over whole words — and
   each is documented as a sibling-app idea in [roadmap.md](../roadmap.md#tier-3--out-of-scope-for-this-app-documented-for-a-sibling-tool).

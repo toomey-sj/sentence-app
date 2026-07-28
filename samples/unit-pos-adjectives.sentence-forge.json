@@ -1,0 +1,680 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Lesson 5 — Adjectives",
+  "description": "Poe, \"The Cask of Amontillado\": descriptive, proper, demonstrative, possessive, quantitative, comparative, and superlative adjectives.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "There was then a long and obstinate silence.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 5,
+          "label": "adverb"
+        },
+        {
+          "start": 6,
+          "end": 9,
+          "label": "verb"
+        },
+        {
+          "start": 10,
+          "end": 14,
+          "label": "adverb"
+        },
+        {
+          "start": 15,
+          "end": 16,
+          "label": "determiner"
+        },
+        {
+          "start": 17,
+          "end": 21,
+          "label": "adjective",
+          "note": "\"Long\" and \"obstinate\" both tell you what kind of silence. That is the whole job of an adjective."
+        },
+        {
+          "start": 22,
+          "end": 25,
+          "label": "conjunction"
+        },
+        {
+          "start": 26,
+          "end": 35,
+          "label": "adjective"
+        },
+        {
+          "start": 36,
+          "end": 44,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "Against the new masonry I re-erected the old rampart of bones.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 7,
+          "label": "preposition"
+        },
+        {
+          "start": 8,
+          "end": 11,
+          "label": "determiner"
+        },
+        {
+          "start": 12,
+          "end": 15,
+          "label": "descriptive-adjective",
+          "note": "New and old are qualities of the things they sit in front of — descriptive adjectives, the ordinary kind."
+        },
+        {
+          "start": 16,
+          "end": 23,
+          "label": "noun"
+        },
+        {
+          "start": 24,
+          "end": 25,
+          "label": "pronoun"
+        },
+        {
+          "start": 26,
+          "end": 36,
+          "label": "verb"
+        },
+        {
+          "start": 37,
+          "end": 40,
+          "label": "determiner"
+        },
+        {
+          "start": 41,
+          "end": 44,
+          "label": "descriptive-adjective"
+        },
+        {
+          "start": 45,
+          "end": 52,
+          "label": "noun"
+        },
+        {
+          "start": 53,
+          "end": 55,
+          "label": "preposition"
+        },
+        {
+          "start": 56,
+          "end": 62,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "His eyes flashed with a fierce light.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "possessive-adjective",
+          "note": "\"His\" shows who the eyes belong to, and it sits in front of a noun — a possessive adjective, not a pronoun."
+        },
+        {
+          "start": 4,
+          "end": 8,
+          "label": "noun"
+        },
+        {
+          "start": 9,
+          "end": 16,
+          "label": "verb"
+        },
+        {
+          "start": 17,
+          "end": 21,
+          "label": "preposition"
+        },
+        {
+          "start": 22,
+          "end": 23,
+          "label": "determiner"
+        },
+        {
+          "start": 24,
+          "end": 30,
+          "label": "descriptive-adjective",
+          "note": "\"Fierce\" describes the light. Descriptive."
+        },
+        {
+          "start": 31,
+          "end": 37,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "In this respect I did not differ from him materially: I was skillful in the Italian vintages myself, and bought largely whenever I could.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "preposition"
+        },
+        {
+          "start": 3,
+          "end": 7,
+          "label": "demonstrative-adjective",
+          "note": "\"This respect\" — a noun follows, so \"this\" is pointing rather than standing alone. Demonstrative adjective."
+        },
+        {
+          "start": 8,
+          "end": 15,
+          "label": "noun"
+        },
+        {
+          "start": 16,
+          "end": 17,
+          "label": "pronoun"
+        },
+        {
+          "start": 18,
+          "end": 21,
+          "label": "verb"
+        },
+        {
+          "start": 22,
+          "end": 25,
+          "label": "adverb"
+        },
+        {
+          "start": 26,
+          "end": 32,
+          "label": "verb"
+        },
+        {
+          "start": 33,
+          "end": 37,
+          "label": "preposition"
+        },
+        {
+          "start": 38,
+          "end": 41,
+          "label": "pronoun"
+        },
+        {
+          "start": 42,
+          "end": 53,
+          "label": "adverb"
+        },
+        {
+          "start": 54,
+          "end": 55,
+          "label": "pronoun"
+        },
+        {
+          "start": 56,
+          "end": 59,
+          "label": "verb"
+        },
+        {
+          "start": 60,
+          "end": 68,
+          "label": "descriptive-adjective"
+        },
+        {
+          "start": 69,
+          "end": 71,
+          "label": "preposition"
+        },
+        {
+          "start": 72,
+          "end": 75,
+          "label": "determiner"
+        },
+        {
+          "start": 76,
+          "end": 83,
+          "label": "proper-adjective",
+          "note": "\"Italian\" comes from the proper noun Italy, which is why it keeps its capital letter. A proper adjective still describes — it just began life as a name."
+        },
+        {
+          "start": 84,
+          "end": 92,
+          "label": "noun"
+        },
+        {
+          "start": 93,
+          "end": 100,
+          "label": "pronoun"
+        },
+        {
+          "start": 101,
+          "end": 104,
+          "label": "conjunction"
+        },
+        {
+          "start": 105,
+          "end": 111,
+          "label": "verb"
+        },
+        {
+          "start": 112,
+          "end": 119,
+          "label": "adverb"
+        },
+        {
+          "start": 120,
+          "end": 128,
+          "label": "conjunction"
+        },
+        {
+          "start": 129,
+          "end": 130,
+          "label": "pronoun"
+        },
+        {
+          "start": 131,
+          "end": 137,
+          "label": "verb"
+        }
+      ]
+    },
+    {
+      "text": "\"These vaults,\" he said, \"are extensive.\"",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 6,
+          "label": "demonstrative-adjective",
+          "note": "\"These\" points at which vaults. Compare \"From one of these\" — no noun, so that one would be a pronoun."
+        },
+        {
+          "start": 7,
+          "end": 15,
+          "label": "noun"
+        },
+        {
+          "start": 16,
+          "end": 18,
+          "label": "pronoun"
+        },
+        {
+          "start": 19,
+          "end": 24,
+          "label": "verb"
+        },
+        {
+          "start": 25,
+          "end": 29,
+          "label": "verb"
+        },
+        {
+          "start": 30,
+          "end": 41,
+          "label": "descriptive-adjective"
+        }
+      ]
+    },
+    {
+      "text": "\"Pass your hand,\" I said, \"over the wall; you cannot help feeling the nitre.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 5,
+          "label": "verb"
+        },
+        {
+          "start": 6,
+          "end": 10,
+          "label": "possessive-adjective",
+          "note": "My, your, his, her, its, our, their — all possessive adjectives when a noun follows them."
+        },
+        {
+          "start": 11,
+          "end": 17,
+          "label": "noun"
+        },
+        {
+          "start": 18,
+          "end": 19,
+          "label": "pronoun"
+        },
+        {
+          "start": 20,
+          "end": 25,
+          "label": "verb"
+        },
+        {
+          "start": 26,
+          "end": 31,
+          "label": "preposition"
+        },
+        {
+          "start": 32,
+          "end": 35,
+          "label": "determiner"
+        },
+        {
+          "start": 36,
+          "end": 41,
+          "label": "noun"
+        },
+        {
+          "start": 42,
+          "end": 45,
+          "label": "pronoun"
+        },
+        {
+          "start": 46,
+          "end": 52,
+          "label": "verb"
+        },
+        {
+          "start": 53,
+          "end": 57,
+          "label": "verb"
+        },
+        {
+          "start": 58,
+          "end": 65,
+          "label": "verb"
+        },
+        {
+          "start": 66,
+          "end": 69,
+          "label": "determiner"
+        },
+        {
+          "start": 70,
+          "end": 76,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "Three sides of this interior crypt were still ornamented in this manner.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 5,
+          "label": "quantitative-adjective",
+          "note": "\"Three\" answers how many. Number words are adjectives of quantity."
+        },
+        {
+          "start": 6,
+          "end": 11,
+          "label": "noun"
+        },
+        {
+          "start": 12,
+          "end": 14,
+          "label": "preposition"
+        },
+        {
+          "start": 15,
+          "end": 19,
+          "label": "demonstrative-adjective"
+        },
+        {
+          "start": 20,
+          "end": 28,
+          "label": "descriptive-adjective"
+        },
+        {
+          "start": 29,
+          "end": 34,
+          "label": "noun"
+        },
+        {
+          "start": 35,
+          "end": 39,
+          "label": "verb"
+        },
+        {
+          "start": 40,
+          "end": 45,
+          "label": "adverb"
+        },
+        {
+          "start": 46,
+          "end": 56,
+          "label": "verb"
+        },
+        {
+          "start": 57,
+          "end": 59,
+          "label": "preposition"
+        },
+        {
+          "start": 60,
+          "end": 64,
+          "label": "demonstrative-adjective"
+        },
+        {
+          "start": 65,
+          "end": 72,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "\"You jest,\" he exclaimed, recoiling a few paces.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 4,
+          "label": "pronoun"
+        },
+        {
+          "start": 5,
+          "end": 11,
+          "label": "verb"
+        },
+        {
+          "start": 12,
+          "end": 14,
+          "label": "pronoun"
+        },
+        {
+          "start": 15,
+          "end": 25,
+          "label": "verb"
+        },
+        {
+          "start": 26,
+          "end": 35,
+          "label": "verb"
+        },
+        {
+          "start": 36,
+          "end": 37,
+          "label": "determiner"
+        },
+        {
+          "start": 38,
+          "end": 41,
+          "label": "quantitative-adjective",
+          "note": "\"Few\" answers how many without giving a number — still an adjective of quantity."
+        },
+        {
+          "start": 42,
+          "end": 48,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "At the most remote end of the crypt there appeared another less spacious.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "preposition"
+        },
+        {
+          "start": 3,
+          "end": 6,
+          "label": "determiner"
+        },
+        {
+          "start": 7,
+          "end": 11,
+          "label": "adverb"
+        },
+        {
+          "start": 12,
+          "end": 18,
+          "label": "superlative-adjective",
+          "note": "\"Most remote\" compares this end against every other end — a superlative. \"Most\" is the adverb doing the comparing; \"remote\" is the adjective being compared."
+        },
+        {
+          "start": 19,
+          "end": 22,
+          "label": "noun"
+        },
+        {
+          "start": 23,
+          "end": 25,
+          "label": "preposition"
+        },
+        {
+          "start": 26,
+          "end": 29,
+          "label": "determiner"
+        },
+        {
+          "start": 30,
+          "end": 35,
+          "label": "noun"
+        },
+        {
+          "start": 36,
+          "end": 41,
+          "label": "adverb"
+        },
+        {
+          "start": 42,
+          "end": 50,
+          "label": "verb"
+        },
+        {
+          "start": 51,
+          "end": 58,
+          "label": "pronoun"
+        },
+        {
+          "start": 59,
+          "end": 63,
+          "label": "adverb"
+        },
+        {
+          "start": 64,
+          "end": 73,
+          "label": "comparative-adjective",
+          "note": "\"Less spacious\" compares two crypts against each other, not many — so this one is comparative."
+        }
+      ]
+    },
+    {
+      "text": "The earliest indication I had of this was a low moaning cry from the depth of the recess.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "determiner"
+        },
+        {
+          "start": 4,
+          "end": 12,
+          "label": "superlative-adjective",
+          "note": "\"Earliest\" — the -est ending is the giveaway for a superlative. Early, earlier, earliest."
+        },
+        {
+          "start": 13,
+          "end": 23,
+          "label": "noun"
+        },
+        {
+          "start": 24,
+          "end": 25,
+          "label": "pronoun"
+        },
+        {
+          "start": 26,
+          "end": 29,
+          "label": "verb"
+        },
+        {
+          "start": 30,
+          "end": 32,
+          "label": "preposition"
+        },
+        {
+          "start": 33,
+          "end": 37,
+          "label": "pronoun"
+        },
+        {
+          "start": 38,
+          "end": 41,
+          "label": "verb"
+        },
+        {
+          "start": 42,
+          "end": 43,
+          "label": "determiner"
+        },
+        {
+          "start": 44,
+          "end": 47,
+          "label": "descriptive-adjective"
+        },
+        {
+          "start": 48,
+          "end": 55,
+          "label": "descriptive-adjective"
+        },
+        {
+          "start": 56,
+          "end": 59,
+          "label": "noun"
+        },
+        {
+          "start": 60,
+          "end": 64,
+          "label": "preposition"
+        },
+        {
+          "start": 65,
+          "end": 68,
+          "label": "determiner"
+        },
+        {
+          "start": 69,
+          "end": 74,
+          "label": "noun"
+        },
+        {
+          "start": 75,
+          "end": 77,
+          "label": "preposition"
+        },
+        {
+          "start": 78,
+          "end": 81,
+          "label": "determiner"
+        },
+        {
+          "start": 82,
+          "end": 89,
+          "label": "noun"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

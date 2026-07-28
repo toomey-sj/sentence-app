@@ -10,6 +10,7 @@ start in **product**. If you are changing *how it works*, start in **project**.
 | [product/overview.md](product/overview.md) | What Sentence Forge is, who it's for, the problem it solves, the principles behind it, and what it deliberately does **not** do. |
 | [product/teacher-guide.md](product/teacher-guide.md) | How to actually use it: build a lesson, present it, run practice, share lessons between machines. |
 | [product/grammar-reference.md](product/grammar-reference.md) | Every label the app supports, in teacher language, with the ids you'd write in a JSON file. |
+| [product/curriculum-unit-1.md](product/curriculum-unit-1.md) | **Unit 1 — The Nine Parts of Speech.** The self-paced student unit: scope and sequence, how to assign it, and what a teacher can (and can't) see. |
 | [product/pilot.md](product/pilot.md) | The classroom testing phase — what we're trying to learn, how to run a pilot lesson, how to report back. |
 
 ## 🔧 Project documentation — for anyone changing the code

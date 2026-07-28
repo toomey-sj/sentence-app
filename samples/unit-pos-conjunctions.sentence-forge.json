@@ -1,0 +1,363 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Lesson 8 — Conjunctions",
+  "description": "Poe, \"The Cask of Amontillado\": coordinating, subordinating, and correlative conjunctions.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "He again took my arm, and we proceeded.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "pronoun"
+        },
+        {
+          "start": 3,
+          "end": 8,
+          "label": "adverb"
+        },
+        {
+          "start": 9,
+          "end": 13,
+          "label": "verb"
+        },
+        {
+          "start": 14,
+          "end": 16,
+          "label": "adjective"
+        },
+        {
+          "start": 17,
+          "end": 21,
+          "label": "noun"
+        },
+        {
+          "start": 22,
+          "end": 25,
+          "label": "conjunction",
+          "note": "\"And\" joins two complete ideas: he took my arm, we proceeded. Joining is the whole job."
+        },
+        {
+          "start": 26,
+          "end": 28,
+          "label": "pronoun"
+        },
+        {
+          "start": 29,
+          "end": 39,
+          "label": "verb"
+        }
+      ]
+    },
+    {
+      "text": "The gait of my friend was unsteady, and the bells upon his cap jingled as he strode.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "determiner"
+        },
+        {
+          "start": 4,
+          "end": 8,
+          "label": "noun"
+        },
+        {
+          "start": 9,
+          "end": 11,
+          "label": "preposition"
+        },
+        {
+          "start": 12,
+          "end": 14,
+          "label": "adjective"
+        },
+        {
+          "start": 15,
+          "end": 21,
+          "label": "noun"
+        },
+        {
+          "start": 22,
+          "end": 25,
+          "label": "verb"
+        },
+        {
+          "start": 26,
+          "end": 35,
+          "label": "adjective"
+        },
+        {
+          "start": 36,
+          "end": 39,
+          "label": "coordinating-conjunction",
+          "note": "\"And\" joins two ideas of EQUAL weight — either could stand alone as a sentence. Coordinating."
+        },
+        {
+          "start": 40,
+          "end": 43,
+          "label": "determiner"
+        },
+        {
+          "start": 44,
+          "end": 49,
+          "label": "noun"
+        },
+        {
+          "start": 50,
+          "end": 54,
+          "label": "preposition"
+        },
+        {
+          "start": 55,
+          "end": 58,
+          "label": "adjective"
+        },
+        {
+          "start": 59,
+          "end": 62,
+          "label": "noun"
+        },
+        {
+          "start": 63,
+          "end": 70,
+          "label": "verb"
+        },
+        {
+          "start": 71,
+          "end": 73,
+          "label": "subordinating-conjunction",
+          "note": "\"As\" makes what follows depend on what came before: \"as he strode\" cannot stand alone. Subordinating."
+        },
+        {
+          "start": 74,
+          "end": 76,
+          "label": "pronoun"
+        },
+        {
+          "start": 77,
+          "end": 84,
+          "label": "verb"
+        }
+      ]
+    },
+    {
+      "text": "I laid the second tier, and the third, and the fourth; and then I heard the furious vibrations of the chain.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "pronoun"
+        },
+        {
+          "start": 2,
+          "end": 6,
+          "label": "verb"
+        },
+        {
+          "start": 7,
+          "end": 10,
+          "label": "determiner"
+        },
+        {
+          "start": 11,
+          "end": 17,
+          "label": "adjective"
+        },
+        {
+          "start": 18,
+          "end": 23,
+          "label": "noun"
+        },
+        {
+          "start": 24,
+          "end": 27,
+          "label": "coordinating-conjunction",
+          "note": "Three \"and\"s in a row. Poe is using them to make the walling-up feel slow and steady."
+        },
+        {
+          "start": 28,
+          "end": 31,
+          "label": "determiner"
+        },
+        {
+          "start": 32,
+          "end": 38,
+          "label": "adjective"
+        },
+        {
+          "start": 39,
+          "end": 42,
+          "label": "coordinating-conjunction"
+        },
+        {
+          "start": 43,
+          "end": 46,
+          "label": "determiner"
+        },
+        {
+          "start": 47,
+          "end": 54,
+          "label": "adjective"
+        },
+        {
+          "start": 55,
+          "end": 58,
+          "label": "coordinating-conjunction"
+        },
+        {
+          "start": 59,
+          "end": 63,
+          "label": "adverb"
+        },
+        {
+          "start": 64,
+          "end": 65,
+          "label": "pronoun"
+        },
+        {
+          "start": 66,
+          "end": 71,
+          "label": "verb"
+        },
+        {
+          "start": 72,
+          "end": 75,
+          "label": "determiner"
+        },
+        {
+          "start": 76,
+          "end": 83,
+          "label": "adjective"
+        },
+        {
+          "start": 84,
+          "end": 94,
+          "label": "noun"
+        },
+        {
+          "start": 95,
+          "end": 97,
+          "label": "preposition"
+        },
+        {
+          "start": 98,
+          "end": 101,
+          "label": "determiner"
+        },
+        {
+          "start": 102,
+          "end": 108,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "A wrong is unredressed when retribution overtakes its redresser.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "determiner"
+        },
+        {
+          "start": 2,
+          "end": 7,
+          "label": "noun"
+        },
+        {
+          "start": 8,
+          "end": 10,
+          "label": "verb"
+        },
+        {
+          "start": 11,
+          "end": 22,
+          "label": "adjective"
+        },
+        {
+          "start": 23,
+          "end": 27,
+          "label": "subordinating-conjunction",
+          "note": "\"When retribution overtakes its redresser\" is not a sentence on its own. \"When\" is what makes it depend on the rest."
+        },
+        {
+          "start": 28,
+          "end": 39,
+          "label": "noun"
+        },
+        {
+          "start": 40,
+          "end": 49,
+          "label": "verb"
+        },
+        {
+          "start": 50,
+          "end": 53,
+          "label": "adjective"
+        },
+        {
+          "start": 54,
+          "end": 64,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "I must not only punish, but punish with impunity.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "pronoun"
+        },
+        {
+          "start": 2,
+          "end": 6,
+          "label": "verb"
+        },
+        {
+          "start": 7,
+          "end": 10,
+          "label": "adverb"
+        },
+        {
+          "start": 11,
+          "end": 15,
+          "label": "adverb"
+        },
+        {
+          "start": 16,
+          "end": 23,
+          "label": "verb"
+        },
+        {
+          "start": 24,
+          "end": 27,
+          "label": "correlative-conjunction",
+          "note": "Correlative conjunctions work in pairs. Here the pair is \"not only … but\" — and \"but\" is the half that does the joining."
+        },
+        {
+          "start": 28,
+          "end": 34,
+          "label": "verb"
+        },
+        {
+          "start": 35,
+          "end": 39,
+          "label": "preposition"
+        },
+        {
+          "start": 40,
+          "end": 49,
+          "label": "noun"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

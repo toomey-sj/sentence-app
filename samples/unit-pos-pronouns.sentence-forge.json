@@ -1,0 +1,461 @@
+{
+  "format": "sentence-forge-lesson",
+  "version": 1,
+  "title": "Unit 1 · Lesson 3 — Pronouns",
+  "description": "Poe, \"The Cask of Amontillado\": personal, reflexive, relative, demonstrative, and indefinite pronouns.",
+  "layers": [
+    "pos"
+  ],
+  "sentences": [
+    {
+      "text": "\"Drink,\" I said, presenting him the wine.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 8,
+          "label": "verb"
+        },
+        {
+          "start": 9,
+          "end": 10,
+          "label": "pronoun"
+        },
+        {
+          "start": 11,
+          "end": 16,
+          "label": "verb"
+        },
+        {
+          "start": 17,
+          "end": 27,
+          "label": "verb"
+        },
+        {
+          "start": 28,
+          "end": 31,
+          "label": "pronoun",
+          "note": "\"I\" and \"him\" both stand in for a name. Without pronouns this story would repeat \"Montresor\" and \"Fortunato\" in every line."
+        },
+        {
+          "start": 32,
+          "end": 35,
+          "label": "determiner"
+        },
+        {
+          "start": 36,
+          "end": 41,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "He prided himself on his connoisseurship in wine.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "personal-pronoun",
+          "note": "\"He\" is a personal pronoun: it names a specific person without naming them."
+        },
+        {
+          "start": 3,
+          "end": 9,
+          "label": "verb"
+        },
+        {
+          "start": 10,
+          "end": 17,
+          "label": "reflexive-pronoun",
+          "note": "\"Himself\" points straight back at the subject \"He\" — that is what makes it reflexive."
+        },
+        {
+          "start": 18,
+          "end": 20,
+          "label": "preposition"
+        },
+        {
+          "start": 21,
+          "end": 24,
+          "label": "adjective"
+        },
+        {
+          "start": 25,
+          "end": 40,
+          "label": "noun"
+        },
+        {
+          "start": 41,
+          "end": 43,
+          "label": "preposition"
+        },
+        {
+          "start": 44,
+          "end": 49,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "\"It is this,\" I answered, producing a trowel from beneath the folds of my roquelaire.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 3,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 4,
+          "end": 6,
+          "label": "verb"
+        },
+        {
+          "start": 7,
+          "end": 13,
+          "label": "demonstrative-pronoun",
+          "note": "\"This\" stands completely alone here — no noun after it. That is a demonstrative PRONOUN. In \"this trowel\" the same word would be an adjective."
+        },
+        {
+          "start": 14,
+          "end": 15,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 16,
+          "end": 25,
+          "label": "verb"
+        },
+        {
+          "start": 26,
+          "end": 35,
+          "label": "verb"
+        },
+        {
+          "start": 36,
+          "end": 37,
+          "label": "determiner"
+        },
+        {
+          "start": 38,
+          "end": 44,
+          "label": "noun"
+        },
+        {
+          "start": 45,
+          "end": 49,
+          "label": "preposition"
+        },
+        {
+          "start": 50,
+          "end": 57,
+          "label": "preposition"
+        },
+        {
+          "start": 58,
+          "end": 61,
+          "label": "determiner"
+        },
+        {
+          "start": 62,
+          "end": 67,
+          "label": "noun"
+        },
+        {
+          "start": 68,
+          "end": 70,
+          "label": "preposition"
+        },
+        {
+          "start": 71,
+          "end": 73,
+          "label": "adjective"
+        },
+        {
+          "start": 74,
+          "end": 85,
+          "label": "noun"
+        }
+      ]
+    },
+    {
+      "text": "As I said these words I busied myself among the pile of bones of which I have before spoken.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "conjunction"
+        },
+        {
+          "start": 3,
+          "end": 4,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 5,
+          "end": 9,
+          "label": "verb"
+        },
+        {
+          "start": 10,
+          "end": 15,
+          "label": "adjective",
+          "note": "\"These words\" — a noun follows, so this one is an adjective, not a pronoun."
+        },
+        {
+          "start": 16,
+          "end": 21,
+          "label": "noun"
+        },
+        {
+          "start": 22,
+          "end": 23,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 24,
+          "end": 30,
+          "label": "verb"
+        },
+        {
+          "start": 31,
+          "end": 37,
+          "label": "reflexive-pronoun"
+        },
+        {
+          "start": 38,
+          "end": 43,
+          "label": "preposition"
+        },
+        {
+          "start": 44,
+          "end": 47,
+          "label": "determiner"
+        },
+        {
+          "start": 48,
+          "end": 52,
+          "label": "noun"
+        },
+        {
+          "start": 53,
+          "end": 55,
+          "label": "preposition"
+        },
+        {
+          "start": 56,
+          "end": 61,
+          "label": "noun"
+        },
+        {
+          "start": 62,
+          "end": 64,
+          "label": "preposition"
+        },
+        {
+          "start": 65,
+          "end": 70,
+          "label": "relative-pronoun",
+          "note": "\"Which\" starts a clause that describes \"bones.\" A relative pronoun does two jobs at once: it stands in for a noun and it joins."
+        },
+        {
+          "start": 71,
+          "end": 72,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 73,
+          "end": 77,
+          "label": "verb"
+        },
+        {
+          "start": 78,
+          "end": 84,
+          "label": "adverb"
+        },
+        {
+          "start": 85,
+          "end": 92,
+          "label": "verb"
+        }
+      ]
+    },
+    {
+      "text": "I did this, and the clamourer grew still.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 1,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 2,
+          "end": 5,
+          "label": "verb"
+        },
+        {
+          "start": 6,
+          "end": 11,
+          "label": "demonstrative-pronoun",
+          "note": "\"This\" means the whole thing he has just described. Standing alone, so a pronoun."
+        },
+        {
+          "start": 12,
+          "end": 15,
+          "label": "conjunction"
+        },
+        {
+          "start": 16,
+          "end": 19,
+          "label": "determiner"
+        },
+        {
+          "start": 20,
+          "end": 29,
+          "label": "noun"
+        },
+        {
+          "start": 30,
+          "end": 34,
+          "label": "verb"
+        },
+        {
+          "start": 35,
+          "end": 41,
+          "label": "adverb"
+        }
+      ]
+    },
+    {
+      "text": "If any one has a critical turn, it is he.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 2,
+          "label": "conjunction"
+        },
+        {
+          "start": 3,
+          "end": 6,
+          "label": "adjective"
+        },
+        {
+          "start": 7,
+          "end": 10,
+          "label": "indefinite-pronoun",
+          "note": "\"Any one\" refers to no particular person at all — indefinite. Poe spells it as two words; today we would write \"anyone.\""
+        },
+        {
+          "start": 11,
+          "end": 14,
+          "label": "verb"
+        },
+        {
+          "start": 15,
+          "end": 16,
+          "label": "determiner"
+        },
+        {
+          "start": 17,
+          "end": 25,
+          "label": "adjective"
+        },
+        {
+          "start": 26,
+          "end": 31,
+          "label": "noun"
+        },
+        {
+          "start": 32,
+          "end": 34,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 35,
+          "end": 37,
+          "label": "verb"
+        },
+        {
+          "start": 38,
+          "end": 41,
+          "label": "personal-pronoun"
+        }
+      ]
+    },
+    {
+      "text": "\"Enough,\" he said; \"the cough is a mere nothing; it will not kill me.",
+      "annotations": [
+        {
+          "start": 0,
+          "end": 9,
+          "label": "interjection"
+        },
+        {
+          "start": 10,
+          "end": 12,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 13,
+          "end": 18,
+          "label": "verb"
+        },
+        {
+          "start": 19,
+          "end": 23,
+          "label": "determiner"
+        },
+        {
+          "start": 24,
+          "end": 29,
+          "label": "noun"
+        },
+        {
+          "start": 30,
+          "end": 32,
+          "label": "verb"
+        },
+        {
+          "start": 33,
+          "end": 34,
+          "label": "determiner"
+        },
+        {
+          "start": 35,
+          "end": 39,
+          "label": "adjective"
+        },
+        {
+          "start": 40,
+          "end": 48,
+          "label": "indefinite-pronoun",
+          "note": "\"Nothing\" is an indefinite pronoun: it stands for no thing in particular."
+        },
+        {
+          "start": 49,
+          "end": 51,
+          "label": "personal-pronoun"
+        },
+        {
+          "start": 52,
+          "end": 56,
+          "label": "verb"
+        },
+        {
+          "start": 57,
+          "end": 60,
+          "label": "adverb"
+        },
+        {
+          "start": 61,
+          "end": 65,
+          "label": "verb"
+        },
+        {
+          "start": 66,
+          "end": 69,
+          "label": "personal-pronoun"
+        }
+      ]
+    }
+  ],
+  "essentialOnly": true
+}

@@ -241,6 +241,31 @@ before it without writing the reason here.
 | 4. Run the pilot | Not a work order — see [pilot.md](product/pilot.md). |
 | 5. Decide P7 and P8 | Not a work order. The rule above still stands: don't start this before step 4 without writing the reason here. |
 
+**2026-07-28 — a parallel track opened beside step 4: the curriculum.**
+[Unit 1 — The Nine Parts of Speech](../plans/proposals/curriculum-unit-1-parts-of-speech.md)
+is a self-paced student unit, delivered as **Study mode** — a fourth mode, which is
+why [pilot.md](product/pilot.md) had to be amended in the same change rather than
+left promising three.
+
+Writing the reason down, as the rule above requires. **This does not displace step
+4, and it is not step 5.** Three things make it a beside-rather-than-ahead:
+
+- **P1 already committed to it.** *"What is missing is everything above the lesson:
+  durability, sequencing, and sharing."* Durability got S1–S4 and sharing got S5.
+  Sequencing is the third, and had no design at all.
+- **P5 already cleared it.** The `0.2.0` student-facing track needs no accounts, so
+  none of this waits on P7/P8. The unit stores a resume point and a best score
+  locally and transmits nothing, which keeps P2's tested invariant intact.
+- **It gives the pilot something to run.** Question 1 in `pilot.md` is whether the
+  authoring loop survives a class period; a ready-made unit a student can be handed
+  is the cheapest way to also learn something about question 4, where *students*
+  get stuck.
+
+Sequenced as three orders, machinery first so the shape is proven before the
+content scales: ~~[015 — the study view and lesson 1](../plans/done/015-study-view-and-first-lesson.md)~~
+· [016 — the remaining stops](../plans/016-unit-pos-remaining-lessons.md)
+· [017 — capstone, `sort`, and docs](../plans/017-unit-pos-capstone-and-docs.md).
+
 The `0.1.0` release gate is a **parallel track**, not a dependency. The manual
 cross-browser pass still owed by
 [roadmap-0.1.0.md](roadmap-0.1.0.md) blocks the `v0.1.0` tag; it does not block
