@@ -114,7 +114,7 @@ is a bug this change would expose.
 
 ## Notes
 
-- Ordering against [010](010-seam-storage-adapter.md) doesn't strictly matter,
+- Ordering against [010](done/010-seam-storage-adapter.md) doesn't strictly matter,
   but 010 first is easier: it isolates the storage churn from the id churn, so a
   regression in either is unambiguous.
 - Worth a line in [docs/project/architecture.md](../docs/project/architecture.md)

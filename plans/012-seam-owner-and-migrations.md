@@ -7,7 +7,7 @@ created: 2026-07-28
 
 Seams **S3** and **S4** of [the platform roadmap](../docs/roadmap-platform.md#seams-to-land-first),
 step 2 of its sequencing. **No user-visible change.** Depends on
-[010](010-seam-storage-adapter.md), which is where the runner is invoked.
+[010](done/010-seam-storage-adapter.md), which is where the runner is invoked.
 
 ## Why
 

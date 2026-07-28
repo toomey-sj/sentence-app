@@ -94,12 +94,19 @@ retrofit once teachers have real work stored. All five are **cheap now,
 reversible, and worth doing regardless of how P7 and P8 resolve.** None is
 user-visible.
 
-- [ ] **S1 — A storage adapter behind [store.js](../js/store.js).** Today it
-      hardcodes `localStorage` with whole-list `readAll()`/`writeAll()`. Extract a
+- [x] **S1 — A storage adapter behind [store.js](../js/store.js).** ~~Today it
+      hardcodes `localStorage` with whole-list `readAll()`/`writeAll()`.~~ Extract a
       `list/get/save/remove` interface with localStorage as implementation #1.
       Highest value, lowest cost; do it first. The corrupt-library salvage
       behavior (audit P1-2) must survive the extraction.
-      → [plans/010](../plans/010-seam-storage-adapter.md)
+      → **Done 2026-07-28**, [plans/done/010](../plans/done/010-seam-storage-adapter.md).
+      The adapter is `wjt.store.adapter`; `readAll()`/`writeAll()` are now its
+      private internals. Zero call sites changed. It is **synchronous on
+      purpose** — a networked implementation gets a read-through cache with a
+      background flush rather than a Promise surface; the rationale is in the
+      work order's As-built note, in
+      [architecture.md](project/architecture.md), and in a comment above the
+      adapter so it can't be silently reversed.
 - [ ] **S2 — Real ids.** [`wjt.uid()`](../js/tokenize.js#L69) is `Date.now()`
       plus six characters of `Math.random()`. Fine in one browser, collision-prone
       the moment two libraries merge. Move to `crypto.randomUUID()` with a
@@ -181,7 +188,7 @@ either way.
 |---|---|
 | 1. Assignment Phases 2–3 | ~~[008 — builder and preview](../plans/done/008-assignment-phase-2-builder.md)~~ · ~~[009 — print worksheet and answer key](../plans/done/009-assignment-phase-3-print.md)~~ **both done 2026-07-28** |
 | 1b. Get the DOM check green first | ~~[014 — settle the Present checks](../plans/done/014-ui4-dom-check-settle.md)~~ **done 2026-07-28.** It unblocked the acceptance bar every step below asks for: `UI-4` was failing on a clean tree, so CI was red and "0 failed" unreachable. The DOM check is now **328 passed / 0 failed** at all four matrix sizes, so step 2 gets a clean gate rather than a count to remember. |
-| 2. Land S1–S4 | [010 — storage adapter](../plans/010-seam-storage-adapter.md) · [011 — real ids](../plans/011-seam-real-ids.md) · [012 — `ownerId` + migration runner](../plans/012-seam-owner-and-migrations.md) |
+| 2. Land S1–S4 | ~~[010 — storage adapter](../plans/done/010-seam-storage-adapter.md)~~ **done 2026-07-28** · [011 — real ids](../plans/011-seam-real-ids.md) · [012 — `ownerId` + migration runner](../plans/012-seam-owner-and-migrations.md) |
 | 3. Re-scope Assignment 4–5 behind S5 | [013 — delivery-channel interface](../plans/013-seam-delivery-channels.md) |
 | 4. Run the pilot | Not a work order — see [pilot.md](product/pilot.md). |
 | 5. Decide P7 and P8 | Not a work order. The rule above still stands: don't start this before step 4 without writing the reason here. |

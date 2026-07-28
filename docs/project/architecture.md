@@ -51,7 +51,7 @@ Load order matters — each file only depends on the ones above it.
 | `css/styles.css` | — | Design system, both themes, driven by CSS custom properties on `:root[data-theme]`. |
 | `js/labels.js` | 767 | **The taxonomy.** `wjt.LAYERS`, `wjt.LABELS`, `wjt.SENTENCE_TYPES`, and the helpers over them. Zero DOM. |
 | `js/tokenize.js` | 78 | Sentence splitting, tokenizing, and span↔token conversion. Zero DOM. |
-| `js/store.js` | 457 | Lesson model, `localStorage` persistence, JSON import/export, the built-in sample lesson. Nearly zero DOM. |
+| `js/store.js` | 490 | Lesson model, the storage adapter (`localStorage` implementation), JSON import/export, the built-in sample lesson. Nearly zero DOM. |
 | `js/examples.js` | 1,776 | The seven example lessons, each as a `build()` that returns a lesson object. |
 | `js/assignment-model.js` | 583 | Assignment question pool, balanced seeded selection, and the separate answer key. Zero DOM. |
 | `js/assignment-codec.js` | 423 | Compact student-safe wire map, base64url, validation, and URL size states. Zero DOM. |
@@ -117,9 +117,44 @@ implicit and existing files stay byte-identical when the field is added. The
 **import** form additionally accepts `{ "match": "text" }` in place of
 `start`/`end`. Full spec: [lesson-json.md](lesson-json.md).
 
-Persistence is deliberately whole-list: `readAll()` → mutate → `writeAll()`.
-At classroom scale (tens of lessons) that's fine and it removes a whole class of
-partial-write bugs.
+### Where lessons are kept: the storage adapter
+
+`wjt.store` is the **model** — it knows what a lesson is: it stamps `updatedAt`,
+sorts the library newest-first, duplicates, and runs the two sentence
+transforms. It does **not** know where lessons live. That is
+`wjt.store.adapter`, whose entire vocabulary is four methods:
+
+```js
+adapter.list()          // -> array of stored lessons, unordered
+adapter.get(id)         // -> one lesson, or null
+adapter.save(lesson)    // insert or replace by id; returns the lesson
+adapter.remove(id)
+```
+
+The one implementation is `localStorage`, and it is deliberately whole-list:
+`readAll()` → mutate → `writeAll()` against `sentenceForge.lessons.v1`. At
+classroom scale (tens of lessons) that's fine and it removes a whole class of
+partial-write bugs. It also throws `STORAGE_WRITE_FAILED` when the browser
+refuses a write, and owns the corrupt-library salvage: an unreadable stored
+value is copied aside to `sentenceForge.lessons.v1.corrupt` **before** anything
+can overwrite it (once only), and reported through `wjt.store.corruptBackup`,
+which boot reads to offer the teacher a download (audit P1-2).
+
+**The interface is synchronous on purpose, and must stay that way.** Async is
+the obvious shape for a future networked adapter and it is the wrong trade:
+`list()`/`get()` are called inline during render in every view, so a Promise
+surface rewrites all of them for no user-visible gain. A networked adapter
+doesn't need it — it needs a read-through cache with a background flush (reads
+from memory; writes to memory and `localStorage` immediately, to the network in
+the background), which keeps this surface sync, keeps `file://` working, and
+confines the change to `store.js`. This is seam **S1** of
+[roadmap-platform.md](../roadmap-platform.md); it exists so the answer to "where
+does teacher data live?" stays reversible.
+
+Not to be confused with `wjt.safeStorage` in `app.js`: that is a try/catch shim
+over small **preference** keys (theme, palette, the first-run seed flag) that
+fails silently and flips `wjt.storageOK`. This one holds the teacher's work and
+must surface failures.
 
 ## The annotation model: char offsets snapped to tokens
 

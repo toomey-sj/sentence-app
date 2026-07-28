@@ -24,44 +24,116 @@
   "use strict";
   window.wjt = window.wjt || {};
 
+  /* ------------------------------------------------------------------ *
+   * Storage adapter (seam S1)
+   *
+   * `wjt.store` below is the *model*: it knows what a lesson is, stamps
+   * `updatedAt`, sorts the library, duplicates, merges sentences. It does not
+   * know where lessons are kept. That is the adapter's whole job, and its
+   * whole vocabulary is four methods:
+   *
+   *   list()          -> array of stored lessons, in no particular order
+   *   get(id)         -> one lesson, or null
+   *   save(lesson)    -> persist it (insert or replace by id); returns it
+   *   remove(id)      -> delete it
+   *
+   * plus `onCorrupt(raw)`, which an adapter calls when it finds stored data it
+   * cannot read (see the localStorage implementation).
+   *
+   * WHY IT IS SYNCHRONOUS — and must stay that way.
+   * A Promise-returning interface looks like the obvious shape for a future
+   * networked adapter. It isn't worth it: `wjt.store.list()`/`get()` are called
+   * inline during render in every view, so going async rewrites all of them —
+   * a large, risky, entirely user-invisible change.
+   * A networked adapter does not need async here. It needs a read-through
+   * cache with a background flush: reads answer from memory, writes go to
+   * memory and localStorage immediately and to the network in the background.
+   * That keeps this surface synchronous, keeps the app working offline (which
+   * the file:// degraded mode requires anyway), and confines the change to this
+   * file. Sync is the design, not a shortcut — don't "fix" it.
+   *
+   * NOT the same thing as `wjt.safeStorage` (js/app.js). That is a try/catch
+   * shim over small *preference* keys (theme, palette, the first-run seed flag)
+   * that lives in the DOM layer and may fail silently, flipping `wjt.storageOK`
+   * so boot can warn once. This holds the teacher's actual work and must throw
+   * STORAGE_WRITE_FAILED so the editor can toast. They look mergeable; they are
+   * not. Leave both.
+   * ------------------------------------------------------------------ */
+
   var KEY = "sentenceForge.lessons.v1";
   var CORRUPT_KEY = KEY + ".corrupt";
 
-  function readAll() {
-    var raw;
-    try {
-      raw = localStorage.getItem(KEY);
-    } catch (e) {
-      return [];   // storage access itself is disabled — nothing to read or salvage
-    }
-    if (!raw) return [];
-    try {
-      var list = JSON.parse(raw);
-      if (Array.isArray(list)) return list;
-      // Valid JSON but not our array shape — treat like corruption below.
-    } catch (e) { /* not parseable — fall through to preserve */ }
+  // Adapter #1, and for now the only one: the whole library in one
+  // localStorage key. Deliberately whole-list — readAll() -> mutate ->
+  // writeAll(). At classroom scale (tens of lessons) that's fine, and it
+  // removes a whole class of partial-write bugs.
+  //
+  // Only getItem/setItem/removeItem are used: the smoke test runs this file in
+  // a bare `vm` sandbox whose localStorage shim is a Map with exactly those
+  // three methods. No `length`, no `key()`, no `clear()`, and no DOM.
+  function localStorageAdapter(opts) {
+    var onCorrupt = (opts && opts.onCorrupt) || function () {};
 
-    // The stored library is unreadable (hand-editing, a truncated write, a
-    // foreign value). Returning [] keeps the app usable as before — but the very
-    // next save would overwrite this raw value and destroy any recoverable
-    // lessons. Copy it aside FIRST and flag it so the shell can surface recovery
-    // (audit P1-2). Only back up once, so repeated reads never clobber the copy.
-    try {
-      if (localStorage.getItem(CORRUPT_KEY) == null) localStorage.setItem(CORRUPT_KEY, raw);
-    } catch (e2) { /* best effort — couldn't preserve, but still don't crash */ }
-    wjt.store.corruptBackup = raw;
-    return [];
-  }
+    function readAll() {
+      var raw;
+      try {
+        raw = localStorage.getItem(KEY);
+      } catch (e) {
+        return [];   // storage access itself is disabled — nothing to read or salvage
+      }
+      if (!raw) return [];
+      try {
+        var list = JSON.parse(raw);
+        if (Array.isArray(list)) return list;
+        // Valid JSON but not our array shape — treat like corruption below.
+      } catch (e) { /* not parseable — fall through to preserve */ }
 
-  function writeAll(list) {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(list));
-    } catch (e) {
-      var err = new Error("Couldn’t save — browser storage is full or disabled. " +
-        "Export your lessons to a file so you don’t lose work.");
-      err.code = "STORAGE_WRITE_FAILED";
-      throw err;
+      // The stored library is unreadable (hand-editing, a truncated write, a
+      // foreign value). Returning [] keeps the app usable as before — but the very
+      // next save would overwrite this raw value and destroy any recoverable
+      // lessons. Copy it aside FIRST and flag it so the shell can surface recovery
+      // (audit P1-2). Only back up once, so repeated reads never clobber the copy.
+      try {
+        if (localStorage.getItem(CORRUPT_KEY) == null) localStorage.setItem(CORRUPT_KEY, raw);
+      } catch (e2) { /* best effort — couldn't preserve, but still don't crash */ }
+      onCorrupt(raw);
+      return [];
     }
+
+    function writeAll(list) {
+      try {
+        localStorage.setItem(KEY, JSON.stringify(list));
+      } catch (e) {
+        var err = new Error("Couldn’t save — browser storage is full or disabled. " +
+          "Export your lessons to a file so you don’t lose work.");
+        err.code = "STORAGE_WRITE_FAILED";
+        throw err;
+      }
+    }
+
+    return {
+      name: "localStorage",
+
+      list: function () {
+        return readAll();
+      },
+
+      get: function (id) {
+        return readAll().find(function (l) { return l.id === id; }) || null;
+      },
+
+      save: function (lesson) {
+        var list = readAll();
+        var i = list.findIndex(function (l) { return l.id === lesson.id; });
+        if (i === -1) list.push(lesson); else list[i] = lesson;
+        writeAll(list);
+        return lesson;
+      },
+
+      remove: function (id) {
+        writeAll(readAll().filter(function (l) { return l.id !== id; }));
+      },
+    };
   }
 
   // Fold typographic look-alikes to ASCII for the `match` lookup ONLY.
@@ -75,27 +147,34 @@
   }
 
   wjt.store = {
+    /* Where lessons are kept. Swap this for a different implementation of the
+     * four-method interface above and nothing else in the app changes — that is
+     * the point of the seam. Everything below is model logic and stays put. */
+    adapter: localStorageAdapter({
+      // The corrupt-library flag is part of the store's public contract, not
+      // the adapter's: app.js reads `wjt.store.corruptBackup` at boot to offer
+      // the teacher a download of the unreadable raw value (audit P1-2). The
+      // adapter just reports; the model publishes.
+      onCorrupt: function (raw) { wjt.store.corruptBackup = raw; },
+    }),
+
     list: function () {
-      return readAll().sort(function (a, b) {
+      return this.adapter.list().sort(function (a, b) {
         return (b.updatedAt || "").localeCompare(a.updatedAt || "");
       });
     },
 
     get: function (id) {
-      return readAll().find(function (l) { return l.id === id; }) || null;
+      return this.adapter.get(id);
     },
 
     save: function (lesson) {
-      var list = readAll();
       lesson.updatedAt = new Date().toISOString();
-      var i = list.findIndex(function (l) { return l.id === lesson.id; });
-      if (i === -1) list.push(lesson); else list[i] = lesson;
-      writeAll(list);
-      return lesson;
+      return this.adapter.save(lesson);
     },
 
     remove: function (id) {
-      writeAll(readAll().filter(function (l) { return l.id !== id; }));
+      this.adapter.remove(id);
     },
 
     create: function (title) {

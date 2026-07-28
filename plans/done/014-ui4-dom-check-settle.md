@@ -239,7 +239,7 @@ Also add 014 to the sequencing table in
 [docs/roadmap-platform.md](../../docs/roadmap-platform.md#sequencing) — it was filed
 outside that queue and is currently invisible to anyone reading the roadmap as
 the work list. It belongs ahead of step 2, because
-[010](../010-seam-storage-adapter.md) refactors the file holding every teacher's
+[010](../done/010-seam-storage-adapter.md) refactors the file holding every teacher's
 lesson and wants a clean DOM check as its gate.
 
 ## Notes
