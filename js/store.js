@@ -3,11 +3,12 @@
  * Lesson JSON format (also what teachers upload):
  * {
  *   "format": "sentence-forge-lesson",
- *   "version": 1,
+ *   "version": 1,                                    // lesson format version; acted on by wjt.migrateLesson() on read
  *   "title": "My Lesson",
  *   "description": "optional",
  *   "layers": ["pos", "part", "phrase", "clause"],   // which levels this lesson teaches
  *   "essentialOnly": true,                           // optional: hide Advanced labels from the editor palette
+ *   "ownerId": "…",                                  // optional: who owns this lesson. Absent means no owner.
  *   "sentences": [
  *     {
  *       "text": "The curious fox darted across the frozen river.",
@@ -136,6 +137,121 @@
     };
   }
 
+  /* ------------------------------------------------------------------ *
+   * Migrations (seam S4)
+   *
+   * `version` has been in the lesson format since the first release with
+   * nothing acting on it. This is the thing that acts on it.
+   *
+   * WHERE IT RUNS. On read, in `wjt.store.list()`/`get()` below — so a lesson
+   * is brought up to date on its way out of storage, before any view sees it.
+   * Not on write: a lesson a teacher hasn't opened in a year must still migrate
+   * when they finally do. And not inside the adapter, though the work order
+   * suggested there — the adapter's job is *persisting lesson objects*, and what
+   * a `version` number means is model knowledge. Running it in the model means
+   * the next adapter (the networked one P7 eventually picks) gets migration for
+   * free instead of having to remember it, so "no view ever sees an unmigrated
+   * lesson" holds no matter what is plugged in underneath.
+   *
+   * THE READ DOES NOT WRITE BACK. At classroom scale re-running the chain on
+   * every read is free, and a silent storage write during render is not
+   * something a render should do. The migrated shape lands in storage the next
+   * time the teacher saves — the only moment they'd want it to.
+   *
+   * THE REGISTRY is a plain object: version number -> pure (lesson) -> lesson.
+   * `wjt.migrations[n]` takes a lesson stored at version `n` and returns it one
+   * step closer to `LESSON_VERSION`, stamping the new `version` itself; the
+   * runner then looks up the next step. The entry for `LESSON_VERSION` is the
+   * identity step. It is how the loop terminates, and it is what keeps this
+   * runner *live code*: every read of every current lesson runs through it, so
+   * the machinery is exercised from day one instead of executing for the first
+   * time on the day it finally matters. Don't "optimize" it away.
+   *
+   * A VERSION THIS BUILD DOESN'T KNOW is refused, not guessed at — both a lesson
+   * from a newer build (a teacher opening their synced library on an older
+   * machine, which P7 makes the normal case rather than an edge case) and a gap
+   * in the registry. The lesson comes back exactly as stored and the refusal is
+   * published on `wjt.store.unsupportedVersion` for the shell, the way
+   * `corruptBackup` is. Refusing leaves the data intact and readable on the
+   * machine that *can* read it; a half-applied guess does not.
+   * ------------------------------------------------------------------ */
+
+  // The lesson format version this build reads and writes. Bumping it is a
+  // format change — read the alpha rule in CLAUDE.md first.
+  var LESSON_VERSION = 1;
+
+  wjt.LESSON_VERSION = LESSON_VERSION;
+
+  wjt.migrations = {
+    // v1 IS the current format, so there is nothing to do — and it still runs.
+    1: function (lesson) { return lesson; },
+  };
+
+  // `version` shipped with the format, so an absent one can only mean 1.
+  function versionOf(lesson) {
+    var v = lesson && lesson.version;
+    return typeof v === "number" && isFinite(v) ? v : LESSON_VERSION;
+  }
+
+  /**
+   * Run a stored lesson through the registry.
+   * Returns { lesson, from, migrated, ok, reason } and never throws.
+   * `ok: false` means this build refused to touch it, and `lesson` is then the
+   * value exactly as it was stored.
+   */
+  wjt.migrateLesson = function (stored) {
+    var from = versionOf(stored);
+    var out = { lesson: stored, from: from, migrated: false, ok: true, reason: "" };
+    if (!stored || typeof stored !== "object") return out;
+
+    var name = 'Lesson "' + (stored.title || stored.id || "untitled") + '"';
+    function refuse(reason) {
+      out.lesson = stored;        // as stored — a half-applied guess is worse
+      out.migrated = false;
+      out.ok = false;
+      out.reason = reason;
+      return out;
+    }
+
+    var v = from;
+    // Bounded, so a migration that fails to advance `version` can't hang a
+    // render. 64 steps is far more than any real chain will ever be.
+    for (var i = 0; i < 64; i++) {
+      var fn = wjt.migrations[v];
+      if (typeof fn !== "function") {
+        return refuse(v > LESSON_VERSION
+          ? name + " was saved by a newer version of Sentence Forge (lesson format " +
+            v + "; this one reads " + LESSON_VERSION + "). It was left untouched — " +
+            "open it there, or export it from there and import the file here."
+          : name + " has an unknown lesson format version (" + v + "). It was left untouched.");
+      }
+      var next = fn(out.lesson) || out.lesson;
+      var nv = versionOf(next);
+      out.lesson = next;
+      if (nv === v) return out;   // the identity step: already current
+      out.migrated = true;
+      v = nv;
+    }
+    return refuse(name + " did not settle after 64 migration steps (format " + from + ").");
+  };
+
+  // Every lesson leaves storage through here — the one place a migration runs.
+  // A refusal is published for the shell, and warned once per lesson+version so
+  // a re-render can't spam the console.
+  var warnedVersions = {};
+  function onRead(stored) {
+    var r = wjt.migrateLesson(stored);
+    if (!r.ok) {
+      var id = stored && stored.id;
+      wjt.store.unsupportedVersion = { id: id, version: r.from, reason: r.reason };
+      if (!warnedVersions[id + ":" + r.from]) {
+        warnedVersions[id + ":" + r.from] = true;
+        if (window.console && console.warn) console.warn("[Sentence Forge] " + r.reason);
+      }
+    }
+    return r.lesson;
+  }
+
   // Fold typographic look-alikes to ASCII for the `match` lookup ONLY.
   // Every substitution is 1 code unit -> 1 code unit, so length and all offsets
   // are preserved: the resolved span still slices the untouched original text.
@@ -159,13 +275,14 @@
     }),
 
     list: function () {
-      return this.adapter.list().sort(function (a, b) {
+      return this.adapter.list().map(function (l) { return onRead(l); }).sort(function (a, b) {
         return (b.updatedAt || "").localeCompare(a.updatedAt || "");
       });
     },
 
     get: function (id) {
-      return this.adapter.get(id);
+      var stored = this.adapter.get(id);
+      return stored ? onRead(stored) : null;
     },
 
     save: function (lesson) {
@@ -187,6 +304,10 @@
         description: "",
         layers: ["pos", "part", "phrase", "clause"],
         essentialOnly: false,
+        // Nullable while there is exactly one local owner (seam S3). `null`
+        // means "no owner", not "owner unknown" — nothing writes a real value
+        // until P8 (teacher accounts) resolves.
+        ownerId: null,
         sentences: [],
         createdAt: now,
         updatedAt: now,
@@ -279,6 +400,9 @@
       if (layers.length) lesson.layers = layers;
     }
     lesson.essentialOnly = data.essentialOnly === true;
+    // Preserved when the uploaded file carries one; anything that isn't a
+    // non-empty string is ignored and create()'s `null` stands (seam S3).
+    if (typeof data.ownerId === "string" && data.ownerId) lesson.ownerId = data.ownerId;
 
     data.sentences.forEach(function (s, si) {
       var text = typeof s === "string" ? s : String(s && s.text || "");
@@ -373,6 +497,10 @@
     };
     // Only written when on, so the default (full palette) stays implicit.
     if (lesson.essentialOnly) doc.essentialOnly = true;
+    // Same rule, same reason (seam S3): written only when set, so an ownerless
+    // lesson — which is every lesson today — exports byte-identically to before
+    // the field existed. That is what makes ownerId additive, not a format change.
+    if (typeof lesson.ownerId === "string" && lesson.ownerId) doc.ownerId = lesson.ownerId;
     return doc;
   };
 

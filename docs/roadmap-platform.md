@@ -121,13 +121,25 @@ user-visible.
       rule" line above was about the *principle* and read as a warning — it isn't
       one; the distinction is now written down in
       [architecture.md](project/architecture.md#ids-wjtuid) and in the code.
-- [ ] **S3 — `ownerId` on the lesson.** Nullable while there is exactly one local
+- [x] **S3 — `ownerId` on the lesson.** Nullable while there is exactly one local
       owner. Additive to the format, so it costs nothing today.
-      → [plans/012](../plans/012-seam-owner-and-migrations.md)
-- [ ] **S4 — A migration runner.** `version: 1` exists with nothing that acts on
+      → **Done 2026-07-28**, [plans/done/012](../plans/done/012-seam-owner-and-migrations.md).
+      `create()` sets `null`, import preserves a non-empty string, export writes it
+      only when set — so every existing file and every sample still round-trips
+      byte-identically. **Absence means *no owner*, not *unknown owner***, and an
+      `ownerId` in a file is a label, never a permission: there is nothing to check
+      it against.
+- [x] **S4 — A migration runner.** `version: 1` exists with nothing that acts on
       it. Once two clients sync at different versions you need one, and writing it
       retroactively means guessing what old data looked like.
-      → [plans/012](../plans/012-seam-owner-and-migrations.md)
+      → **Done 2026-07-28**, [plans/done/012](../plans/done/012-seam-owner-and-migrations.md).
+      `wjt.migrations` is a plain version→`(lesson) -> lesson` object, run **on
+      read** in `wjt.store.list()`/`get()` — in the *model*, not the adapter, so a
+      future networked adapter gets it for free. The identity step for v1 is
+      registered and really runs on every read, so the runner is live code rather
+      than machinery whose first execution is the day it matters. An unknown
+      version is **refused, not guessed at**: the lesson comes back exactly as
+      stored and the refusal is published on `wjt.store.unsupportedVersion`.
 - [ ] **S5 — The delivery-channel interface.** Generalize the assignment codec
       from "the URL encoder" to one channel behind a common shape (`available()`,
       `deliver()`, a size/readiness report). Print, file, and link are the first
@@ -194,7 +206,7 @@ either way.
 |---|---|
 | 1. Assignment Phases 2–3 | ~~[008 — builder and preview](../plans/done/008-assignment-phase-2-builder.md)~~ · ~~[009 — print worksheet and answer key](../plans/done/009-assignment-phase-3-print.md)~~ **both done 2026-07-28** |
 | 1b. Get the DOM check green first | ~~[014 — settle the Present checks](../plans/done/014-ui4-dom-check-settle.md)~~ **done 2026-07-28.** It unblocked the acceptance bar every step below asks for: `UI-4` was failing on a clean tree, so CI was red and "0 failed" unreachable. The DOM check is now **328 passed / 0 failed** at all four matrix sizes, so step 2 gets a clean gate rather than a count to remember. |
-| 2. Land S1–S4 | ~~[010 — storage adapter](../plans/done/010-seam-storage-adapter.md)~~ **done 2026-07-28** · ~~[011 — real ids](../plans/done/011-seam-real-ids.md)~~ **done 2026-07-28** · [012 — `ownerId` + migration runner](../plans/012-seam-owner-and-migrations.md) |
+| 2. Land S1–S4 | ~~[010 — storage adapter](../plans/done/010-seam-storage-adapter.md)~~ · ~~[011 — real ids](../plans/done/011-seam-real-ids.md)~~ · ~~[012 — `ownerId` + migration runner](../plans/done/012-seam-owner-and-migrations.md)~~ **all done 2026-07-28.** Step 2 is complete; S5 ([013](../plans/013-seam-delivery-channels.md)) is the last seam. |
 | 3. Re-scope Assignment 4–5 behind S5 | [013 — delivery-channel interface](../plans/013-seam-delivery-channels.md) |
 | 4. Run the pilot | Not a work order — see [pilot.md](product/pilot.md). |
 | 5. Decide P7 and P8 | Not a work order. The rule above still stands: don't start this before step 4 without writing the reason here. |

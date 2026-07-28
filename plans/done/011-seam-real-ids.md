@@ -99,7 +99,7 @@ is a bug this change would expose.
 - **Rewriting existing stored ids.** Old ids remain valid. There is no migration
   here and there should not be one.
 - Any id *semantics* — no embedded timestamps, no ordering, no owner prefix.
-  `ownerId` is a separate field and is [012](../012-seam-owner-and-migrations.md).
+  `ownerId` is a separate field and is [012](012-seam-owner-and-migrations.md).
 - Changing the lesson format. `version: 1` stands.
 
 ## Done when

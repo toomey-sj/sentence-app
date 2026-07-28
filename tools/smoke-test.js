@@ -261,6 +261,25 @@ check("export writes essentialOnly when on", essOn.essentialOnly === true);
 check("import restores essentialOnly", wjt.importLesson(essOn).lesson.essentialOnly === true);
 check("import defaults essentialOnly to false", wjt.importLesson(exported).lesson.essentialOnly === false);
 
+// --- ownerId (seam S3) ---
+// Nullable, additive, and written only when set — the same contract as
+// essentialOnly above, which is what keeps every existing file round-tripping
+// byte-identically. If `export omits ownerId` fails, samples/ churns too.
+check("new lessons have no owner", wjt.store.create("x").ownerId === null);
+check("export omits ownerId when unset", !("ownerId" in exported));
+const owned = wjt.exportLesson(Object.assign({}, sample, { ownerId: "teacher-1" }));
+check("export writes ownerId when set", owned.ownerId === "teacher-1");
+check("import preserves a string ownerId", wjt.importLesson(owned).lesson.ownerId === "teacher-1");
+check("import ignores an ownerId that isn't a non-empty string",
+  [42, "", null, {}, ["a"], true].every((v) =>
+    wjt.importLesson(Object.assign({}, exported, { ownerId: v })).lesson.ownerId === null));
+check("import of a file with no ownerId leaves it unowned",
+  wjt.importLesson(exported).lesson.ownerId === null);
+// Absence is meaningful: "no owner", not "unknown owner". Nothing may invent one.
+check("no built-in lesson exports an owner",
+  wjt.EXAMPLES.every((ex) => !("ownerId" in wjt.exportLesson(ex.build()))) &&
+  !("ownerId" in wjt.exportLesson(wjt.buildSampleLesson())));
+
 // --- import with "match" addressing + bad data ---
 const handWritten = {
   format: "sentence-forge-lesson",
@@ -411,6 +430,95 @@ check("corrupt store: non-array JSON is preserved too",
 // Clean up so the sample-file write below starts from a good state.
 storage.delete("sentenceForge.lessons.v1");
 storage.delete("sentenceForge.lessons.v1.corrupt");
+
+/* --- the migration runner (seam S4) ---------------------------------------
+ * The point of these checks is that the runner is LIVE CODE, not a registry
+ * that exists. So the registered migration is swapped for a spy and the lesson
+ * is read back through the real wjt.store, which is the only path the app uses. */
+check("the build declares the lesson format version it writes", wjt.LESSON_VERSION === 1);
+check("an identity migration is registered for the current version",
+  typeof wjt.migrations[wjt.LESSON_VERSION] === "function");
+check("the identity migration returns the lesson untouched", (() => {
+  const l = wjt.store.create("Identity");
+  const r = wjt.migrateLesson(l);
+  return r.ok && r.lesson === l && r.from === 1 && r.migrated === false;
+})());
+check("a lesson with no version field is read as version 1", (() => {
+  const l = wjt.store.create("No version");
+  delete l.version;
+  return wjt.migrateLesson(l).from === 1 && wjt.migrateLesson(l).ok;
+})());
+
+const migrated = wjt.store.save(wjt.store.create("Migrate me"));
+const realMigration = wjt.migrations[1];
+let ran = 0;
+wjt.migrations[1] = (lesson) => { ran++; lesson.title = "the migration ran"; return lesson; };
+const gotMigrated = wjt.store.get(migrated.id);
+check("migration: the registered migration actually runs on get()",
+  ran === 1 && gotMigrated.title === "the migration ran");
+ran = 0;
+const listedMigrated = wjt.store.list();
+check("migration: and on list(), once per lesson",
+  ran === listedMigrated.length && listedMigrated.every((l) => l.title === "the migration ran"));
+wjt.migrations[1] = realMigration;
+check("migration: the read is a view — storage itself is not rewritten",
+  JSON.parse(storage.get("sentenceForge.lessons.v1"))
+    .find((l) => l.id === migrated.id).title === "Migrate me");
+
+// A version this build doesn't know is refused, never guessed at.
+[["newer than this build", 99], ["older with no step registered", 0]].forEach(([why, v]) => {
+  const l = wjt.store.save(Object.assign(wjt.store.create("Unknown format"), { version: v }));
+  delete wjt.store.unsupportedVersion;
+  const r = wjt.migrateLesson(l);
+  const back = wjt.store.get(l.id);
+  check("migration: a lesson " + why + " comes back exactly as stored",
+    !r.ok && r.lesson === l && back.version === v && back.title === "Unknown format");
+  check("migration: a lesson " + why + " is reported, not silently accepted",
+    !!wjt.store.unsupportedVersion && wjt.store.unsupportedVersion.id === l.id &&
+    wjt.store.unsupportedVersion.version === v && !!wjt.store.unsupportedVersion.reason);
+  wjt.store.remove(l.id);
+});
+check("migration: a newer-version refusal says so in teacher language",
+  /newer version of Sentence Forge/.test(
+    wjt.migrateLesson({ id: "x", title: "T", version: 2 }).reason));
+
+// A chain of steps runs to completion; a step that never advances `version`
+// is caught by the loop bound instead of hanging a render.
+check("migration: steps chain until the lesson reaches the current version", (() => {
+  wjt.migrations[-2] = (l) => Object.assign(l, { version: -1, seen: (l.seen || "") + "a" });
+  wjt.migrations[-1] = (l) => Object.assign(l, { version: 1, seen: (l.seen || "") + "b" });
+  const r = wjt.migrateLesson({ id: "chain", title: "Chain", version: -2 });
+  delete wjt.migrations[-2];
+  delete wjt.migrations[-1];
+  return r.ok && r.migrated && r.from === -2 && r.lesson.version === 1 && r.lesson.seen === "ab";
+})());
+check("migration: a step that never advances the version is refused, not looped", (() => {
+  wjt.migrations[-3] = (l) => Object.assign(l, { version: -4 });
+  wjt.migrations[-4] = (l) => Object.assign(l, { version: -3 });
+  const r = wjt.migrateLesson({ id: "loop", title: "Loop", version: -3 });
+  delete wjt.migrations[-3];
+  delete wjt.migrations[-4];
+  return !r.ok && /did not settle/.test(r.reason);
+})());
+check("migrateLesson never throws on junk", (() => {
+  let threwHere = false;
+  try {
+    [null, undefined, 42, "lesson", [], { version: "1" }, { version: NaN }]
+      .forEach((x) => wjt.migrateLesson(x));
+  } catch (e) { threwHere = true; }
+  return !threwHere;
+})());
+
+// ownerId survives storage, which is what a sync backend will eventually read.
+const ownedStored = wjt.store.save(Object.assign(wjt.store.create("Owned"), { ownerId: "teacher-1" }));
+check("store: ownerId survives a save/get round trip",
+  wjt.store.get(ownedStored.id).ownerId === "teacher-1");
+check("store: duplicate() carries the owner", wjt.store.duplicate(ownedStored.id).ownerId === "teacher-1");
+
+// Back to a clean library so the sample-file write below starts fresh.
+storage.delete("sentenceForge.lessons.v1");
+storage.delete("sentenceForge.lessons.v1.corrupt");
+delete wjt.store.unsupportedVersion;
 
 /* ============================ Assignment mode ============================
  * Phase 1: the model + the wire codec. Two things are being defended here —

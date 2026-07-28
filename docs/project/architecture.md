@@ -51,7 +51,7 @@ Load order matters — each file only depends on the ones above it.
 | `css/styles.css` | — | Design system, both themes, driven by CSS custom properties on `:root[data-theme]`. |
 | `js/labels.js` | 767 | **The taxonomy.** `wjt.LAYERS`, `wjt.LABELS`, `wjt.SENTENCE_TYPES`, and the helpers over them. Zero DOM. |
 | `js/tokenize.js` | 78 | Sentence splitting, tokenizing, and span↔token conversion. Zero DOM. |
-| `js/store.js` | 490 | Lesson model, the storage adapter (`localStorage` implementation), JSON import/export, the built-in sample lesson. Nearly zero DOM. |
+| `js/store.js` | 609 | Lesson model, the storage adapter (`localStorage` implementation), the migration runner, JSON import/export, the built-in sample lesson. Nearly zero DOM. |
 | `js/examples.js` | 1,776 | The seven example lessons, each as a `build()` that returns a lesson object. |
 | `js/assignment-model.js` | 583 | Assignment question pool, balanced seeded selection, and the separate answer key. Zero DOM. |
 | `js/assignment-codec.js` | 423 | Compact student-safe wire map, base64url, validation, and URL size states. Zero DOM. |
@@ -99,6 +99,7 @@ A lesson, as stored in `localStorage` under `sentenceForge.lessons.v1`:
   id: "…", title: "…", description: "…",
   layers: ["pos", "part", "phrase", "clause"],  // which levels this lesson teaches
   essentialOnly: false,                         // narrows the editor palette only
+  ownerId: null,                                // null means NO owner, not "unknown" (seam S3)
   sentences: [{
     text: "The curious fox darted across the frozen river.",
     types: { structure: "simple", purpose: "declarative" },   // optional
@@ -112,10 +113,10 @@ A lesson, as stored in `localStorage` under `sentenceForge.lessons.v1`:
 ```
 
 The **export** form drops `id`, `createdAt`, `updatedAt`, and per-annotation
-`id`s, and only writes `essentialOnly` when it's `true` — so the default stays
-implicit and existing files stay byte-identical when the field is added. The
-**import** form additionally accepts `{ "match": "text" }` in place of
-`start`/`end`. Full spec: [lesson-json.md](lesson-json.md).
+`id`s, and only writes `essentialOnly` when it's `true` and `ownerId` when it's
+set — so the defaults stay implicit and existing files stay byte-identical when a
+field is added. The **import** form additionally accepts `{ "match": "text" }` in
+place of `start`/`end`. Full spec: [lesson-json.md](lesson-json.md).
 
 ### Where lessons are kept: the storage adapter
 
@@ -155,6 +156,33 @@ Not to be confused with `wjt.safeStorage` in `app.js`: that is a try/catch shim
 over small **preference** keys (theme, palette, the first-run seed flag) that
 fails silently and flips `wjt.storageOK`. This one holds the teacher's work and
 must surface failures.
+
+### Migrations on read: `wjt.migrations`
+
+`list()` and `get()` are not pass-throughs. Every lesson leaves storage through
+the migration runner (seam **S4**), so no view ever sees an unmigrated lesson.
+
+`wjt.migrations` is a plain object keyed by version number; each value is a pure
+`(lesson) -> lesson` that takes a lesson at that version and returns it one step
+closer to `wjt.LESSON_VERSION`, stamping the new `version` itself. The entry for
+the current version is the **identity step**, and it runs on every read — that is
+what keeps the runner live code instead of a registry that has never executed.
+
+Three properties to preserve:
+
+- **On read, not on write.** A lesson untouched for a year still migrates the day
+  it's opened.
+- **The read is a view.** Storage is not rewritten; the migrated shape lands on
+  disk at the teacher's next save. A render must not trigger a silent write.
+- **An unknown version is refused, not guessed at** — a lesson from a newer build,
+  or a gap in the registry. It comes back exactly as stored and the refusal is
+  published on `wjt.store.unsupportedVersion` (`{ id, version, reason }`), the
+  same shape as `corruptBackup`.
+
+The runner lives in the **model**, not the adapter, deliberately: persisting
+lesson objects is the adapter's job, and what a `version` number means is model
+knowledge. So the networked adapter P7 eventually picks gets migration for free
+rather than having to remember it.
 
 ### Ids: `wjt.uid()`
 

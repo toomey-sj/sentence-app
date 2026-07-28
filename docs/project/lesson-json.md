@@ -49,12 +49,35 @@ disagree, the code wins and this document is a bug.
 | Field | Type | Required | Behavior |
 |---|---|---|---|
 | `format` | string | recommended | If present it **must** be `"sentence-forge-lesson"`, or the import is rejected outright. Absent is fine. |
-| `version` | number | optional | Currently `1`. Not validated. |
+| `version` | number | optional | The lesson format version — currently `1`. Absent means `1`. Not validated on import, but **acted on when a lesson is read out of storage** — see [Compatibility](#compatibility). |
 | `title` | string | recommended | Defaults to `"Imported lesson"`. Coerced with `String()`. |
 | `description` | string | optional | Shown on the lesson card. Defaults to `""`. |
 | `layers` | string[] | optional | Which teaching levels the lesson uses: any of `pos`, `part`, `phrase`, `clause`. Unrecognized entries are dropped with a warning. An empty or absent array falls back to all four, and **any layer actually used by an annotation is added automatically** — so you can omit this entirely. |
 | `essentialOnly` | boolean | optional | Default `false`. Strictly `=== true` to enable. Narrows the *editor palette* to Essential labels; never hides an existing annotation. |
+| `ownerId` | string | optional | Who owns this lesson. Preserved on import when it's a non-empty string, ignored otherwise; written on export **only when set**. See below. |
 | `sentences` | array | **required** | Must be an array or the import is rejected. Must yield at least one usable sentence. |
+
+### `ownerId`
+
+**Absence is meaningful: it means *no owner*, not *unknown owner*.** Nothing in
+the app writes a real value yet — `wjt.store.create()` sets it to `null`, and it
+stays `null` until teacher accounts exist
+([P8](../roadmap-platform.md#decisions)). So today every lesson is ownerless and
+no exported file contains the field at all.
+
+It exists now, ahead of the thing that fills it, because adding it later means
+backfilling rows whose owner has to be *inferred* — see seam **S3** in
+[roadmap-platform.md](../roadmap-platform.md#seams-to-land-first). The only thing
+that can set it is a file that already carries one, which today only happens if
+someone hand-wrote it.
+
+Two consequences worth stating plainly:
+
+- **An `ownerId` in a lesson file is not a permission.** There is no server and
+  no identity to check it against; it is a label the importer carries through.
+  Anyone who can open the file can open the lesson.
+- **Ownerless lessons export byte-identically to before the field existed**,
+  which is the whole reason this was additive rather than a format change.
 
 ## Sentence objects
 
@@ -189,17 +212,47 @@ worked rather than a rejected file, and finds the 2 that didn't in the console.
 - **Always** writes `start`/`end`, never `match`. (`match` is an import-side
   convenience for hand-authoring.)
 - **Omits** `note` when empty, `notes` (the sentence-level note) when empty,
-  `types` when empty, and `essentialOnly` unless it's `true` — so the defaults
-  stay implicit and adding the field didn't change any existing file.
+  `types` when empty, `essentialOnly` unless it's `true`, and `ownerId` unless
+  it's a non-empty string — so the defaults stay implicit and adding those fields
+  didn't change any existing file.
 
 Round-tripping a lesson through export → import is lossless except for those ids
 and, in the general case, a re-derived `layers` array.
 
 ## Compatibility
 
-There is one version and no migration path yet. If the format ever changes
-incompatibly, `version` is the hook — bump it, and have `importLesson` branch on
-it. Until then, keep changes **additive and optional**, the way `types`,
-`notes`, and `essentialOnly` were added: an old file must keep importing, and a file written
-by a newer app should degrade to skipped-with-a-warning in an older one rather
-than being rejected.
+There is still exactly **one version**, and the rule stands: keep changes
+**additive and optional**, the way `types`, `notes`, `essentialOnly`, and
+`ownerId` were added. An old file must keep importing, and a file written by a
+newer app should degrade to skipped-with-a-warning in an older one rather than
+being rejected.
+
+What changed is that `version` is no longer inert. There is a **migration
+runner** in [`js/store.js`](../../js/store.js) — seam **S4** of
+[roadmap-platform.md](../roadmap-platform.md#seams-to-land-first) — and this is
+what it does:
+
+- **`wjt.migrations` is a plain object**, keyed by version number, whose values
+  are pure `(lesson) -> lesson` functions. `wjt.migrations[n]` takes a lesson at
+  version `n` and returns it one step closer to `wjt.LESSON_VERSION`, stamping
+  the new `version` itself; the runner then looks up the next step.
+- **`wjt.migrations[1]` is the identity step** and it really runs, on every read
+  of every lesson. That is deliberate: a runner whose registry has never executed
+  is dead code, and the first time it matters is the worst moment to discover it
+  doesn't work.
+- **It runs on read, not on write** — in `wjt.store.list()`/`get()`, so nothing
+  reaches a view unmigrated, and a lesson a teacher hasn't opened in a year still
+  migrates when they finally do. The read is a *view*: storage is not rewritten,
+  and the migrated shape lands on disk at the teacher's next save.
+- **A version this build doesn't know is refused, not guessed at.** That covers a
+  lesson from a newer build (a teacher opening a synced library on an older
+  machine) and a gap in the registry. The lesson comes back **exactly as stored**,
+  and the refusal is published on `wjt.store.unsupportedVersion` as
+  `{ id, version, reason }` — the same pattern as `corruptBackup`. Refusing keeps
+  the data intact and readable on the machine that *can* read it; a half-applied
+  guess doesn't.
+
+The runner is on the **storage** path only. `importLesson` still does not branch
+on `version` — an uploaded file is normalized field by field, and an unrecognized
+field is ignored rather than migrated. If a future version needs import-side
+handling, that is a separate decision from this one.

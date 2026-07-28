@@ -141,7 +141,7 @@ the teacher's actual work and must surface a `STORAGE_WRITE_FAILED` toast.
   adapter" with no backend behind it is dead code that will be wrong by the time
   P7 resolves.
 - `ownerId` and the migration runner — those are
-  [012](../012-seam-owner-and-migrations.md), and they build on this.
+  [012](012-seam-owner-and-migrations.md), and they build on this.
 - Changing `wjt.uid()` — that's [011](011-seam-real-ids.md).
 - Any change to the lesson format. `version: 1` stands.
 
