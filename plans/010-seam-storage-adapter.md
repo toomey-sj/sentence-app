@@ -155,14 +155,12 @@ the teacher's actual work and must surface a `STORAGE_WRITE_FAILED` toast.
 - `tools/dom-check.html` reports 0 failed (it boots the real app, so a broken
   store shows up there).
 
-  ⚠️ **As of 2026-07-28 that bar cannot be met**, and not because of anything in
-  this work order: `UI-4` fails on a clean tree and takes the whole run red.
-  [014](014-ui4-dom-check-settle.md) fixes it (a harness bug, ~small). **Land 014
-  first if you can** — the DOM check is one of only two safety nets on the file
-  that holds every teacher's work, and it should be a clean gate for this
-  refactor rather than a count you have to remember. If you go ahead anyway, the
-  bar is **"1 failed, and it is exactly `UI-4`"**; anything else means you broke
-  something, and say which in the commit.
+  ✅ **That bar is clean again as of 2026-07-28.** `UI-4` had been failing on a
+  clean tree and taking the whole run red; [014](done/014-ui4-dom-check-settle.md)
+  fixed it (a harness bug — it measured Present before the wrap had run). The
+  check now reports **328 passed / 0 failed** at all four matrix sizes, so take
+  `0 failed` literally here: the DOM check is one of only two safety nets on the
+  file that holds every teacher's work, and any failure is now yours.
 
 ## Notes
 

@@ -32,8 +32,14 @@ release is ready to tag; the later UI audit supersedes that claim.
 > from 53 to 406 characters. That exposed a latent bug in the *harness*, which has
 > always measured Present before its wrap has run: at 53 characters the unwrapped
 > single line fitted the stage and the check passed anyway. Tasks A–F stand, and
-> the Present shell itself is fine. **[014](014-ui4-dom-check-settle.md) owns the
-> fix** — don't reopen Task B for it.
+> the Present shell itself is fine. **[014](done/014-ui4-dom-check-settle.md) owns
+> the fix** — don't reopen Task B for it.
+>
+> **Resolved (2026-07-28): the automated gate is green again.** 014 landed the
+> harness fix — the Present block now measures one task after each render — and
+> `tools/dom-check.html` reports **328 passed / 0 failed** at all four matrix
+> sizes. Nothing in this order's code changed. The remaining gate is still the
+> **manual** cross-browser matrix, so this order stays `doing`.
 
 ## Table of contents
 

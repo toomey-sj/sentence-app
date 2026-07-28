@@ -97,18 +97,15 @@ Hard-won details, all of which produce a *silent* wrong answer:
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
 A healthy run reports **0 failed** (the stable contract). The pass *count* is an
-implementation detail — it grows as checks are added (currently 327).
+implementation detail — it grows as checks are added (currently 328).
 
-**Known red as of 2026-07-28:** `UI-4` fails at every matrix size — the Present
-breakdown measures as one unwrapped line, overflowing by 5714px. It is **not**
-caused by anything recent: the *check* has always measured Present before its
-wrap has run, and it only started failing when the Declaration of Independence
-examples made the densest example lesson one whose longest sentence is 406
-characters instead of 53. The renderer is fine. Diagnosis, measurements, and the
-fix are [plans/014](plans/014-ui4-dom-check-settle.md). Everything else passes;
-don't take this note as licence to accept any *other* failure — and note that
-`0 failed` is not currently reachable, so a work order asking for it means
-"1 failed, and it is exactly `UI-4`".
+**Nothing is known-red as of 2026-07-28**: all four matrix sizes report 0 failed.
+(`UI-4` was red for weeks; it was a *harness* bug — the check measured the Present
+breakdown in the same task that rendered it, so it read the deliberate pre-wrap
+single-line layout. The renderer was always fine. Fixed in
+[plans/done/014](plans/done/014-ui4-dom-check-settle.md), which is worth reading
+before you add any geometry assertion: **never measure layout in the task that
+rendered it** — `renderSentence()` wraps in a later one.)
 
 Report results honestly. If a check fails, say so with the output; don't
 summarize a red run as done.

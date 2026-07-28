@@ -24,6 +24,10 @@
       the detail panel's resting state for the breakpoint, Key panel focus +
       Escape restore, dot labels, and Practice question focus.
       These need a sized window; pass --window-size=1280,720 (the 720p gate).
+      They run as a chain of one-task-apart steps (runSettled) because the
+      renderer wraps sentences in a task LATER than the one that renders them —
+      measuring geometry in the render's own task reads a deliberate single-line
+      layout and answers the wrong question. See plans/014.
     - Assignment checks (11): drive the real builder view — the route opens the
       right lesson, unavailable skills are disabled with the model's own reason,
       the pool readout matches wjt.assignment.poolSize, Regenerate redraws, and
@@ -253,25 +257,57 @@
       stressHost.parentNode.removeChild(stressHost);
     }
 
+    /* Never measure layout in the same task as the render that produced it.
+     * wjt.renderSentence() lays every sentence out as ONE line on purpose — the
+     * state it can measure from — and re-wraps in a post-render microtask, or
+     * failing that in the ResizeObserver's first callback (js/render.js). Both
+     * are later tasks, so a geometry assertion in the rendering task reads the
+     * deliberate pre-wrap single-line layout. That is what made UI-4 report a
+     * 5714px overflow against a renderer that wraps correctly — and, before the
+     * Declaration examples made the densest lesson's longest sentence 406
+     * characters instead of 53, what let the same wrong measurement *pass* for
+     * months (plans/014). A geometry check here is only as good as the moment it
+     * measures.
+     *
+     * So the view-driving blocks are a chain of steps, each in its own task: a
+     * step asserts against the layout the PREVIOUS step left behind, then makes
+     * its own change at the end. A plain timer is the right yield — rAF is not
+     * reliably serviced under headless virtual time, and a timer is
+     * fast-forwarded inside --virtual-time-budget: the ~900ms of settles below
+     * costs no real time, and the whole run completes inside 1500ms of virtual
+     * time against CI's 5000ms budget. Starving the budget can't pass quietly
+     * either — finish() writes the result block in one go, so a run cut short
+     * leaves it empty and dom-check-report.js exits 1 on that.
+     * finish() runs exactly once, after the last step. */
+    var SETTLE_MS = 100;
+    function runSettled(steps, done) {
+      var i = 0;
+      function tick() {
+        if (i >= steps.length) { done(); return; }
+        var step = steps[i++];
+        try { step.fn(); }
+        catch (e) { check(step.name + " threw: " + e.message, false); }
+        setTimeout(tick, SETTLE_MS);   // settle before the next step measures
+      }
+      setTimeout(tick, SETTLE_MS);     // ...and before the first one, too
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       try { runtimeChecks(); }
       catch (e) { check("runtime checks threw: " + e.message, false); }
       try { buildWrapStress(); }
       catch (e) { check("wrap stress fixture threw: " + e.message, false); }
-      // The Present/Quiz checks (9–10) drive the real views and measure layout,
-      // so they wait for the renderer's reflow to settle before the bounds
-      // assertions. A plain timer (not rAF, which headless virtual-time doesn't
-      // reliably service) is fast-forwarded within --virtual-time-budget.
-      // finish() still runs exactly once, here, after they complete.
-      setTimeout(function () {
-        try { checkWrapStress(); }
-        catch (e) { check("wrap stress check threw: " + e.message, false); }
-        try { presentationChecks(); }
-        catch (e) { check("presentation checks threw: " + e.message, false); }
-        try { assignmentChecks(); }
-        catch (e) { check("assignment checks threw: " + e.message, false); }
-        finish();
-      }, 200);
+      runSettled([
+        { name: "wrap stress check", fn: checkWrapStress },
+        { name: "present render", fn: presentRender },
+        { name: "present clean checks", fn: presentClean },
+        { name: "present breakdown checks", fn: presentBreakdown },
+        { name: "present panel resting checks", fn: presentPanelRest },
+        { name: "present panel open checks", fn: presentPanelOpen },
+        { name: "present teardown checks", fn: presentLeave },
+        { name: "practice checks", fn: practiceChecks },
+        { name: "assignment checks", fn: assignmentChecks },
+      ], finish);
     });
 
     function key(el, opts) {
@@ -386,64 +422,109 @@
         d.scrollWidth <= d.clientWidth + 1 && d.scrollHeight <= d.clientHeight + 1);
     }
 
-    /* -------------------------------------------------------------------- *
-     * Presentation checks (9–10) — the slide-shell contract (UI audit 0.1.0)
-     * against the real Present and Quiz views. These need a sized window; CI and
-     * the documented local recipe pass --window-size=1280,720 (the primary 720p
-     * projector gate). The other matrix sizes are the manual browser pass.
-     * -------------------------------------------------------------------- */
-    function presentationChecks() {
-      // Load the densest built-in example (the intended stress fixture) so the
-      // shell is tested against real annotation density, not a toy sentence.
+    // The built-in example with the most annotations — the intended stress
+    // fixture for the presentation and assignment blocks alike. (Its longest
+    // sentence is 406 characters, which is why UI-4's measuring moment stopped
+    // being forgiving; see runSettled above.)
+    function densestExample() {
       var densest = null, max = -1;
       wjt.EXAMPLES.forEach(function (ex) {
         var l = ex.build(), n = 0;
         l.sentences.forEach(function (s) { n += (s.annotations || []).length; });
         if (n > max) { max = n; densest = l; }
       });
-      wjt.store.save(densest);
-      var id = densest.id;
+      return densest;
+    }
 
-      // 9. Present — clean state. (route() scrolls to top before rendering; we
-      //    call the view directly, so mirror that or leftover scroll from the
-      //    earlier checks offsets every viewport-relative measurement.)
+    /* -------------------------------------------------------------------- *
+     * Presentation checks (9–10) — the slide-shell contract (UI audit 0.1.0)
+     * against the real Present and Quiz views. These need a sized window; CI and
+     * the documented local recipe pass --window-size=1280,720 (the primary 720p
+     * projector gate). The other matrix sizes are the manual browser pass.
+     *
+     * One function per settled step, in the order runSettled() lists them. Each
+     * asserts against the layout the previous step left behind and makes its own
+     * change at the very end, so nothing here measures a render from the same
+     * task. State the steps share lives in the p* vars below.
+     * -------------------------------------------------------------------- */
+    var pLessonId = null, pView = null, pStage = null;
+    var pPanel = null, pPanelTitle = null, pPanelClose = null, pKeyBtn = null;
+    var pPinned = false;
+
+    // Resting panel state: visible-with-hint where pinned, hidden where it's an
+    // overlay. Shared by the resting and post-Escape assertions.
+    function atRest(tag) {
+      check("UI-3: panel is at rest " + tag + " (pinned=" + pPinned + ")",
+        pPinned ? (!pPanel.hidden && pPanelTitle.textContent === "Label details")
+                : pPanel.hidden);
+    }
+    // The slide's own info — counter, type badges, reveal tip — has exactly one
+    // home: the pinned drawer, so the stage is nothing but the sentence; or the
+    // stage itself below that breakpoint, where the panel is hidden while idle
+    // and would swallow it. Never both, never neither.
+    function slideInfoHome(tag) {
+      var inPanel = !!pPanel.querySelector(".slide-counter") && !!pPanel.querySelector(".slide-info");
+      var inStage = !!pStage.querySelector(".slide-counter") && !!pStage.querySelector(".slide-info");
+      check("UI-1: slide info is in the " + (pPinned ? "drawer" : "stage") + " " + tag,
+        pPinned ? (inPanel && !inStage) : (inStage && !inPanel));
+    }
+
+    // 9. Present — render only. Every assertion about this render is in
+    //    presentClean(), one task later, once the renderer's wrap has run.
+    //    (route() scrolls to top before rendering; we call the view directly, so
+    //    mirror that or leftover scroll from the earlier checks offsets every
+    //    viewport-relative measurement.)
+    function presentRender() {
+      var densest = densestExample();
+      wjt.store.save(densest);
+      pLessonId = densest.id;
       window.scrollTo(0, 0);
-      wjt.views.present(app, id);
-      var view = app.querySelector(".view-present");
-      check("UI-1: Present view rendered", !!view);
-      if (!view) return;
+      wjt.views.present(app, pLessonId);
+      pView = app.querySelector(".view-present");
+      check("UI-1: Present view rendered", !!pView);
+    }
+
+    // 9a. Present — clean state, on the settled layout.
+    function presentClean() {
+      if (!pView) return;
       noDocScroll("(clean)");
 
-      var stage = view.querySelector('[data-role="stage"]');
+      pStage = pView.querySelector('[data-role="stage"]');
       check("UI-2: clean sentence reserves no .gl-hidden annotation lanes",
-        stage.querySelectorAll(".gl-hidden").length === 0);
-      check("UI-1: stage is within the viewport", inViewport(stage));
-      check("UI-1: sentence nav is within the viewport", inViewport(view.querySelector(".present-nav")));
+        pStage.querySelectorAll(".gl-hidden").length === 0);
+      check("UI-1: stage is within the viewport", inViewport(pStage));
+      check("UI-1: sentence nav is within the viewport", inViewport(pView.querySelector(".present-nav")));
       // The rail's own bounds passing is not enough: when the RAIL was the
       // scroller, a lesson with enough dots to outgrow it pushed ↓ Next off the
       // bottom, clipped inside a rail that still measured as in-viewport. Only
       // the dot strip scrolls now, so both controls must be fully on screen.
       ["prev", "next"].forEach(function (act) {
-        var b = view.querySelector('[data-act="' + act + '"]');
-        var nav = view.querySelector(".present-nav").getBoundingClientRect();
+        var b = pView.querySelector('[data-act="' + act + '"]');
+        var nav = pView.querySelector(".present-nav").getBoundingClientRect();
         var r = b.getBoundingClientRect();
         check("UI-1: the " + act + " control is not clipped by its rail",
           inViewport(b) && r.top >= nav.top - 1 && r.bottom <= nav.bottom + 1);
       });
-      check("UI-1: reveal controls are within the viewport", inViewport(view.querySelector(".present-controls")));
+      check("UI-1: reveal controls are within the viewport", inViewport(pView.querySelector(".present-controls")));
 
-      var dots = view.querySelectorAll(".dot");
+      var dots = pView.querySelectorAll(".dot");
       var labelled = dots.length > 0;
       Array.prototype.forEach.call(dots, function (d) { if (!d.getAttribute("aria-label")) labelled = false; });
       check("UI-9: every sentence dot has an accessible label", labelled);
       check("UI-9: exactly one dot is aria-current",
-        view.querySelectorAll('.dot[aria-current="true"]').length === 1);
+        pView.querySelectorAll('.dot[aria-current="true"]').length === 1);
 
-      // 9b. Present — breakdown (all layers on) stays bounded and renders marks.
-      view.querySelector('[data-act="all"]').click();
-      stage = view.querySelector('[data-role="stage"]');
+      // Turn every layer on. Crossing the clean->breakdown boundary rebuilds the
+      // sentence, so this is a fresh render: measured in the next step.
+      pView.querySelector('[data-act="all"]').click();
+    }
+
+    // 9b. Present — breakdown (all layers on) stays bounded and renders marks.
+    function presentBreakdown() {
+      if (!pView) return;
+      pStage = pView.querySelector('[data-role="stage"]');
       check("UI-2: breakdown renders annotation marks",
-        stage.querySelectorAll(".gl-bar, .gl-chip").length > 0);
+        pStage.querySelectorAll(".gl-bar, .gl-chip").length > 0);
       noDocScroll("(breakdown, all layers)");
 
       // A span bar's label can be wider than the tokens it covers, which used to
@@ -452,20 +533,21 @@
       // so a long sentence spills onto another line instead of running off.
       // Multi-token lines must not overflow; a lone token can't wrap, so it's
       // exempt (its bar label ellipsizes instead).
-      var runOff = 0, widest = 0;
-      Array.prototype.forEach.call(stage.querySelectorAll(".gl-grid"), function (g) {
+      var runOff = 0, widest = 0, lines = 0;
+      Array.prototype.forEach.call(pStage.querySelectorAll(".gl-grid"), function (g) {
         var over = g.scrollWidth - g.clientWidth;
+        lines++;
         if (over > widest) widest = over;
         if (over > 1 && g.querySelectorAll(".gl-token").length > 1) runOff++;
       });
-      check("UI-4: no wrapped line runs off sideways (worst overflow " + widest + "px)",
-        runOff === 0);
+      check("UI-4: no wrapped line runs off sideways (" + lines +
+        " lines, worst overflow " + widest + "px)", runOff === 0);
       // The stage card, not the page, is the scroller: it stays bounded by the
       // viewport however tall the breakdown gets (noDocScroll above proves the
       // page didn't grow instead). UI-4 stays the guard that an inner scroller
       // can't go back to hiding a sideways run-off.
       check("UI-1: the stage stays bounded by the viewport and owns any overflow",
-        inViewport(stage));
+        inViewport(pStage));
       // ...and "owns" has to mean it actually scrolls. inViewport() alone has no
       // teeth: the shell is overflow:hidden, so a stage that ISN'T a scroll
       // container is clipped by its parent and still passes. It shipped that way
@@ -474,95 +556,96 @@
       // actually try to scroll it when there is something to scroll.
       var shell = window.matchMedia("(min-width: 641px)").matches;
       check("UI-1: the stage is a scroll container in the slide shell (shell=" + shell + ")",
-        (getComputedStyle(stage).overflowY === "auto") === shell);
+        (getComputedStyle(pStage).overflowY === "auto") === shell);
       // Force the overflow case rather than hoping the sample breakdown is taller
       // than this particular window: cap the card and it must become scrollable.
       // This is the check with teeth — with overflow:visible back on .stage the
       // content is clipped by the shell instead and scrollTop stays 0.
-      var capped = stage.style.maxHeight;
-      stage.style.maxHeight = "90px";
-      var canScroll = stage.scrollHeight > stage.clientHeight + 1;
-      stage.scrollTop = 9999;
-      var moved = stage.scrollTop;
-      stage.style.maxHeight = capped;
-      stage.scrollTop = 0;
+      // Capped and restored inside this one task, so no reflow sees the cap.
+      var capped = pStage.style.maxHeight;
+      pStage.style.maxHeight = "90px";
+      var canScroll = pStage.scrollHeight > pStage.clientHeight + 1;
+      pStage.scrollTop = 9999;
+      var moved = pStage.scrollTop;
+      pStage.style.maxHeight = capped;
+      pStage.scrollTop = 0;
       check("UI-1: a capped stage scrolls instead of clipping (scrollTop " + moved + ")",
         !shell || (canScroll && moved > 0));
       // A scroll container that only a mouse can reach fails WCAG 2.1.1, so the
       // stage is focusable and Up/Down fall through to it while it holds focus.
-      check("UI-1: the stage is keyboard-reachable", stage.tabIndex === 0);
+      check("UI-1: the stage is keyboard-reachable", pStage.tabIndex === 0);
       // In the shell the rail buttons are stretched to the track width; .btn is an
       // inline-flex box with no justify-content of its own, so without this the
       // arrow glyph sits against the left edge.
       check("UI-1: rail arrows are centred in their track",
-        !shell || getComputedStyle(view.querySelector('[data-act="prev"]')).justifyContent === "center");
+        !shell || getComputedStyle(pView.querySelector('[data-act="prev"]')).justifyContent === "center");
+    }
 
-      // 9c. The shared detail panel. At >=1025px it is a drawer pinned open on an
-      //     idle hint; below that, an on-demand bottom sheet. Either way the Key
-      //     button fills it inside the viewport and takes focus, and Escape
-      //     dismisses it to its resting state with focus back on the trigger.
-      var pinned = window.matchMedia("(min-width: 1025px)").matches;
-      var keyBtn = view.querySelector('[data-act="key"]');
-      var panel = view.querySelector('[data-role="panel"]');
-      var panelTitle = view.querySelector('[data-role="panel-title"]');
-      var panelClose = view.querySelector('[data-act="panel-close"]');
-      // Resting: visible-with-hint where pinned, hidden where it's an overlay.
-      function atRest(tag) {
-        check("UI-3: panel is at rest " + tag + " (pinned=" + pinned + ")",
-          pinned ? (!panel.hidden && panelTitle.textContent === "Label details")
-                 : panel.hidden);
-      }
+    // 9c. The shared detail panel, at rest. At >=1025px it is a drawer pinned
+    //     open on an idle hint; below that, an on-demand bottom sheet. Either way
+    //     the Key button fills it inside the viewport and takes focus, and Escape
+    //     dismisses it to its resting state with focus back on the trigger.
+    function presentPanelRest() {
+      if (!pView) return;
+      pPinned = window.matchMedia("(min-width: 1025px)").matches;
+      pKeyBtn = pView.querySelector('[data-act="key"]');
+      pPanel = pView.querySelector('[data-role="panel"]');
+      pPanelTitle = pView.querySelector('[data-role="panel-title"]');
+      pPanelClose = pView.querySelector('[data-act="panel-close"]');
       atRest("before any interaction");
       check("UI-3: the panel takes no focus on first render",
-        document.activeElement !== panelTitle);
-      // The slide's own info — counter, type badges, reveal tip — has exactly one
-      // home: the pinned drawer, so the stage is nothing but the sentence; or the
-      // stage itself below that breakpoint, where the panel is hidden while idle
-      // and would swallow it. Never both, never neither.
-      function slideInfoHome(tag) {
-        var inPanel = !!panel.querySelector(".slide-counter") && !!panel.querySelector(".slide-info");
-        var inStage = !!stage.querySelector(".slide-counter") && !!stage.querySelector(".slide-info");
-        check("UI-1: slide info is in the " + (pinned ? "drawer" : "stage") + " " + tag,
-          pinned ? (inPanel && !inStage) : (inStage && !inPanel));
-      }
+        document.activeElement !== pPanelTitle);
       slideInfoHome("at rest");
       // Computed display, not just the property: .btn sets its own display, which
       // beats the UA's [hidden]{display:none} — the ✕ stayed painted until
       // .btn[hidden] was added, and the property alone can't see that.
       check("UI-3: the pinned drawer hides its redundant ✕",
-        (getComputedStyle(panelClose).display === "none") === pinned);
+        (getComputedStyle(pPanelClose).display === "none") === pPinned);
 
-      keyBtn.click();
-      check("UI-3: Key panel is visible when open", !panel.hidden);
-      check("UI-3: open Key panel is within the viewport", inViewport(panel));
+      // Fill the panel; its bounds are measured in the next step, because opening
+      // it changes the shell's layout (and, unpinned, adds a bottom sheet).
+      pKeyBtn.click();
+    }
+
+    // 9c (continued). The open panel, on the settled layout.
+    function presentPanelOpen() {
+      if (!pView) return;
+      check("UI-3: Key panel is visible when open", !pPanel.hidden);
+      check("UI-3: open Key panel is within the viewport", inViewport(pPanel));
       noDocScroll("(Key open)");
       // The counter is a strip above the heading, not part of the swappable body:
       // it is the teacher's place in the passage, so open content must not take it
       // away. (The badges/tip DO get swapped out — that's the point of the drawer.)
       check("UI-3: the counter survives open panel content",
-        pinned ? !!panel.querySelector(".slide-counter") : !!stage.querySelector(".slide-counter"));
-      if (document.activeElement === panelTitle) {
+        pPinned ? !!pPanel.querySelector(".slide-counter") : !!pStage.querySelector(".slide-counter"));
+      if (document.activeElement === pPanelTitle) {
         check("UI-3: opening the Key panel moves focus to its heading", true);
         key(document, { key: "Escape" });
         atRest("after Escape");
         slideInfoHome("after Escape");
-        check("UI-3: closing restores focus to the Key button", document.activeElement === keyBtn);
+        check("UI-3: closing restores focus to the Key button", document.activeElement === pKeyBtn);
       } else {
         check("UI-3: panel focus NOT EXERCISED (headless focus unavailable)", true);
-        keyBtn.click();
+        pKeyBtn.click();
         atRest("after a second Key click");
         slideInfoHome("after a second Key click");
       }
+    }
 
-      // 9d. Route-away removes the shell state and restores document scrolling.
+    // 9d. Route-away removes the shell state and restores document scrolling.
+    function presentLeave() {
+      if (!pView) return;
       wjt.views.library(app);
       check("UI-1: leaving Present removes the .view-present shell",
         !app.querySelector(".view-present"));
       check("UI-1: document scroll restored outside Present",
         getComputedStyle(document.body).overflow !== "hidden");
+    }
 
-      // 10. Practice — a new question render establishes a focus target.
-      wjt.views.quiz(app, id);
+    // 10. Practice — a new question render establishes a focus target.
+    function practiceChecks() {
+      if (!pLessonId) return;
+      wjt.views.quiz(app, pLessonId);
       var startBtn = app.querySelector('[data-act="start"]');
       check("UI-7: Practice setup rendered a Start button", !!startBtn);
       if (startBtn) {
@@ -586,12 +669,7 @@
      * branch is exercised, not just the view function.
      * -------------------------------------------------------------------- */
     function assignmentChecks() {
-      var densest = null, max = -1;
-      wjt.EXAMPLES.forEach(function (ex) {
-        var l = ex.build(), n = 0;
-        l.sentences.forEach(function (s) { n += (s.annotations || []).length; });
-        if (n > max) { max = n; densest = l; }
-      });
+      var densest = densestExample();
       wjt.store.save(densest);
 
       // 11a. The route reaches the builder, on the lesson that was asked for.

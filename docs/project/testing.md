@@ -156,11 +156,33 @@ selection, and the confirm-dialog a11y. It also drives the real **Present** and
 **Quiz** views to assert the slide-shell contract (checks 9–10): no document
 overflow, stage/nav/controls/panel within the viewport, the clean phase reserving
 no hidden lanes, the Key panel opening in-viewport with focus + Escape restore,
-labelled sentence dots, and Practice question focus. (Those checks disable CSS
-animations via a test-only `<style>` so bounds are measured settled, and wait a
-tick for the renderer's reflow.) A healthy run reports **0 failed** and ends with
-`ALL DOM CHECKS PASSED`. The pass *count* is an implementation detail that grows
-as checks are added — don't hard-code it into a green/red judgment.
+labelled sentence dots, and Practice question focus. A healthy run reports
+**0 failed** and ends with `ALL DOM CHECKS PASSED`. The pass *count* is an
+implementation detail that grows as checks are added — don't hard-code it into a
+green/red judgment.
+
+**If you add a check that measures layout, read this first.** Geometry in that
+harness is only as true as the moment it is measured, and the moment is not the
+one you'd expect. Two rules make it honest, and the presentation block uses both:
+
+- **A test-only `<style>` collapses every animation/transition to 0s**, so bounds
+  are the settled ones rather than a mid-`translateY` frame.
+- **Never assert geometry in the same task as the render that produced it.**
+  `wjt.renderSentence()` lays a sentence out as a single line on purpose and
+  re-wraps in a *later* task (a post-render microtask, or the ResizeObserver's
+  first callback). The presentation checks are therefore a chain of steps run one
+  timer apart by `runSettled()`: each step asserts against what the previous step
+  left behind, then makes its own change at the end. Use a plain `setTimeout` for
+  the yield — `requestAnimationFrame` is not reliably serviced under headless
+  virtual time, and a timer is fast-forwarded inside `--virtual-time-budget`.
+
+  This is not a theoretical tidiness rule. `UI-4` measured the pre-wrap layout for
+  its entire life; it *passed* while doing so, because the densest example lesson's
+  longest sentence was 53 characters and fitted on one line anyway, and it went red
+  weeks later when adding the Declaration of Independence examples made that
+  sentence 406 characters. A wrong measurement that happens to agree with the right
+  answer is one fixture away from a false failure — or a false pass. The autopsy is
+  [plans/done/014](../../plans/done/014-ui4-dom-check-settle.md).
 
 ## Manual pass
 

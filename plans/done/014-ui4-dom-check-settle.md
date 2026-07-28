@@ -1,12 +1,57 @@
 ---
-status: todo   # todo | doing | done | superseded
+status: done   # todo | doing | done | superseded
 created: 2026-07-28
 updated: 2026-07-28
 ---
 
 # UI-4 is a harness bug, not a renderer bug — settle the Present checks before measuring
 
-**No dependencies.** It touches [tools/dom-check.html](../tools/dom-check.html)
+> **As built (2026-07-28).** Done, and the diagnosis above held exactly: the only
+> file changed to fix it is [tools/dom-check.html](../../tools/dom-check.html).
+> `js/render.js` is untouched. The DOM check now reports **328 passed / 0 failed**
+> at 1280×720, 1366×768, 1920×1080, and 1024×768, and UI-4 measures **0px worst
+> overflow** across 6–11 wrapped lines (6 at 1920 wide, 11 at 1280) instead of one
+> 5714px line.
+>
+> **What was built.** `presentationChecks()` is gone as a single synchronous
+> function; the block is now seven step functions driven by a small `runSettled()`
+> runner that puts a 100 ms timer between every step. A step asserts against the
+> layout the *previous* step left behind, then makes its own change at the very
+> end. The wrap-stress fixture and the assignment/print block are steps in the same
+> chain, so `finish()` still runs exactly once. `SETTLE_MS` × 9 steps ≈ 900 ms of
+> virtual time, comfortably inside CI's `--virtual-time-budget=5000`.
+>
+> **The audit of the other checks found no second victim, and that is a real
+> result, not a shrug.** Both counts are 328 before and after, with `UI-4` the only
+> line that flipped: `noDocScroll()` (all three calls), `inViewport(stage)`,
+> the nav/controls/rail bounds, `inViewport(panel)` and the capped-stage scroll
+> test all keep the same verdict against the settled layout. That is because they
+> assert *containment* — and the pre-wrap single line is the one-line layout at its
+> **widest and shortest**, so a check asking "does this stay inside the viewport?"
+> is, if anything, harder to pass pre-wrap. UI-4 was the only assertion whose truth
+> needed the wrap to have *happened*. They are converted anyway: the next
+> containment check written here would not have been so lucky, and the fixture that
+> changes the answer is one example lesson away.
+>
+> **Falsification, both ways** (the "a check that can't fail is not a check" bar):
+>
+> | Probe | UI-4 | wrap stress |
+> |---|---|---|
+> | Skip `refineOverflow()` (bar-label track growth unfixed) | **passes** (0px) | **FAILS** — 115px over |
+> | Skip the whole reflow (single line stands) | **FAILS** — 1 line, **5714px** | **FAILS** — 902px over |
+>
+> The second row is the point: UI-4 goes red on exactly the historic number, so the
+> guard still has teeth against the failure it was written for, and the old red was
+> precisely the pre-wrap state. The first row is worth knowing too — against *this*
+> fixture UI-4 does not catch a broken `refineOverflow()`; the purpose-built
+> wrap-stress fixture (640px host, a `Prepositional Phrase` bar over every
+> two-token pair) is what covers that, and it caught it in both probes. Two checks,
+> two different teeth; keep both.
+>
+> **Not done here, deliberately:** nothing about the wrapping algorithm. There was
+> nothing to fix — no real overflow appeared once the measurement moved.
+
+**No dependencies.** It touches [tools/dom-check.html](../../tools/dom-check.html)
 and nothing else; no other open work order modifies that file. But read
 [Relationship to 005](#relationship-to-005) before starting — 005 is `doing`,
 owns the audit item this check is named after, and records a green run that is no
@@ -23,20 +68,20 @@ FAIL  UI-4: no wrapped line runs off sideways (worst overflow 5714px)
 
 That single failure makes `dom-check-report.js` exit 1, which turns the whole
 `rendering layer (headless chrome)` job of
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) red. **CI has therefore
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) red. **CI has therefore
 been red on every commit for weeks**, including docs-only ones, which means the
 suite can no longer tell anyone about a *new* regression — 327 passing checks are
 masked by one that is wrong. That is the real cost, and it is why this is worth
 more than its "cosmetic layout bug" appearance.
 
-[quick-todo item 5](quick-todo.md) wrote this up as *possibly* a renderer bug in
+[quick-todo item 5](../quick-todo.md) wrote this up as *possibly* a renderer bug in
 `computeLines()`/`layoutFitted()`, with a harness artifact as the alternative. It
 is the alternative. **The renderer is correct; the check measures the wrong
 moment — and has done since it was written.**
 
 ### It did not "always fail", and that matters
 
-[005](005-presentation-ui-remediation.md) records the whole DOM check at **0
+[005](../005-presentation-ui-remediation.md) records the whole DOM check at **0
 failed on 2026-07-22**, so something changed. Bisected: green at `60154eb`, red at
 `34452b5`. But `34452b5` only touches CSS, and reverting its diff **does not fix
 it** — checked out that tree with `css/styles.css` restored byte-identical to
@@ -72,7 +117,7 @@ passed / 1 failed. So it is not a slow settle and not flake.
 
 **2. It is already wrong before any layer is toggled.** UI-4 runs after
 `[data-act="all"]`, so the obvious suspect was `setLayers()` — its comment at
-[js/render.js:439-442](../js/render.js#L439-L442) claims line breaks can't move
+[js/render.js:439-442](../../js/render.js#L439-L442) claims line breaks can't move
 because toggling visibility doesn't change token widths, which is *false* for
 `refineOverflow()`, since a span bar's label does grow its grid tracks.
 Measuring both states kills that theory:
@@ -99,14 +144,14 @@ renders. Nothing is being starved.
 
 ## The diagnosis
 
-[`js/render.js:373-375`](../js/render.js#L373-L375) lays every sentence out as
+[`js/render.js:373-375`](../../js/render.js#L373-L375) lays every sentence out as
 **one line on purpose** — "byte-for-byte the legacy layout, and the state we
 measure from once the caller has inserted `root`". The wrap then happens in the
-post-render microtask ([render.js:429-433](../js/render.js#L429-L433)) or, failing
+post-render microtask ([render.js:429-433](../../js/render.js#L429-L433)) or, failing
 that, in the ResizeObserver's first callback.
 
 Both of those are **later tasks**. `presentationChecks()` in
-[tools/dom-check.html](../tools/dom-check.html) renders the Present view and
+[tools/dom-check.html](../../tools/dom-check.html) renders the Present view and
 measures it *in one synchronous run*, never yielding — so every layout assertion
 in it sees the deliberate pre-wrap single-line state. UI-4 is the only check in
 that block whose truth depends on wrapping having happened, so it is the only one
@@ -121,7 +166,7 @@ inside it) — which is exactly the shape UI-4 needs.
 Fix the harness. **Do not change `js/render.js`** — experiments 3 and 4 show the
 renderer produces 0px overflow across 10–13 wrapped lines once its reflow has run.
 
-In [tools/dom-check.html](../tools/dom-check.html):
+In [tools/dom-check.html](../../tools/dom-check.html):
 
 - Give the Present layout assertions a settle, in the style
   `buildWrapStress()`/`checkWrapStress()` already uses: render and drive the view,
@@ -140,12 +185,12 @@ In [tools/dom-check.html](../tools/dom-check.html):
   survive, just against the settled layout.
 
 Then update the **Known red** note and the pass count in
-[CLAUDE.md](../CLAUDE.md), and remove [quick-todo item 5](quick-todo.md) — it now
+[CLAUDE.md](../../CLAUDE.md), and remove [quick-todo item 5](../quick-todo.md) — it now
 points at this file, and once this lands there is nothing left for it to track.
 
 **Leave the caveat blockquotes in
-[plans/done/008](done/008-assignment-phase-2-builder.md) and
-[plans/done/009](done/009-assignment-phase-3-print.md) alone.** They record what
+[plans/done/008](008-assignment-phase-2-builder.md) and
+[plans/done/009](009-assignment-phase-3-print.md) alone.** They record what
 was true when that work shipped, which is the point of an As-built note. Don't
 rewrite history to look tidier than it was.
 
@@ -160,26 +205,26 @@ rewrite history to look tidier than it was.
 
 - `tools/dom-check.html` reports **0 failed** at 1280×720, 1366×768, 1920×1080,
   and 1024×768 — the PowerShell `Start-Process` recipe in
-  [CLAUDE.md](../CLAUDE.md), read with `node tools/dom-check-report.js`, never by
+  [CLAUDE.md](../../CLAUDE.md), read with `node tools/dom-check-report.js`, never by
   grepping the raw dump.
 - The `checks` workflow is **green on GitHub**, not just locally. That is the
   actual point of the work order; verify it on the Actions tab after pushing.
 - UI-4 still fails if the guard is genuinely broken — prove it by reverting the
   `refineOverflow()` call (or forcing the single-line layout) and watching it go
   red. A check that can't fail is not a check.
-- [quick-todo item 5](quick-todo.md) removed, `CLAUDE.md`'s Known-red note
+- [quick-todo item 5](../quick-todo.md) removed, `CLAUDE.md`'s Known-red note
   updated, and the pass count in `CLAUDE.md` refreshed.
 
 ## Relationship to 005
 
-[005 — presentation UI remediation](005-presentation-ui-remediation.md) is
+[005 — presentation UI remediation](../005-presentation-ui-remediation.md) is
 `doing`, and this is its territory in two ways. Neither blocks this work, but
 neither should be discovered halfway through it.
 
 - **`UI-4` is one of 005's audit items, not just a check name.** 005 Task B is
   *"Give Present a real viewport shell (UI-1, UI-4, UI-8)"*, and the check names in
   `presentationChecks()` were taken from
-  [docs/ui-audit-0.1.0.md](../docs/ui-audit-0.1.0.md). So "UI-4" means the audit
+  [docs/ui-audit-0.1.0.md](../../docs/ui-audit-0.1.0.md). So "UI-4" means the audit
   finding in 005 and the assertion in the harness. This work order is about the
   **assertion**; the audit item it guards is remediated and is not being reopened.
 - **005's recorded status is now wrong, and its code work is not the reason.**
@@ -191,10 +236,10 @@ neither should be discovered halfway through it.
   Do that in the same commit as this work, so the two files can't disagree.
 
 Also add 014 to the sequencing table in
-[docs/roadmap-platform.md](../docs/roadmap-platform.md#sequencing) — it was filed
+[docs/roadmap-platform.md](../../docs/roadmap-platform.md#sequencing) — it was filed
 outside that queue and is currently invisible to anyone reading the roadmap as
 the work list. It belongs ahead of step 2, because
-[010](010-seam-storage-adapter.md) refactors the file holding every teacher's
+[010](../010-seam-storage-adapter.md) refactors the file holding every teacher's
 lesson and wants a clean DOM check as its gate.
 
 ## Notes
