@@ -9,24 +9,36 @@ source: plans/proposals/assignment-mode-proposal.md
 
 > ## ⚠️ Read this before pasting anything
 >
-> **Phase 1 is done** (2026-07-28) — `js/assignment-model.js`,
-> `js/assignment-codec.js`, 64 checks in `tools/smoke-test.js`. Do **not** paste
-> Phase 1 into a session; it would rebuild work that exists. Its decisions and an
-> **As built** note are recorded in the proposal.
+> **Phases 1, 2, and 3 are done** (all 2026-07-28) — `js/assignment-model.js`,
+> `js/assignment-codec.js`, the builder and student renderer in
+> `js/assignment.js`, `wjt.assignmentPrint`, and the print block in
+> `css/styles.css`. Do **not** paste those three blocks into a session; they would
+> rebuild work that exists. Their decisions and **As built** notes are in the
+> proposal ([Phase 1](assignment-mode-proposal.md#as-built--phase-1),
+> [2](assignment-mode-proposal.md#as-built--phase-2),
+> [3](assignment-mode-proposal.md#as-built--phase-3)).
 >
-> **Next block to paste: Phase 2.**
+> **Seam S5 has since landed too**
+> ([plans/done/013](../done/013-seam-delivery-channels.md)):
+> `wjt.assignmentChannels` is the one interface all delivery goes through, and the
+> builder already has a Delivery section driven by it.
 >
-> **Phases 4–5 are partly superseded** by
-> [docs/roadmap-platform.md](../../docs/roadmap-platform.md). They treat a URL and
-> a QR code as *the* digital delivery method; decision **P4** makes that one
-> channel among several (file, print, link, later account-delivery), landing
-> behind the **S5** channel interface. Re-scope those two blocks against that
-> document before pasting either — do not paste them as written.
+> **Next block to paste: Phase 4 — but take it from the proposal, not from here.**
+> [Proposal § Phase 4](assignment-mode-proposal.md#phase-4--the-link-channels-student-page)
+> was *rewritten* for S5 and is authoritative; three of the four things the Phase 4
+> block below asks for (versioned encode/decode, the `file:` fallback, size
+> feedback) are **already built**, and pasting that block as written invites a
+> second `location.protocol` check in a view — the exact thing S5 removed. What is
+> genuinely left is the read-only student route and its invalid-payload screen.
+> Phase 5 is likewise rewritten there.
 >
-> Phases 2, 3, and 6 are unaffected. Standing context still applies, with one
-> amendment: constraint 3's `file://` requirement is now a **supported degraded
-> mode** rather than a veto (**P3**) — authoring and printing must still work
-> from a double-clicked `index.html`, which is what these phases already assume.
+> Phase 6 is unaffected. Standing context still applies, with three amendments:
+> constraint 3's `file://` requirement is a **supported degraded mode** rather than
+> a veto (**P3** — a feature that needs HTTP(S) must say so in teacher language,
+> not fail silently); constraint 5's DOM-free list is now **seven** files
+> (`labels`, `tokenize`, `store`, `examples`, `assignment-model`,
+> `assignment-codec`, `assignment-channels`); and the app is thirteen JS files, not
+> nine.
 
 The proposal is the spec. This file is the **prompt**: what to paste into a fresh
 Opus 5 session to get the work done.
@@ -54,7 +66,7 @@ independently testable on purpose. Do not paste two phase blocks at once.
 >   authoritative on *requirements*; file names, wire-format details, and
 >   thresholds are yours to decide.
 > - `CLAUDE.md` — hard constraints and the exact check commands.
-> - `docs/project/architecture.md` — how the nine files fit together.
+> - `docs/project/architecture.md` — how the thirteen files fit together.
 > - `docs/project/dom-structure.md` — the DOM map you will be extending.
 > - `js/tokenize.js` and `js/labels.js` — the token and annotation models every
 >   generated question depends on.
@@ -70,12 +82,18 @@ independently testable on purpose. Do not paste two phase blocks at once.
 > 2. **No network calls of any kind**, including for QR generation. No CDN, no
 >    remote image endpoint, no URL shortener.
 > 3. **No build step, no bundler, no `package.json`, no ES modules.** Classic
->    `<script>` tags under the `wjt` global, in dependency order. The app must
->    still work when a teacher double-clicks `index.html` from `file://`.
+>    `<script>` tags under the `wjt` global, in dependency order. `file://` is a
+>    **supported degraded mode** (P3): authoring, the local library, and printing
+>    must work from a double-clicked `index.html`; a feature that genuinely needs
+>    HTTP(S) may be unavailable there and must **say so in teacher language**
+>    rather than failing silently.
 > 4. Every path relative — absolute paths 404 under GitHub Pages' `/<repo>/`.
-> 5. `labels.js`, `tokenize.js`, `store.js`, `examples.js` stay **DOM-free**, and
->    so does any new codec/generator module: `tools/smoke-test.js` runs them in a
->    bare `vm` sandbox.
+> 5. Seven files stay **DOM-free** — `labels.js`, `tokenize.js`, `store.js`,
+>    `examples.js`, `assignment-model.js`, `assignment-codec.js`,
+>    `assignment-channels.js` — and so does any new codec/generator module:
+>    `tools/smoke-test.js` runs them all in a bare `vm` sandbox, and the three
+>    `assignment-*` files are additionally source-scanned for DOM, storage, and
+>    network references.
 > 6. **Never rename or remove a label id.** Annotations store ids and there is no
 >    server to migrate.
 > 7. **No lesson-format change.** Assignment state is temporary and in-memory;
@@ -164,7 +182,14 @@ independently testable on purpose. Do not paste two phase blocks at once.
 
 ---
 
-## Phase 2 — Builder and preview
+## Phase 2 — Builder and preview ✅ done 2026-07-28
+
+> **Do not paste this block.** Delivered as the builder view in
+> `js/assignment.js` (route `#/assign/<id>`, entry points on the Library card and
+> in the editor header) plus `wjt.assignmentRender.sheet()`. Work order:
+> [plans/done/008](../done/008-assignment-phase-2-builder.md); divergences in
+> [As built — Phase 2](assignment-mode-proposal.md#as-built--phase-2). Kept below
+> for the record only.
 
 > **Goal.** A teacher can reach Assignment mode from a lesson card (and from Edit
 > where it fits), configure an assignment, and see a live preview of exactly what
@@ -197,7 +222,15 @@ independently testable on purpose. Do not paste two phase blocks at once.
 
 ---
 
-## Phase 3 — Print worksheet and answer key
+## Phase 3 — Print worksheet and answer key ✅ done 2026-07-28
+
+> **Do not paste this block.** Delivered as `wjt.assignmentPrint` in
+> `js/assignment.js` (a hidden `#print-root` outside `#app`) and the print block at
+> the end of `css/styles.css`. Work order:
+> [plans/done/009](../done/009-assignment-phase-3-print.md); divergences — the
+> shared `sheetBody()`, no `@page { size }`, and the banner-marked answer key — in
+> [As built — Phase 3](assignment-mode-proposal.md#as-built--phase-3). Kept below
+> for the record only.
 
 > **Goal.** Print a worksheet a student can actually write on, and a teacher
 > answer key that matches it question-for-question.
@@ -230,13 +263,29 @@ independently testable on purpose. Do not paste two phase blocks at once.
 
 ---
 
-## Phase 4 — Student URL ⚠️ re-scope before pasting
+## Phase 4 — Student URL ⛔ superseded — paste the proposal's Phase 4 instead
 
-> **Partly superseded** by [docs/roadmap-platform.md](../../docs/roadmap-platform.md)
-> **P4/S5**: the URL is one delivery channel, not *the* digital one, and belongs
-> behind the channel interface alongside file and print. Everything below about
-> encoding, validation, hostile input, the read-only student route, and the
-> `file:` fallback still stands.
+> **Do not paste this block.** It has been overtaken twice: by **P4/S5**
+> ([roadmap-platform.md](../../docs/roadmap-platform.md)), which makes the URL one
+> channel among peers behind `wjt.assignmentChannels`, and by the code that
+> actually shipped. Three of its four asks are **already built and must not be
+> rebuilt**:
+>
+> - versioned UTF-8-safe encode/decode, limits, and non-throwing errors — Phase 1,
+>   `js/assignment-codec.js`. `KIND_CODES` order *is* the wire format; reordering it
+>   breaks every link already shared.
+> - the `file:` fallback — S5, as `channels.link.available(env)` returning a reason
+>   string the builder displays. **There is one protocol gate; do not add a second.**
+> - size/readability feedback — S5, as `channels.link.report()`.
+>
+> What is left is the read-only student route at `wjt.assignmentCodec.ROUTE` and its
+> invalid-payload screen, then flipping the link channel's `status` from
+> `"planned"` to `"ready"`. Paste
+> [proposal § Phase 4](assignment-mode-proposal.md#phase-4--the-link-channels-student-page)
+> — it is written for that state and carries the compression measurement the
+> decision needs. The paragraphs below on hostile input, escaping, the quiet
+> student page, and never writing to `localStorage` are still exactly right, which
+> is why the block is kept.
 
 > **Goal.** A teacher on an HTTP(S) deployment copies one self-contained URL that
 > opens the same assignment, read-only, on any student device.
@@ -280,13 +329,18 @@ independently testable on purpose. Do not paste two phase blocks at once.
 
 ---
 
-## Phase 5 — QR delivery ⚠️ re-scope before pasting
+## Phase 5 — QR delivery ⛔ superseded — paste the proposal's Phase 5 instead
 
-> **Partly superseded** alongside Phase 4 — QR is a *rendering* of the link
-> channel, so it lands wherever P4/S5 puts that channel. The encoder choice,
-> licensing, size-state behavior, and scan testing below are unchanged. Note the
-> Phase 1 measurements: a typical 10-question assignment is **dense**, not easy to
-> scan, which raises the priority of the compression question in Phase 4.
+> **Do not paste this block as the spec.** QR is a *rendering of the link channel*,
+> not a fourth channel: it encodes exactly what `channels.link.deliver()` returns,
+> and the easy / dense / too-large bands it reacts to are already
+> `channels.link.report().state`. QR work that does its own size arithmetic or its
+> own encode of the assignment is the bug this phase has to avoid, so paste
+> [proposal § Phase 5](assignment-mode-proposal.md#phase-5--qr-delivery). The
+> encoder choice ([Q3](assignment-mode-proposal.md#q3--qr-implementation) —
+> `qrcode-generator`, MIT), licensing, and the real-scan testing below are
+> unchanged and still owed. Note the Phase 1 measurement: a typical 10-question
+> assignment is **dense**, not easy to scan.
 
 > **Goal.** The teacher can put the assignment on the projector or a handout as a
 > QR code that a low-end student phone can actually scan — generated entirely

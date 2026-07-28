@@ -37,9 +37,35 @@ release is ready to tag; the later UI audit supersedes that claim.
 >
 > **Resolved (2026-07-28): the automated gate is green again.** 014 landed the
 > harness fix — the Present block now measures one task after each render — and
-> `tools/dom-check.html` reports **328 passed / 0 failed** at all four matrix
-> sizes. Nothing in this order's code changed. The remaining gate is still the
-> **manual** cross-browser matrix, so this order stays `doing`.
+> `tools/dom-check.html` reports **0 failed** at all four matrix sizes (328 passed
+> when 014 landed; 339 now that S1–S5 have added checks — **0 failed is the
+> contract, the count is not**). Nothing in this order's code changed. The
+> remaining gate is still the **manual** cross-browser matrix, so this order stays
+> `doing`.
+>
+> **Still current, amended 2026-07-28 after the platform seams S1–S5**
+> ([roadmap-platform.md](../docs/roadmap-platform.md)). None of them touched
+> Present, Quiz, or the Present shell, so Tasks A–F and every fixed decision below
+> stand unchanged. Three things moved *around* this order, and only the manual
+> matrix is affected:
+>
+> - **Light theme is not reachable from the UI.** `#theme-toggle` is
+>   `display: none` ([quick-todo](quick-todo.md) item 3 — dark-only for now). Walk
+>   the dark rows; record light as **not verified — toggle hidden** rather than
+>   loosening this order's requirement, and re-walk it if the toggle returns.
+> - **Practice has no entry point.** The Library card, editor header, and Present
+>   header Quiz links are all commented out ([quick-todo](quick-todo.md) item 4),
+>   each with a `quiz hidden for now` comment naming the restore. `#/quiz/<id>`
+>   still routes and the automated UI-7 checks still drive the real Quiz view, so
+>   reach it by typing the hash for the keyboard/transition rows. UI-7 is not
+>   waived by a hidden button.
+> - **The route-away row gains a stop.** Present → Library → Editor →
+>   **Assign** (`#/assign/<id>`, which arrived after this order). The Present shell
+>   turned out to need no route class at all — Task B shipped as
+>   `body:has(.view-present)`, so it self-clears the moment `#app` is replaced —
+>   but the assignment builder mounts a hidden `#print-root` *outside* `#app` and
+>   removes it via `wjt.onViewCleanup`. Confirm ordinary page scroll and the footer
+>   return on that route too. The builder itself is not part of this order's gate.
 
 ## Table of contents
 
@@ -415,13 +441,16 @@ allowing at most a 1px rounding tolerance. Record panel/nav/stage bounding rects
 - Windowed and Fullscreen API modes.
 - 100%, 125%, and 150% browser zoom. At high zoom, an explicit bounded fallback
   is acceptable; disappearing controls/page scroll are not.
-- Dark/light themes, default/CB-safe palettes, and reduced motion.
+- Dark theme, default/CB-safe palettes, and reduced motion. Light theme is
+  currently unreachable (see the amendment above) — record it as **not verified —
+  toggle hidden**.
 - Keyboard only: route entry, reveal controls, sentence navigation, Key,
-  explanation open/close/restore, and Practice question transitions.
+  explanation open/close/restore, and Practice question transitions. Practice has
+  no button now; open `#/quiz/<id>` by hash.
 - Touch: sentence navigation, panel close, and palette choice where hardware is
   available.
-- Route Present → Library → Editor and confirm normal page scrolling and footer
-  return outside Present.
+- Route Present → Library → Editor → Assign and confirm normal page scrolling and
+  footer return outside Present.
 
 Also perform the full lesson loop in `docs/project/testing.md` to ensure the UI
 shell work did not break Edit, Practice, export, or import.

@@ -20,8 +20,9 @@ depends on.
 
 ## Scope
 
-In [`js/editor.js`](../js/editor.js) `openPalette()` (the label list, ~lines
-403–444, plus `labelButton()`):
+In [`js/editor.js`](../js/editor.js) `openPalette()` (currently lines 375–486: the
+per-layer build loop at ~408–449, `labelButton()` at ~387, and the focus
+trap/restore at ~451–486):
 
 - Reveal one layer's groups at a time — layer tabs or an accordion — instead of
   one continuous catalogue, so the picked word stays in view.
@@ -42,8 +43,8 @@ label-id, or lesson-format change.
 - Opening the palette shows one layer's labels at a time with a clear way to
   switch layers; no full-catalogue scroll to reach Clauses.
 - The modal has a labelled Close in the trap order; dialog semantics, Escape,
-  outside-dismiss, and focus restore still pass the dom-check confirm/palette
-  assertions.
+  outside-dismiss, and focus restore keep working — **and are asserted, which they
+  are not today** (see the Notes).
 - `node tools/smoke-test.js` and the browser DOM check report **0 failed**; the
   DOM map ([docs/project/dom-structure.md](../docs/project/dom-structure.md))
   reflects the new palette structure.
@@ -52,3 +53,23 @@ label-id, or lesson-format change.
 
 - Split out of the 005 presentation-UI order (see its "Scope" and the audit's
   UI-6 "As remediated: Deferred" row).
+- **Verified still current 2026-07-28**, after the platform seams
+  ([roadmap-platform.md](../docs/roadmap-platform.md) S1–S5). Nothing in them
+  touches the editor: the palette is still one continuous run of per-layer groups,
+  still has no Close button, and still shows no per-layer counts.
+- **`tools/dom-check.html` does not currently exercise the real palette.** Its
+  four "palette layer …" checks recompute expected group/button counts from
+  `labels.js` helpers — they never call `openPalette()`, so `role="dialog"`,
+  `aria-modal`, the Tab trap, and `prevFocus` restore have **no** coverage today.
+  (`wjt.confirmDialog` does, at check 8 — copy that shape.) Adding those
+  assertions is part of this order, not an existing safety net to lean on.
+- One thing already reduces the 87-label problem and should survive: the
+  Essential-only tier filter (`lesson.essentialOnly` → `wjt.filterTier`) narrows
+  the picker without touching saved annotations. Layer-first navigation composes
+  with it; don't replace it.
+- Follow the assignment builder's control-row pattern rather than inventing one:
+  build each row once and `sync…()` it in place (`is-on` / `aria-pressed` /
+  `disabled` / count badge), never re-render it. Re-rendering a row destroys the
+  button the teacher just clicked and drops focus to `<body>` — see
+  [As built — Phase 2](proposals/assignment-mode-proposal.md#as-built--phase-2).
+  Layer tabs and per-layer counts are exactly that shape.
