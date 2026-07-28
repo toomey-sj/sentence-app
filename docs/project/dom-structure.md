@@ -20,6 +20,8 @@ keeping accurate, because everything visual depends on it.
 - [Editor view](#editor-view)
 - [Present view](#present-view)
 - [Quiz view](#quiz-view)
+- [Assignment view](#assignment-view)
+  — including [the print documents](#the-print-documents-wjtassignmentprint)
 
 ---
 
@@ -40,8 +42,12 @@ body
 ├─ div#toasts[aria-live=polite] ← transient .toast children, added by wjt.toast()
 ├─ footer.appfoot               ← span[data-role=version] (set once at boot, "v" + wjt.VERSION)
 │                                 + a.kofi (the only external link; inline base64 image)
-└─ <script> ×9                  ← load order IS the dependency graph
+└─ <script> ×12                 ← load order IS the dependency graph
 ```
+
+A **print host** (`div#print-root`) is appended to `body` — outside `#app`, like
+the toasts — while the Assignment builder is printing, and removed on
+`afterprint`. See [the print documents](#the-print-documents-wjtassignmentprint).
 
 A **confirm dialog** (`wjt.confirmDialog` in `app.js`) is the app's own
 replacement for the browser `confirm()`. Like the popover and toasts it appends to
@@ -283,7 +289,8 @@ div.view.view-library
 │        ├─ div.lesson-meta          ← "N sentences · M labels"
 │        ├─ div.lesson-layers        ← span.mini-pill per layer
 │        └─ div.btn-row.lesson-actions
-│           ├─ a[href=#/present/ID]  a[href=#/edit/ID]   (a[href=#/quiz/ID] hidden for now)
+│           ├─ a[href=#/present/ID]  a[href=#/assign/ID]  a[href=#/edit/ID]
+│           │                        (a[href=#/quiz/ID] hidden for now)
 │           ├─ span.spacer
 │           └─ button[data-act=export|dup|del]  (.btn-sm; del is .btn-danger)
 └─ section.examples-block[data-role=examples-block]
@@ -306,7 +313,7 @@ div.view.view-editor
 │  │  ├─ a[href=#/library] "← Library"
 │  │  ├─ span.saved-flash "Saved ✓"   ← flashes on save()
 │  │  ├─ span.spacer
-│  │  └─ a #/present · button[data-act=export]   (a #/quiz hidden for now)
+│  │  └─ a #/present · a #/assign · button[data-act=export]   (a #/quiz hidden for now)
 │  ├─ input.title-input[data-role=title]
 │  ├─ input.desc-input[data-role=desc]
 │  ├─ div.layer-toggles[data-role=layers]        ← "Teaching levels:" + pill per layer
@@ -563,3 +570,162 @@ div.view.view-quiz
 
 At ≥80% a transient `div.confetti` (spans of emoji) is appended and removed
 after 4s.
+
+## Assignment view
+
+The worksheet builder at `#/assign/<id>`, built by `wjt.views.assignment` in
+[`js/assignment.js`](../../js/assignment.js). Reached from the Library lesson
+card and the editor header. Two panes: teacher controls on the left, a live
+student preview on the right (one column below 900px).
+
+```
+div.view.view-assignment
+├─ header.present-head            ← reuses Present's header classes
+│  ├─ a "← Library"
+│  ├─ div.present-title  (h2 "📝 Assignment: <lesson>" + p.muted-note)
+│  └─ div.present-actions  (a #/present · a #/edit)
+└─ div.assign-main                ← grid: controls | preview
+   ├─ section.card.assign-controls
+   │  ├─ h3.assign-h "Assignment"
+   │  ├─ label.assign-field  (span.assign-label + input.assign-input[data-role=title])
+   │  ├─ label.assign-field  (span.assign-label + textarea.text-edit[data-role=directions])
+   │  ├─ div.assign-h-row    (h3.assign-h "Sentences" + span.spacer + button[data-act=sent-all])
+   │  ├─ div.layer-chips[data-role=sentences]
+   │  │     └─ button.pill.pill-lg.assign-sent-pill ×sentence
+   │  │        (b.assign-sent-num + span.assign-sent-text snippet; title = full text)
+   │  ├─ h3.assign-h "Skills" + div.layer-chips[data-role=skills]
+   │  │     └─ button.pill.pill-lg ×skill  (+ span.pill-count; [disabled] when the
+   │  │        model reports the skill unavailable for the selected sentences)
+   │  ├─ div.assign-reasons[data-role=reasons]
+   │  │     └─ p.muted-note.assign-reason ×unavailable skill  ← the MODEL's reason string
+   │  ├─ h3.assign-h "How many questions" + div.layer-chips[data-role=count]
+   │  ├─ p.muted-note[data-role=pool]   ← pool size, + span.assign-warn / span.assign-note
+   │  ├─ h3.assign-h "Student supports" + div.layer-toggles[data-role=supports]
+   │  ├─ h3.assign-h "Layout" + div.layer-toggles[data-role=grouping|spacing]
+   │  ├─ h3.assign-h "Print"
+   │  ├─ div.layer-toggles[data-role=colormode]  ← "Ink": Color | Grayscale
+   │  ├─ div.layer-toggles[data-role=keyopts]    ← "Answer key": teaching notes on/off
+   │  ├─ div.btn-row.assign-print-row
+   │  │     └─ button[data-act=print-sheet] · button[data-act=print-key]
+   │  └─ p.muted-note                            ← Save-as-PDF / key-is-separate note
+   └─ section.assign-preview
+      ├─ div.section-head  (h3.section-title + span.spacer + button[data-act=regen])
+      ├─ p.muted-note
+      ├─ p.assign-status[role=status][aria-live=polite][data-role=status]
+      └─ div.card.assign-sheet-host[data-role=sheet]
+         └─ [ article.assign-sheet — see below ]
+```
+
+**Every pill row is built once and then patched.** `syncSentences()`,
+`syncSkills()`, `syncCount()`, `syncSupports()` and the three `radioRow` sync
+functions toggle `.is-on` + `aria-pressed` (and `disabled` + the count badge for
+skills). Re-creating a row per change would destroy the button the teacher just
+clicked and drop keyboard focus to `<body>` on every interaction — the same
+reason Present patches `setLayers()` instead of rebuilding. Only the sheet and
+the two readouts are rebuilt on each change.
+
+Everything under **Print** except colour mode is a print control rather than a
+selection: the teaching-notes toggle changes the answer key only, so it never
+reaches the model and never triggers a rebuild.
+
+### The shared sheet body
+
+Three renderings share one `sheetBody()` — the on-screen preview, the printed
+worksheet, and the printed answer key. That is what makes "all three are
+numbered identically" true by construction; `tools/dom-check.html` compares the
+three prompt lists to keep it that way. The body is the word bank plus the
+passage and questions in the teacher's chosen grouping:
+
+```
+(sheet body)
+├─ section.assign-wordbank            ← only when the word bank is on
+│  ├─ h5.assign-sheet-h "Word bank"
+│  └─ ul.assign-bank > li.assign-bank-item ×N   (answers + 2–3 decoys, alphabetical)
+├─ grouping "passage-first":
+│  ├─ section.assign-passage > div.assign-sentence ×N
+│  └─ div.assign-questions > div.assign-question ×N
+└─ grouping "per-sentence":
+   └─ section.assign-group ×N  (div.assign-sentence + div.assign-questions)
+
+div.assign-sentence
+├─ span.assign-sentence-num  "1."          ← assignment numbering, not lesson position
+└─ span.assign-text > span.assign-token ×token  (sup.assign-tnum when word numbering is on)
+
+div.assign-question[data-q=N]
+├─ div.assign-q-head  (span.assign-q-num "1." + span.assign-q-prompt)
+├─ div.assign-q-mark        ← identify only: its OWN copy of the sentence with the
+│                             target marked, so one question can't answer another.
+│                             The marked run is one strong.assign-mark wrapping
+│                             span.assign-bracket "[", its .assign-token children AND
+│                             the spaces between them, then "]" — one continuous
+│                             underline that can still wrap
+├─ div.assign-lines > div.assign-line ×wjt.assignment.linesFor(q, spacing)
+│                           ← student renderings: handwriting space
+└─ div.print-answer         ← ANSWER KEY ONLY, in place of the ruled lines
+   ├─ span.print-answer-label  "Answer" / "Accepted answers"
+   ├─ ul.print-accepted > li.print-accepted-item ×accepted
+   ├─ span.print-source        "Noun (Parts of Speech)"
+   └─ p.print-note             ← only when the print controls enable teaching notes
+```
+
+The mark is **square brackets + bold + underline** — literal text and weight, so
+it survives grayscale printing, photocopying, and a stylesheet that never loads.
+Color is decoration on top, never the signal.
+
+`.print-answer` is the **one** branch of the shared body that renders key
+material, and it is reached only when `sheetBody()` is passed an answers map —
+which only `wjt.assignmentPrint.answerKey()` does. Every student-facing caller
+passes `null`, so the leak surface is one argument wide.
+
+### The preview sheet (`wjt.assignmentRender.sheet`)
+
+The on-screen preview, built **only** from the `assignment` half of
+`wjt.assignment.build()`. The `key` half never reaches this DOM;
+`tools/dom-check.html` asserts it by searching the rendered text for the key's
+own `source`/`note` strings.
+
+```
+article.assign-sheet
+├─ h4.assign-sheet-title
+├─ p.assign-sheet-directions          ← only when directions are set
+└─ [ shared sheet body — see above ]
+```
+
+### The print documents (`wjt.assignmentPrint`)
+
+Purpose-built documents, **not** the app UI with its chrome hidden. The builder
+mounts one into a `div#print-root` appended to `<body>` and sets
+`data-print="worksheet"|"key"` on `<html>`; `#print-root` is `display: none` at
+all times on screen, and `@media print` hides `body > :not(#print-root)`.
+`afterprint` removes the host, clears the attribute, and restores
+`document.title`. Nothing rebuilds, so the seed survives and a reprint is the
+same sheet.
+
+```
+div#print-root                        ← created and removed by wjt.assignmentPrint
+└─ article.print-doc.print-worksheet[data-color-mode=color|grayscale]
+   ├─ header.print-head
+   │  ├─ h1.print-title
+   │  ├─ div.print-fields             ← WORKSHEET ONLY
+   │  │     └─ span.print-field ×3    (span.print-field-label + span.print-rule)
+   │  │        Name · Class · Date — ruled lines on paper, never inputs
+   │  └─ p.print-directions           ← only when directions are set
+   ├─ div.assign-sheet.print-body     ← [ shared sheet body ]
+   └─ footer.print-foot  "Created with Sentence Forge"
+
+div#print-root
+└─ article.print-doc.print-key[data-color-mode=…]
+   ├─ div.print-banner  "Teacher Answer Key — Do Not Distribute"
+   ├─ header.print-head               ← same, minus .print-fields
+   ├─ div.assign-sheet.print-body     ← [ shared sheet body, with .print-answer ]
+   └─ footer.print-foot  "Teacher Answer Key — Do Not Distribute · Created with…"
+```
+
+`data-color-mode` drives one CSS rule: grayscale sends the print accent to
+black. Nothing is lost, because every cue on the sheet is already a bracket, a
+weight, or a border — the print stylesheet **never** relies on background-color
+printing being enabled.
+
+`beforeprint` on the builder mounts the worksheet when nothing is mounted yet,
+so a teacher who reaches for Ctrl+P gets the worksheet rather than a screenshot
+of the app.

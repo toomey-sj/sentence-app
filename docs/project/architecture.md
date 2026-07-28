@@ -1,6 +1,6 @@
 # Architecture
 
-Sentence Forge is ~3,300 lines of plain ES5-flavored JavaScript in nine files, no
+Sentence Forge is ~7,700 lines of plain ES5-flavored JavaScript in twelve files, no
 dependencies, no build step. This document explains the shape of it and the
 handful of decisions that everything else follows from.
 
@@ -47,17 +47,20 @@ Load order matters — each file only depends on the ones above it.
 
 | File | Lines | Responsibility |
 |---|---:|---|
-| `index.html` | 29 | The whole app shell: nav, `#app` mount, `#toasts`, nine script tags. |
+| `index.html` | 38 | The whole app shell: nav, `#app` mount, `#toasts`, twelve script tags. |
 | `css/styles.css` | — | Design system, both themes, driven by CSS custom properties on `:root[data-theme]`. |
-| `js/labels.js` | 640 | **The taxonomy.** `wjt.LAYERS`, `wjt.LABELS`, `wjt.SENTENCE_TYPES`, and the helpers over them. Zero DOM. |
+| `js/labels.js` | 767 | **The taxonomy.** `wjt.LAYERS`, `wjt.LABELS`, `wjt.SENTENCE_TYPES`, and the helpers over them. Zero DOM. |
 | `js/tokenize.js` | 78 | Sentence splitting, tokenizing, and span↔token conversion. Zero DOM. |
-| `js/store.js` | 324 | Lesson model, `localStorage` persistence, JSON import/export, the built-in sample lesson. Nearly zero DOM. |
-| `js/examples.js` | 636 | The seven example lessons, each as a `build()` that returns a lesson object. |
-| `js/render.js` | 307 | The shared sentence renderer: one grid per sentence, POS chips above, span bars below. Plus the label popover. |
-| `js/editor.js` | 434 | ✎ Edit view — selection, the drill-down palette, notes, sentence type chips, merge/delete. |
-| `js/display.js` | 194 | ▶ Present view — one sentence at a time, layer toggles, keyboard nav. |
-| `js/quiz.js` | 430 | 🎯 Practice view — question generation, distractor choice, scoring, results. |
-| `js/app.js` | 207 | Hash routing, the library view, import, theme, toasts, first-run seeding. |
+| `js/store.js` | 457 | Lesson model, `localStorage` persistence, JSON import/export, the built-in sample lesson. Nearly zero DOM. |
+| `js/examples.js` | 1,776 | The seven example lessons, each as a `build()` that returns a lesson object. |
+| `js/assignment-model.js` | 583 | Assignment question pool, balanced seeded selection, and the separate answer key. Zero DOM. |
+| `js/assignment-codec.js` | 423 | Compact student-safe wire map, base64url, validation, and URL size states. Zero DOM. |
+| `js/assignment.js` | 769 | 📝 Assignment builder view, `wjt.assignmentRender` (the student-safe sheet), and `wjt.assignmentPrint` (the printed worksheet and teacher answer key). |
+| `js/render.js` | 860 | The shared sentence renderer: one grid per sentence, POS chips above, span bars below. Plus the label popover. |
+| `js/editor.js` | 523 | ✎ Edit view — selection, the drill-down palette, notes, sentence type chips, merge/delete. |
+| `js/display.js` | 494 | ▶ Present view — one sentence at a time, layer toggles, keyboard nav. |
+| `js/quiz.js` | 461 | 🎯 Practice view — question generation, distractor choice, scoring, results. |
+| `js/app.js` | 486 | Hash routing, the library view, import, theme, toasts, first-run seeding. |
 
 `tools/` is **not shipped** — it holds the two check suites, the doc generator,
 and a lesson validator. `samples/` is documentation and hand-off material, not app input:
@@ -81,9 +84,10 @@ There is no module system and no dependency injection — the load order in
 `index.html` *is* the dependency graph.
 
 This is also what makes the headless checks possible: `tools/smoke-test.js`
-`vm.runInContext`s `labels.js`, `tokenize.js`, `store.js`, and `examples.js` into
-a sandbox with a fake `localStorage` and gets the whole logic layer with no DOM.
-**Keep DOM access out of those four files** or you break the smoke test.
+`vm.runInContext`s `labels.js`, `tokenize.js`, `store.js`, `examples.js`,
+`assignment-model.js`, and `assignment-codec.js` into a sandbox with a fake
+`localStorage` and gets the whole logic layer with no DOM.
+**Keep DOM access out of those six files** or you break the smoke test.
 
 ## The data model
 
@@ -204,7 +208,7 @@ classes, the `data-*` and `--c` conventions — and the DOM of every view, see
 
 ## Routing and views
 
-`app.js` owns a hash router with four routes:
+`app.js` owns a hash router with five routes:
 
 | Hash | View |
 |---|---|
@@ -212,6 +216,7 @@ classes, the `data-*` and `--c` conventions — and the DOM of every view, see
 | `#/edit/<id>` | `wjt.views.editor` |
 | `#/present/<id>` | `wjt.views.present` |
 | `#/quiz/<id>` | `wjt.views.quiz` |
+| `#/assign/<id>` | `wjt.views.assignment` |
 
 Each view **replaces `#app` wholesale**. Any view that attaches a document-level
 listener or a timer must register teardown with `wjt.onViewCleanup(fn)`; the

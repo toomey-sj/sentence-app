@@ -7,9 +7,16 @@ target: 1.0.0
 
 # Assignment mode — printable worksheets or private, read-only URL delivery
 
-> **2026-07-28 — Phase 1 delivered, and delivery is being generalized.**
-> Phase 1 (model, generator, wire codec) is built; see
-> [Phase 1 decisions](#phase-1-decisions) and [As built — Phase 1](#as-built--phase-1).
+> **2026-07-28 — Phases 1–3 delivered, and delivery is being generalized.**
+> Phase 1 (model, generator, wire codec), Phase 2 (builder view, route, live
+> preview), and Phase 3 (print worksheet and teacher answer key) are built; see
+> [Phase 1 decisions](#phase-1-decisions), [As built — Phase 1](#as-built--phase-1),
+> [As built — Phase 2](#as-built--phase-2), and
+> [As built — Phase 3](#as-built--phase-3).
+>
+> With Phase 3 in, the entire Edit → Present → Assign → Print loop works with no
+> network at all — which is the whole point of landing print before anything that
+> needs one.
 >
 > This document treats a URL and QR code as *the* digital delivery method.
 > [docs/roadmap-platform.md](../../docs/roadmap-platform.md) **P4** makes that one
@@ -881,3 +888,109 @@ What the implementation revealed, beyond the decisions above.
   into "easy to scan"; nothing else on the table would. Phase 4 should evaluate
   it with these measurements in hand rather than shrinking the schema.
 
+## As built — Phase 2
+
+The builder view (`js/assignment.js`, route `#/assign/<id>`, entry points on the
+Library lesson card and in the editor header). What the implementation decided
+beyond the work order:
+
+- **The student renderer is a separate export in the same file.**
+  `wjt.assignmentRender.sheet(assignment)` builds the worksheet DOM; the builder
+  view only places it. That seam exists now rather than in Phase 3 because the
+  print worksheet must share this numbering — the alternative was copying it and
+  then fixing it twice. It takes the `assignment` half only, so "the preview
+  contains no key material" is a property of one small function instead of a
+  property of the whole view. Phase 3 can lift it into `js/assignment-render.js`
+  or call it where it is; nothing in the view depends on which.
+- **Control rows are built once and patched, never re-rendered.** Rebuilding a
+  pill row on every change destroys the button the teacher just clicked and drops
+  keyboard focus to `<body>`. Each row gets a `sync…()` that toggles `is-on` /
+  `aria-pressed` (plus `disabled` and the count badge for skills). Only the sheet
+  and the two readouts are rebuilt.
+- **"At least one" is enforced on both sentences and skills**, with a toast. The
+  model reads an *empty* `sentences`/`skills` list as "all", so an empty
+  selection would silently mean the opposite of what the teacher just did. That
+  state is simply unreachable in the UI.
+- **Deselecting sentences prunes stranded skills.** A skill with nothing left to
+  ask about is dropped from the selection (and disabled, showing the model's own
+  reason). If pruning would empty the list it falls back to whatever is still
+  available — never to `[]`, for the reason above.
+- **Title and directions commit on `change`, not `input`.** They affect nothing
+  but the sheet header, and `build()` re-pools the lesson — 745 questions on the
+  Declaration — so a rebuild per keystroke was not worth it. This also matches
+  how the editor's own title/description fields behave.
+- **A lesson with no labels and no sentence types gets an empty state**, not an
+  empty builder: the header plus "Label a few sentences in the editor and come
+  back", with a link to it. Same shape as Practice's.
+- **Two readouts beyond the required pool size.** "All" states the number it
+  means (the Phase 1 note's point), and *n* selected sentences with no questions
+  are counted next to the pool — the Q2 note's payload-weight lever, useful now
+  because it also shortens the printed sheet. Neither drops a sentence
+  automatically; the passage is reading context and both delivery methods must
+  render the same thing.
+- **Print color mode is not a control here.** `colorMode` exists in the model but
+  every other control in the builder changes what the *student* sees; this one
+  changes what the printer does. It belongs with the rest of the print controls
+  in Phase 3, where it can be seen working.
+- **Word numbers are 1-based on paper.** The wire mark is a 0-based token range;
+  `sup.assign-tnum` prints `i + 1`. Nothing in a prompt cites a number yet, so
+  this is currently cosmetic — but it is the numbering a "write the word range
+  1–3" prompt would have to use.
+
+
+## As built — Phase 3
+
+The two print surfaces (`wjt.assignmentPrint` in `js/assignment.js`, the print
+block at the end of `css/styles.css`, print controls in the builder). What the
+implementation decided beyond the work order:
+
+- **One shared body, three renderings.** Phase 2 split
+  `wjt.assignmentRender.sheet()` out so the worksheet could share its numbering;
+  Phase 3 pushed the split one level deeper into a private `sheetBody()` that the
+  preview, the worksheet, **and the answer key** all call. "Preview, worksheet,
+  and key are numbered identically" is therefore true by construction rather than
+  by care, and `tools/dom-check.html` compares all three prompt lists to keep it
+  that way. The key is the same body with an `answers` map passed in, which turns
+  each question's ruled lines into its accepted answers — so the **entire** leak
+  surface is one argument on one function. Every student-facing caller passes
+  `null`.
+- **The print document lives in `#print-root`, outside `#app`.** Mounted at print
+  time, `display:none` on screen at all times, removed on `afterprint`, and also
+  removed by `wjt.onViewCleanup` in case `afterprint` never fires (iOS Safari).
+  Nothing rebuilds, so the seed survives and a reprint is the same sheet — the
+  work order's actual requirement. A new window would have been the other option
+  and is worse under `file://` and popup blockers.
+- **No `@page { size }`, on purpose.** Fixing `size: letter` makes an A4 printer
+  scale or clip; declaring only `margin: 0.6in` and letting the print dialog pick
+  the paper is what makes "Letter first, don't break A4" true. Verified both:
+  MediaBox `612 × 792` pt and `595 × 842` pt, same content, nothing clipped.
+- **Print recolors by redefining the theme variables on `.print-doc`**, not rule
+  by rule. The dark theme's `--muted` (`#9aa3bd`) and `--line` (`#2b3149`) are
+  near-invisible on white paper, and the sheet classes are shared with the
+  preview, so one block of variable overrides fixes every one of them at once.
+  `data-color-mode="grayscale"` is then a two-property rule: the accents go to
+  `#000`. Probed computed styles to confirm — text `rgb(0,0,0)`, every background
+  `rgba(0,0,0,0)`.
+- **The answer key is banner-marked, not per-page-marked, and that is a
+  deliberate downgrade.** A repeated print header needs either a `position:fixed`
+  running head — which every engine that repeats it also overlaps the body with
+  from page 2 — or wrapping the document in a `<table><thead>`. Neither is
+  reliable enough to bet a "do not distribute" on, so the key takes the work
+  order's stated fallback: an unmissable boxed banner at the top. What *does*
+  repeat per page is `document.title`, which the driver sets to
+  `"<title> — Answer Key"` while printing (Chrome/Edge and Firefox print it in
+  the page header when headers are on, and it names the Save-as-PDF file).
+- **Block flow in print, not the preview's flex column.** `break-inside: avoid`
+  on a question is what keeps a prompt with its answer space. Measured rather
+  than assumed: a stress fixture of 0.6-page-tall questions pages one-per-page
+  with the rule and 1.6-per-page without it, so Blink honours it — and it honours
+  it on the flex column too. Blocks are kept anyway because flex fragmentation is
+  the weaker path in other engines and nothing here needs flex.
+- **Ctrl+P on the builder prints the worksheet.** A `beforeprint` listener mounts
+  it when nothing is mounted yet. Without this, the most obvious way to reach for
+  a printer produces a dark-theme screenshot of the builder. It never replaces a
+  document already on its way to print, because both buttons mount before opening
+  the dialog.
+- **Name/Class/Date are on the worksheet only.** They are ruled lines for a
+  student's pen; the key has no use for them, and their absence is one more thing
+  that distinguishes the two sheets at a glance.

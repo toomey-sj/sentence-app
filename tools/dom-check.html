@@ -24,6 +24,15 @@
       the detail panel's resting state for the breakpoint, Key panel focus +
       Escape restore, dot labels, and Practice question focus.
       These need a sized window; pass --window-size=1280,720 (the 720p gate).
+    - Assignment checks (11): drive the real builder view — the route opens the
+      right lesson, unavailable skills are disabled with the model's own reason,
+      the pool readout matches wjt.assignment.poolSize, Regenerate redraws, and
+      the student preview carries no answer-key material.
+    - Print checks (12): click the real Print buttons with window.print() stubbed
+      — the worksheet mounts a purpose-built document with no app chrome, no
+      answer-key material and no lesson id, the answer key is marked and fully
+      answered, all three renderings agree on numbering, and `afterprint` puts
+      the builder back untouched.
 
   Run it (the Git-Bash `>` redirect returns an EMPTY dump for this GUI process —
   use PowerShell Start-Process, which waits for the child and captures stdout):
@@ -61,6 +70,9 @@
   <script src="../js/tokenize.js"></script>
   <script src="../js/store.js"></script>
   <script src="../js/examples.js"></script>
+  <script src="../js/assignment-model.js"></script>
+  <script src="../js/assignment-codec.js"></script>
+  <script src="../js/assignment.js"></script>
   <script src="../js/render.js"></script>
   <script src="../js/editor.js"></script>
   <script src="../js/display.js"></script>
@@ -256,6 +268,8 @@
         catch (e) { check("wrap stress check threw: " + e.message, false); }
         try { presentationChecks(); }
         catch (e) { check("presentation checks threw: " + e.message, false); }
+        try { assignmentChecks(); }
+        catch (e) { check("assignment checks threw: " + e.message, false); }
         finish();
       }, 200);
     });
@@ -563,6 +577,224 @@
               prompt.getAttribute("tabindex") === "-1");
           }
         }
+      }
+    }
+
+    /* -------------------------------------------------------------------- *
+     * Assignment checks (11) — the real builder view behind the real route.
+     * Routing goes through location.hash + wjt.rerender() so the app.js route
+     * branch is exercised, not just the view function.
+     * -------------------------------------------------------------------- */
+    function assignmentChecks() {
+      var densest = null, max = -1;
+      wjt.EXAMPLES.forEach(function (ex) {
+        var l = ex.build(), n = 0;
+        l.sentences.forEach(function (s) { n += (s.annotations || []).length; });
+        if (n > max) { max = n; densest = l; }
+      });
+      wjt.store.save(densest);
+
+      // 11a. The route reaches the builder, on the lesson that was asked for.
+      location.hash = "#/assign/" + densest.id;
+      wjt.rerender();
+      var view = app.querySelector(".view-assignment");
+      check("A-1: #/assign/<id> renders the assignment builder", !!view);
+      if (!view) return;
+      check("A-1: the builder opened the lesson from the route",
+        (view.querySelector("h2").textContent || "").indexOf(densest.title) !== -1);
+
+      // 11b. The pool readout is the model's number, not a view-side estimate,
+      //      and the default draw is DEFAULT_COUNT questions numbered 1..N.
+      var pool = wjt.assignment.poolSize(densest, null, null);
+      var status = view.querySelector('[data-role="status"]').textContent || "";
+      check("A-2: the builder reports the model's real pool (" + pool + ")",
+        status.indexOf("pool of " + pool) !== -1);
+      var qs = view.querySelectorAll(".assign-question");
+      check("A-2: the preview draws the default question count (" +
+        qs.length + "/" + wjt.assignment.DEFAULT_COUNT + ")",
+        qs.length === Math.min(pool, wjt.assignment.DEFAULT_COUNT));
+      var numbered = qs.length > 0;
+      Array.prototype.forEach.call(qs, function (q, i) {
+        if (q.querySelector(".assign-q-num").textContent !== (i + 1) + ".") numbered = false;
+      });
+      check("A-2: preview questions are numbered 1..N in order", numbered);
+
+      // 11c. No answer-key material in the student preview. This tests the KEY's
+      //      own strings — `source` ("Noun (Parts of Speech)") and teacher notes —
+      //      rather than bare label names, because a `find` prompt legitimately
+      //      names the label it asks for, and answer text legitimately appears in
+      //      the passage. Built with count:"all" so it covers every question the
+      //      view could have drawn under any seed.
+      var sheet = view.querySelector(".assign-sheet");
+      var text = sheet ? sheet.textContent : "";
+      var leaked = "";
+      wjt.assignment.build(densest, { count: "all" }).key.answers.forEach(function (a) {
+        if (!leaked && text.indexOf(a.source) !== -1) leaked = a.source;
+        if (!leaked && a.note && text.indexOf(a.note) !== -1) leaked = a.note;
+      });
+      check("A-3: the student preview carries no answer-key material" +
+        (leaked ? " (leaked “" + leaked + "”)" : ""), !leaked);
+      check("A-3: the student preview has no answer inputs",
+        !!sheet && sheet.querySelectorAll("input, textarea, select, button").length === 0);
+
+      // 11d. Regenerate redraws without disturbing the numbering contract.
+      view.querySelector('[data-act="regen"]').click();
+      var after = view.querySelectorAll(".assign-question");
+      var stillNumbered = after.length === qs.length;
+      Array.prototype.forEach.call(after, function (q, i) {
+        if (q.querySelector(".assign-q-num").textContent !== (i + 1) + ".") stillNumbered = false;
+      });
+      check("A-4: Regenerate redraws the same count, still numbered 1..N", stillNumbered);
+
+      // 12. Print, on this same (densest) lesson and this same builder state.
+      try { printChecks(view, densest); }
+      catch (e) {
+        check("print checks threw: " + e.message, false);
+        try { wjt.assignmentPrint.clear(); } catch (e2) { /* teardown is best-effort */ }
+      }
+
+      // 11e. A lesson that can only support one skill disables the rest — with
+      //      the model's own reason text, not an invented one.
+      var thin = wjt.store.create("Assignment check — POS only");
+      thin.sentences = [{
+        id: wjt.uid(), text: "The curious fox darted across the frozen river.",
+        annotations: [{ id: wjt.uid(), start: 4, end: 11, label: "adjective", note: "" }],
+        types: {},
+      }];
+      wjt.store.save(thin);
+      location.hash = "#/assign/" + thin.id;
+      wjt.rerender();
+      var thinView = app.querySelector(".view-assignment");
+      check("A-5: the builder opened the single-skill lesson", !!thinView);
+      if (!thinView) return;
+      check("A-5: skills with nothing to ask about are disabled",
+        thinView.querySelectorAll('[data-role="skills"] .pill:disabled').length > 0);
+      var reason = "";
+      wjt.assignment.availableSkills(thin, null).forEach(function (s) {
+        if (!s.available && !reason) reason = s.reason;
+      });
+      var shown = thinView.querySelector('[data-role="reasons"]').textContent || "";
+      check("A-5: the disabled skill shows the model's own reason (“" + reason + "”)",
+        !!reason && shown.indexOf(reason) !== -1);
+    }
+
+    /* -------------------------------------------------------------------- *
+     * Print checks (12) — the two print surfaces, driven through the real
+     * builder buttons. window.print is stubbed (a headless print dialog would
+     * hang), so `afterprint` is dispatched by hand to cover the teardown.
+     *
+     * The leak assertion here is the whole point of the phase: a print path
+     * that carries the answer key into the student worksheet is the most
+     * plausible way to break the no-answers promise by accident, so it is a
+     * tested invariant rather than prose.
+     * -------------------------------------------------------------------- */
+
+    // The numbered prompts of a rendering, in document order. Preview,
+    // worksheet, and answer key must produce identical lists.
+    function questionSignature(host) {
+      var out = [];
+      Array.prototype.forEach.call(host.querySelectorAll(".assign-question"), function (q) {
+        out.push((q.querySelector(".assign-q-num").textContent || "") + " " +
+          (q.querySelector(".assign-q-prompt").textContent || ""));
+      });
+      return out.join(" | ");
+    }
+
+    function printChecks(view, lesson) {
+      var realPrint = window.print, printed = 0;
+      window.print = function () { printed++; };
+      try {
+        var preview = questionSignature(view.querySelector(".assign-sheet"));
+
+        // 12a. The worksheet mounts a purpose-built document, not the app.
+        view.querySelector('[data-act="print-sheet"]').click();
+        var root = document.getElementById("print-root");
+        check("P-1: Print worksheet mounts #print-root and calls window.print()",
+          !!root && printed === 1);
+        if (!root) return;
+        check("P-1: the page is flagged as printing the worksheet",
+          document.documentElement.getAttribute("data-print") === "worksheet");
+        var sheet = root.querySelector(".print-worksheet");
+        check("P-1: the worksheet has a title, Name/Class/Date fields, and a footer",
+          !!sheet && !!sheet.querySelector(".print-title") &&
+          sheet.querySelectorAll(".print-fields .print-rule").length === 3 &&
+          (sheet.querySelector(".print-foot").textContent || "")
+            .indexOf("Created with Sentence Forge") !== -1);
+        check("P-1: the worksheet carries no app chrome, controls, or inputs",
+          !!sheet && sheet.querySelectorAll(
+            "input, textarea, select, button, nav, .btn, .pill, [data-act]").length === 0);
+
+        // 12b. No answer-bearing material in the student print DOM. Same basis
+        //      as A-3: the KEY's own strings, not bare label names, because a
+        //      `find` prompt legitimately names the label it asks for.
+        var wsText = sheet ? sheet.textContent : "";
+        var leaked = "";
+        wjt.assignment.build(lesson, { count: "all" }).key.answers.forEach(function (a) {
+          if (!leaked && wsText.indexOf(a.source) !== -1) leaked = a.source;
+          if (!leaked && a.note && wsText.indexOf(a.note) !== -1) leaked = a.note;
+        });
+        check("P-2: the printed worksheet carries no answer-key material" +
+          (leaked ? " (leaked “" + leaked + "”)" : ""), !leaked);
+        check("P-2: the printed worksheet has no answer-key markings",
+          wsText.indexOf(wjt.assignmentPrint.KEY_BANNER) === -1 &&
+          !sheet.querySelector(".print-answer, .print-accepted, .print-source"));
+        check("P-2: the printed worksheet does not carry the lesson id",
+          wsText.indexOf(lesson.id) === -1 && !sheet.querySelector("[href]"));
+        var worksheetSig = questionSignature(sheet);
+        check("P-3: worksheet numbering matches the builder preview",
+          !!worksheetSig && worksheetSig === preview);
+
+        // 12c. afterprint puts the page back, without touching builder state.
+        var titleWhilePrinting = document.title;
+        window.dispatchEvent(new Event("afterprint"));
+        check("P-4: afterprint removes #print-root and clears the print flag",
+          !document.getElementById("print-root") &&
+          !document.documentElement.hasAttribute("data-print"));
+        check("P-4: document.title is used for the print, then restored",
+          titleWhilePrinting !== document.title);
+        check("P-4: the builder survives the print with its questions unchanged",
+          questionSignature(view.querySelector(".assign-sheet")) === preview);
+
+        // 12d. The answer key: same numbering, marked, and actually answered.
+        view.querySelector('[data-act="print-key"]').click();
+        var keyRoot = document.getElementById("print-root");
+        var keyDoc = keyRoot && keyRoot.querySelector(".print-key");
+        check("P-5: Print answer key mounts a key document", !!keyDoc && printed === 2);
+        if (!keyDoc) return;
+        check("P-5: the key is marked “" + wjt.assignmentPrint.KEY_BANNER + "”",
+          (keyDoc.querySelector(".print-banner").textContent || "")
+            .indexOf(wjt.assignmentPrint.KEY_BANNER) !== -1 &&
+          document.title.indexOf("Answer Key") !== -1);
+        check("P-5: the key has no student writing space or Name/Date fields",
+          keyDoc.querySelectorAll(".assign-line, .print-fields").length === 0);
+
+        var keyQs = keyDoc.querySelectorAll(".assign-question");
+        var answered = keyQs.length > 0;
+        Array.prototype.forEach.call(keyQs, function (q) {
+          var block = q.querySelector(".print-answer");
+          if (!block || !block.querySelector(".print-source") ||
+              !block.querySelectorAll(".print-accepted-item").length) answered = false;
+          Array.prototype.forEach.call(block ? block.querySelectorAll(".print-accepted-item") : [],
+            function (li) { if (!(li.textContent || "").trim()) answered = false; });
+        });
+        check("P-6: every key question carries accepted answers and its source (" +
+          keyQs.length + " questions)", answered);
+        check("P-6: answer-key numbering matches the worksheet and the preview",
+          questionSignature(keyDoc) === worksheetSig);
+
+        // 12e. Ctrl+P from the builder prints the worksheet, not the app — and
+        //      never replaces a document that is already on its way to print.
+        check("P-7: beforeprint leaves an already-mounted key document alone",
+          (window.dispatchEvent(new Event("beforeprint")), true) &&
+          !!document.querySelector("#print-root .print-key"));
+        wjt.assignmentPrint.clear();
+        window.dispatchEvent(new Event("beforeprint"));
+        check("P-7: Ctrl+P on the builder mounts the worksheet instead of the app",
+          !!document.querySelector("#print-root .print-worksheet") &&
+          document.documentElement.getAttribute("data-print") === "worksheet");
+      } finally {
+        window.print = realPrint;
+        wjt.assignmentPrint.clear();
       }
     }
   })();

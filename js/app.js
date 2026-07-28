@@ -315,6 +315,7 @@
           '  <a class="btn btn-primary" href="#/present/' + lesson.id + '">▶ Present</a>' +
           // quiz hidden for now — restore to re-enable Practice
           // '  <a class="btn btn-accent" href="#/quiz/' + lesson.id + '">🎯 Practice</a>' +
+          '  <a class="btn" href="#/assign/' + lesson.id + '">📝 Assignment</a>' +
           '  <a class="btn" href="#/edit/' + lesson.id + '">✎ Edit</a>' +
           '  <span class="spacer"></span>' +
           '  <button class="btn btn-sm" data-act="export" title="Download as JSON">⬇</button>' +
@@ -413,6 +414,7 @@
     if (parts[0] === "edit" && parts[1]) wjt.views.editor(container, parts[1]);
     else if (parts[0] === "present" && parts[1]) wjt.views.present(container, parts[1]);
     else if (parts[0] === "quiz" && parts[1]) wjt.views.quiz(container, parts[1]);
+    else if (parts[0] === "assign" && parts[1]) wjt.views.assignment(container, parts[1]);
     else if (parts[0] === "library") wjt.views.library(container);
     else wjt.views.home(container);
 

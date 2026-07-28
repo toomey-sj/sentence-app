@@ -6,7 +6,7 @@ Guidance for Claude Code working in this repository.
 
 **Sentence Forge** — a build-free vanilla-JS web app where teachers annotate a
 paragraph with grammar labels at four layers, then present it or quiz students on
-it. ~3,300 lines of JS in nine files, no dependencies, no framework, no build
+it. ~7,700 lines of JS in twelve files, no dependencies, no framework, no build
 step, no server.
 
 Start with [docs/project/architecture.md](docs/project/architecture.md). It is
@@ -92,7 +92,13 @@ Hard-won details, all of which produce a *silent* wrong answer:
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
 A healthy run reports **0 failed** (the stable contract). The pass *count* is an
-implementation detail — it grows as checks are added (currently 282).
+implementation detail — it grows as checks are added (currently 327).
+
+**Known red as of 2026-07-28:** `UI-4` fails at every matrix size — the Present
+breakdown renders as one unwrapped line. It is pre-existing (reproduced on a
+clean `main` before work order 008) and is written up as
+[quick-todo item 5](plans/quick-todo.md). Everything else passes; don't take this
+note as licence to accept any *other* failure.
 
 Report results honestly. If a check fails, say so with the output; don't
 summarize a red run as done.

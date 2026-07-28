@@ -179,7 +179,7 @@ either way.
 
 | Step | Work orders |
 |---|---|
-| 1. Assignment Phases 2–3 | [008 — builder and preview](../plans/008-assignment-phase-2-builder.md) · [009 — print worksheet and answer key](../plans/009-assignment-phase-3-print.md) |
+| 1. Assignment Phases 2–3 | ~~[008 — builder and preview](../plans/done/008-assignment-phase-2-builder.md)~~ · ~~[009 — print worksheet and answer key](../plans/done/009-assignment-phase-3-print.md)~~ **both done 2026-07-28** |
 | 2. Land S1–S4 | [010 — storage adapter](../plans/010-seam-storage-adapter.md) · [011 — real ids](../plans/011-seam-real-ids.md) · [012 — `ownerId` + migration runner](../plans/012-seam-owner-and-migrations.md) |
 | 3. Re-scope Assignment 4–5 behind S5 | [013 — delivery-channel interface](../plans/013-seam-delivery-channels.md) |
 | 4. Run the pilot | Not a work order — see [pilot.md](product/pilot.md). |

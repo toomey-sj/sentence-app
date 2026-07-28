@@ -7,6 +7,7 @@ opens, you're ready.
 - [Building a lesson](#building-a-lesson--the--edit-mode)
 - [Teaching with it](#teaching-with-it---present-mode)
 - [Student practice](#student-practice---practice-mode)
+- [Paper assignments](#paper-assignments---assignment-mode)
 - [Sharing lessons](#sharing-lessons)
 - [Classroom recipes](#classroom-recipes)
 - [Troubleshooting](#troubleshooting)
@@ -27,8 +28,8 @@ The home page is a splash with the self-playing demo and three buttons:
   files at once; you land in the library afterward.
 - **📚 Library** — opens the **library** screen, which holds two lists:
   - **Your lessons** — everything you've made, newest first. Each card has
-    ▶ Present, 🎯 Practice, ✎ Edit, and small buttons to ⬇ export, ⧉ duplicate,
-    and ✕ delete.
+    ▶ Present, 🎯 Practice, 📝 Assignment, ✎ Edit, and small buttons to ⬇ export,
+    ⧉ duplicate, and ✕ delete.
   - **📚 Example library** — seven ready-made, fully labeled passages. **＋ Add
     to my lessons** drops an editable copy into your list; the original is never
     changed, so you can always take a fresh copy.
@@ -170,6 +171,46 @@ another look:"** — the specific labels that were missed.
 Nothing is recorded. There is no score to collect, which makes this safe for
 low-stakes practice: a student can fail a question with no consequence, which is
 the only way they'll guess honestly.
+
+## Paper assignments — 📝 Assignment mode
+
+**📝 Assignment** on any lesson card (or in the editor header) turns a lesson
+you've already labeled into a worksheet. You choose:
+
+- which **sentences** to include, and which **skills** to assess (only the ones
+  your labels can actually support — the rest are greyed out with the reason);
+- **how many questions** — 5, 10, 20, or all of them. The builder tells you how
+  big the pool really is before you pick;
+- **supports** — word numbers above each token, and a word bank of label names
+  (padded with a few plausible extras, so it's a support and not an answer key);
+- **layout** — the whole passage first, or each sentence with its own questions
+  under it — and how much **writing space** each question gets;
+- **ink** — color or grayscale.
+
+**🎲 Regenerate** draws a different set of questions from the same pool. Nothing
+else re-draws them: change the spacing or the title and you keep the same
+questions, so the sheet you previewed is the sheet you print.
+
+Then print two things:
+
+- **🖨 Print worksheet** — the student sheet. Title, directions, blank
+  Name/Class/Date lines, the numbered passage, the questions, and ruled space to
+  write in. No answers anywhere on it.
+- **🔑 Print answer key** — the same sheet, same numbering, with every accepted
+  answer and the label it came from. It's headed **Teacher Answer Key — Do Not
+  Distribute**, and it is a separate print job — the key can't end up stapled to
+  the worksheet by accident. Turn on **Include teaching notes** to print your own
+  notes beside each answer.
+
+Both open your browser's normal print dialog, so **Save as PDF** works the same
+way. Grayscale is a real option, not a compromise: a question's target word is
+marked with square brackets, bold, *and* an underline, so it survives a
+black-and-white printer, a photocopy, and a fax if it comes to that.
+
+**None of this needs a network.** Label a passage, present it, build an
+assignment, and print the worksheet and the key — the whole loop works from a
+double-clicked `index.html` on a machine that has never been online. Students
+write on paper and hand it to you; Sentence Forge never sees an answer.
 
 ## Sharing lessons
 

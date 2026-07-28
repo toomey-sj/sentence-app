@@ -48,6 +48,7 @@
       '  <span class="saved-flash" aria-live="polite">Saved ✓</span>' +
       '  <span class="spacer"></span>' +
       '  <a class="btn" href="#/present/' + lesson.id + '">▶ Present</a>' +
+      '  <a class="btn" href="#/assign/' + lesson.id + '">📝 Assignment</a>' +
       // quiz hidden for now — restore to re-enable Quiz
       // '  <a class="btn" href="#/quiz/' + lesson.id + '">🎯 Quiz</a>' +
       '  <button class="btn" data-act="export">⬇ Export JSON</button>' +

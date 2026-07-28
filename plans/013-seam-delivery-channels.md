@@ -6,8 +6,8 @@ created: 2026-07-28
 # S5 — the delivery-channel interface (and re-scoping Assignment Phases 4–5)
 
 Seam **S5** of [the platform roadmap](../docs/roadmap-platform.md#seams-to-land-first),
-step 3 of its sequencing. Depends on [008](008-assignment-phase-2-builder.md) and
-[009](009-assignment-phase-3-print.md) — print and file have to exist before they
+step 3 of its sequencing. Depends on [008](done/008-assignment-phase-2-builder.md) and
+[009](done/009-assignment-phase-3-print.md) — print and file have to exist before they
 can be generalized into channels.
 
 ## Why

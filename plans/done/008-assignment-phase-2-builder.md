@@ -1,20 +1,31 @@
 ---
-status: todo   # todo | doing | done | superseded
+status: done   # todo | doing | done | superseded
 created: 2026-07-28
+completed: 2026-07-28
 ---
+
+> **Done 2026-07-28.** Built as specified; the divergences and the reasoning
+> behind them are recorded as
+> [As built — Phase 2](../proposals/assignment-mode-proposal.md#as-built--phase-2).
+> One caveat on the "0 failed" bar below: `tools/dom-check.html` reports
+> **309 passed / 1 failed** at all four matrix sizes, and that single failure
+> (`UI-4`, the Present breakdown not wrapping) is **pre-existing** — it was
+> reproduced on a clean `main` at 298 passed / 1 failed before this work started.
+> All 11 new assignment checks pass. Tracked as
+> [quick-todo item 5](../quick-todo.md).
 
 # Assignment mode Phase 2 — builder view and live preview
 
-Step 1 of the [platform roadmap's sequencing](../docs/roadmap-platform.md#sequencing),
+Step 1 of the [platform roadmap's sequencing](../../docs/roadmap-platform.md#sequencing),
 and **Phase 2** of
-[the assignment-mode proposal](proposals/assignment-mode-proposal.md#phase-2--builder-and-preview).
+[the assignment-mode proposal](../proposals/assignment-mode-proposal.md#phase-2--builder-and-preview).
 No network, no lesson-format change, no taxonomy change.
 
 ## Why
 
-Phase 1 landed the whole engine — [js/assignment-model.js](../js/assignment-model.js)
+Phase 1 landed the whole engine — [js/assignment-model.js](../../js/assignment-model.js)
 (`wjt.assignment`: question pool, balanced selection, answer key) and
-[js/assignment-codec.js](../js/assignment-codec.js) (`wjt.assignmentCodec`: wire
+[js/assignment-codec.js](../../js/assignment-codec.js) (`wjt.assignmentCodec`: wire
 map, base64url, validation, size states) — and shipped it with **no way for a
 teacher to reach any of it**. There is no route, no entry point, and no UI.
 
@@ -34,26 +45,26 @@ Create **`js/assignment.js`**. That name was deliberately left free by the Phase
 the plain one could be the Phase 2 **view**.
 
 - It is a **view**, so it lives in the DOM layer and is *not* added to
-  `LOGIC_FILES` in [tools/smoke-test.js](../tools/smoke-test.js). Do not put
+  `LOGIC_FILES` in [tools/smoke-test.js](../../tools/smoke-test.js). Do not put
   question logic in it.
 - Follow the existing view shape exactly — see `wjt.views.present` at
-  [js/display.js:10-25](../js/display.js#L10-L25): one IIFE, `"use strict"`,
+  [js/display.js:10-25](../../js/display.js#L10-L25): one IIFE, `"use strict"`,
   `wjt.views = wjt.views || {}`, signature `function (container, lessonId)`,
   `container.innerHTML = ""`, then an appended `div.view.view-assignment`.
 - Bail the same way Present does: `wjt.store.get(lessonId)` returning null →
   `location.hash = "#/"`; a lesson with no sentences → back to the editor with a
   toast.
-- Add the `<script>` tag to [index.html](../index.html) **after**
+- Add the `<script>` tag to [index.html](../../index.html) **after**
   `js/assignment-codec.js` and **before** `js/render.js` (the file currently has
   the two assignment modules at lines 29–30). Order matters: classic scripts, no
   modules.
 - Register any timers/listeners through `wjt.onViewCleanup`
-  ([js/app.js:130](../js/app.js#L130)).
+  ([js/app.js:130](../../js/app.js#L130)).
 
 ### Task B — the route
 
 Add `#/assign/:lessonId` to `route()` at
-[js/app.js:409-417](../js/app.js#L409-L417), in the same `parts[0] === …` chain
+[js/app.js:409-417](../../js/app.js#L409-L417), in the same `parts[0] === …` chain
 as `edit`, `present`, `quiz`, and `library`:
 
 ```js
@@ -65,12 +76,12 @@ else if (parts[0] === "assign" && parts[1]) wjt.views.assignment(container, part
 Two, mirroring how Present is reached today:
 
 - **Library lesson card** — the grid built in `renderLessons()` from
-  [js/app.js:274](../js/app.js#L274); the existing `location.hash = "#/present/"`
-  handler at [js/app.js:366](../js/app.js#L366) is the pattern to copy.
+  [js/app.js:274](../../js/app.js#L274); the existing `location.hash = "#/present/"`
+  handler at [js/app.js:366](../../js/app.js#L366) is the pattern to copy.
 - **Editor header** — alongside the existing Present link.
 
 Note that Quiz is currently commented out of the Present header
-([js/display.js:35](../js/display.js#L35), per `plans/quick-todo.md` item 4).
+([js/display.js:35](../../js/display.js#L35), per `plans/quick-todo.md` item 4).
 Assignment is a *new* control, not a replacement for that one — don't quietly
 un-hide Quiz while you're in there.
 
@@ -128,11 +139,11 @@ Two model calls the builder must use rather than reimplement:
 - **Printing** — that's [009](009-assignment-phase-3-print.md). The preview is
   on-screen only.
 - **URL and QR delivery** — proposal Phases 4–5, re-scoped by
-  [013](013-seam-delivery-channels.md). Do not call `wjt.assignmentCodec` from
+  [013](../013-seam-delivery-channels.md). Do not call `wjt.assignmentCodec` from
   this view yet.
 - **Saving assignment presets into the lesson format.** The proposal lists this
   as out of scope for the first iteration, and the alpha format freeze in
-  [CLAUDE.md](../CLAUDE.md) applies.
+  [CLAUDE.md](../../CLAUDE.md) applies.
 - Any change to `js/assignment-model.js` or `js/assignment-codec.js`.
 
 ## Done when
@@ -144,13 +155,13 @@ Two model calls the builder must use rather than reimplement:
 - `node tools/smoke-test.js` still reports **0 failed** and `samples/` is
   unchanged (this work order touches no logic file).
 - `tools/dom-check.html` reports **0 failed** at 1280×720, 1366×768, 1920×1080,
-  and 1024×768 — the run recipe is in [CLAUDE.md](../CLAUDE.md); use the
+  and 1024×768 — the run recipe is in [CLAUDE.md](../../CLAUDE.md); use the
   PowerShell `Start-Process` form, and read the result with
   `node tools/dom-check-report.js`, never by grepping the raw dump.
 - New DOM checks assert: the route opens the right lesson; the builder disables
   unavailable skills and reports the real pool; the preview contains **no**
   answer-key material.
-- [docs/project/dom-structure.md](../docs/project/dom-structure.md) gains the
+- [docs/project/dom-structure.md](../../docs/project/dom-structure.md) gains the
   assignment view's element tree **in the same commit**. Nothing regenerates or
   checks that file, so stale is its default state.
 

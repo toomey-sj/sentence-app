@@ -1369,6 +1369,129 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
   to { transform: translateY(110vh) rotate(360deg); opacity: 0.4; }
 }
 
+/* ====================================================================
+   Assignment mode (builder + student preview)
+   ==================================================================== */
+/* Controls on the left, live preview on the right; one column below 900px so
+   the preview follows the controls that produced it. */
+.assign-main {
+  display: grid;
+  grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .assign-main { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Clears the sticky top bar, which sits above this card in the stacking order. */
+.assign-controls { position: sticky; top: 74px; }
+.assign-h {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 20px 0 8px;
+}
+.assign-h-row { display: flex; align-items: center; gap: 10px; }
+.assign-h-row .assign-h { margin-bottom: 8px; }
+.assign-controls > .assign-h:first-child { margin-top: 0; }
+
+.assign-field { display: block; margin-bottom: 12px; }
+.assign-label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.assign-input {
+  width: 100%;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  padding: 9px 12px;
+  outline: none;
+}
+.assign-input:focus { border-color: var(--accent); }
+
+/* Sentence pills carry their number and an opening snippet, so a teacher picks
+   sentences by what they say, not by counting. */
+.assign-sent-pill { max-width: 100%; gap: 8px; }
+.assign-sent-num { color: var(--accent); }
+.assign-sent-text {
+  font-weight: 500;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assign-reasons:not(:empty) { margin-top: 8px; }
+.assign-reason { margin: 2px 0; }
+.assign-warn { color: var(--accent-2); }
+.assign-note { color: var(--muted); }
+
+.assign-preview .section-title { margin-top: 0; }
+.assign-status { min-height: 18px; }
+.assign-sheet-host { margin-top: 10px; }
+
+/* The sheet is deliberately paper-like: light-on-dark chrome everywhere else,
+   but this is a preview of something that gets printed and written on. */
+.assign-sheet { font-size: 15px; line-height: 1.6; }
+.assign-sheet-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.assign-sheet-directions { color: var(--muted); margin-bottom: 14px; }
+.assign-sheet-h {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.assign-wordbank {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.assign-bank { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; }
+.assign-bank-item { font-weight: 600; }
+
+.assign-passage { margin-bottom: 18px; }
+.assign-group { margin-bottom: 22px; }
+.assign-sentence { display: flex; gap: 8px; margin-bottom: 8px; }
+.assign-sentence-num { font-weight: 800; color: var(--accent); flex: none; }
+
+/* Word numbers are a support, not part of the sentence: small, raised, and
+   never allowed to break a word away from its own number. */
+.assign-token { white-space: nowrap; }
+.assign-tnum { font-size: 10px; color: var(--muted); margin-right: 1px; }
+/* Brackets are literal text and the mark is bold + underlined, so an identify
+   target survives grayscale printing, photocopying, and a stylesheet that never
+   loads. Color is decoration here, never the signal. The underline lives on the
+   whole run (spaces included) so it reads as one span, not one stub per word. */
+.assign-mark { text-decoration: underline; text-underline-offset: 3px; }
+.assign-bracket { color: var(--accent); }
+
+.assign-questions { display: flex; flex-direction: column; gap: 14px; }
+.assign-question { break-inside: avoid; }
+.assign-q-head { display: flex; gap: 8px; }
+.assign-q-num { font-weight: 800; color: var(--accent); flex: none; }
+.assign-q-mark {
+  margin: 6px 0 0 24px;
+  padding: 6px 10px;
+  background: var(--bg-soft);
+  border-radius: 8px;
+}
+.assign-lines { margin: 6px 0 0 24px; }
+.assign-line { border-bottom: 1px solid var(--line); height: 26px; }
+
+.assign-empty { margin-top: 12px; }
+
+/* The two print buttons close the controls column; the note under them explains
+   Save-as-PDF and that the key is a separate sheet. */
+.assign-print-row { margin: 14px 0 8px; }
+
 /* ---------------- small screens ---------------- */
 @media (max-width: 640px) {
   #app { padding: 16px 12px 70px; }
@@ -1399,4 +1522,147 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
     overflow: visible;
   }
   .present-panel { position: static; max-height: none; margin-top: 12px; }
+}
+
+/* ====================================================================
+   Print — the student worksheet and the teacher answer key
+   ====================================================================
+   Two purpose-built documents, not the app with its chrome hidden. The builder
+   mounts one into #print-root, prints it, and removes it on `afterprint`.
+
+   Three rules run through everything below:
+     1. Never rely on background-color printing. A school printer with
+        backgrounds off must still produce a usable sheet, so every cue here is
+        text, a border, or a font weight.
+     2. No `@page { size: … }`. Fixing Letter makes an A4 printer scale or clip;
+        margins alone come out right on both.
+     3. The sheet classes are shared with the on-screen preview, so print
+        recolors them by REDEFINING the theme variables on .print-doc rather
+        than by overriding rule by rule. The dark theme's --muted and --line are
+        near-invisible on paper; one place fixes all of them. */
+
+/* Mounted only while a print is in flight, and never visible on screen. */
+#print-root { display: none; }
+
+@media print {
+  @page { margin: 0.6in; }
+
+  /* Only the print document prints — no navigation, no editing controls, no
+     builder. `body > :not(#print-root)` is the whole of the app chrome. */
+  html[data-print] body > :not(#print-root) { display: none !important; }
+  html[data-print] #print-root { display: block; }
+  html[data-print] body {
+    background: #fff;
+    background-image: none;
+    color: #000;
+    min-height: 0;
+  }
+
+  .print-doc {
+    --text: #000;
+    --muted: #333;
+    --line: #000;
+    --bg-soft: transparent;
+    --accent: #2f2a7a;      /* dark enough to read on a mid-tone laser print */
+    --accent-2: #0f5f57;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.45;
+    orphans: 2;
+    widows: 2;
+  }
+  /* Grayscale: the accents go black. Nothing is lost — an identify target is
+     marked with literal brackets, bold, and an underline. */
+  .print-doc[data-color-mode="grayscale"] { --accent: #000; --accent-2: #000; }
+
+  .print-head {
+    border-bottom: 1pt solid #000;
+    padding-bottom: 8pt;
+    margin-bottom: 12pt;
+  }
+  .print-title { font-size: 16pt; font-weight: 800; line-height: 1.25; }
+  .print-directions { margin-top: 5pt; }
+
+  /* Name / Class / Date are ruled lines on paper. Nothing types into them. */
+  .print-fields { display: flex; gap: 16pt; margin-top: 12pt; break-inside: avoid; }
+  .print-field { display: flex; align-items: baseline; gap: 6pt; flex: 1 1 auto; }
+  .print-field-label {
+    font-size: 8.5pt;
+    font-weight: 800;
+    letter-spacing: 0.6pt;
+    text-transform: uppercase;
+    flex: none;
+  }
+  .print-rule { flex: 1 1 auto; border-bottom: 0.75pt solid #000; height: 15pt; }
+
+  .print-foot {
+    margin-top: 20pt;
+    padding-top: 5pt;
+    border-top: 0.75pt solid #666;
+    font-size: 8pt;
+    color: #333;
+  }
+
+  /* The answer key's marking. A repeated per-page header needs either a
+     position:fixed running head (which overlaps the body on page 2 in every
+     browser that repeats it) or a table thead wrapper; neither is reliable
+     enough to bet a "do not distribute" on. So: an unmissable banner at the top
+     — the fallback the plan calls for — plus document.title, which Chrome/Edge
+     and Firefox print in the page header on EVERY page when headers are on. */
+  .print-banner {
+    border: 2pt solid #000;
+    padding: 6pt 10pt;
+    margin-bottom: 12pt;
+    font-size: 12.5pt;
+    font-weight: 800;
+    letter-spacing: 0.8pt;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  /* ---- the shared sheet body, on paper ---- */
+  .print-body { font-size: inherit; line-height: inherit; }
+  .print-doc .assign-passage { margin-bottom: 14pt; }
+  .print-doc .assign-group { margin-bottom: 16pt; }
+  .print-doc .assign-sentence { margin-bottom: 6pt; }
+  /* Wrap long sentences rather than reusing Present's projector assumptions:
+     the flex child must be allowed to shrink before its text can wrap. */
+  .print-doc .assign-text { min-width: 0; overflow-wrap: break-word; }
+  /* Block flow, not the preview's flex column. `break-inside` on a question is
+     what keeps a prompt with its answer space, and Chrome honours it either way
+     (measured: a stress fixture of 0.6-page questions pages identically as flex
+     or as blocks, and one page shorter with the rule removed). Blocks are the
+     better-fragmented path in other engines and nothing here needs flex — the
+     gap becomes a margin and the questions stack the same. */
+  .print-doc .assign-questions { display: block; }
+  .print-doc .assign-question + .assign-question { margin-top: 12pt; }
+  .print-doc .assign-question,
+  .print-doc .assign-sentence,
+  .print-doc .assign-wordbank { break-inside: avoid; page-break-inside: avoid; }
+  .print-doc .assign-wordbank { border: 1pt dashed #000; padding: 8pt 12pt; }
+  .print-doc .assign-tnum { font-size: 7pt; }
+  /* The preview tints this block; on paper it becomes a rule, which prints
+     whether or not backgrounds do. */
+  .print-doc .assign-q-mark {
+    border-left: 2pt solid #000;
+    border-radius: 0;
+    padding: 2pt 0 2pt 8pt;
+    margin: 5pt 0 0 18pt;
+  }
+  .print-doc .assign-lines { margin: 5pt 0 0 18pt; }
+  .print-doc .assign-line { border-bottom: 0.75pt solid #000; height: 26pt; }
+
+  /* ---- answer key entries ---- */
+  .print-answer { margin: 4pt 0 0 18pt; }
+  .print-answer-label {
+    font-size: 8.5pt;
+    font-weight: 800;
+    letter-spacing: 0.6pt;
+    text-transform: uppercase;
+  }
+  .print-accepted { list-style: none; margin: 2pt 0; }
+  .print-accepted-item { font-weight: 700; }
+  .print-accepted-item::before { content: "• "; }
+  .print-source { display: block; font-size: 9pt; color: #333; }
+  .print-note { font-size: 9pt; font-style: italic; margin-top: 2pt; color: #333; }
 }
