@@ -9,8 +9,9 @@ Phase 3 of [Unit 1 — The Nine Parts of Speech](proposals/curriculum-unit-1-par
 Finishes the unit: the cumulative capstone, the one step kind deliberately held
 back, and the teacher- and student-facing documentation.
 
-[016](016-unit-pos-remaining-lessons.md) is `done` as of 2026-07-28, so this order is unblocked. Read its
-closing note first — it hands over a file split and two new invariants.
+[016](done/016-unit-pos-remaining-lessons.md) is `done` as of 2026-07-28, so this
+order is unblocked. Read its closing note first — it hands over a file split and
+two new invariants.
 
 ## Why
 
@@ -57,7 +58,7 @@ already proved.
 
 ### Task C — split `js/unit-pos.js`
 
-**Handed over from [016](016-unit-pos-remaining-lessons.md), which was content-only
+**Handed over from [016](done/016-unit-pos-remaining-lessons.md), which was content-only
 and deliberately did not do it.** The file is **2,325 lines** — past the ~2,000 at
 which the proposal says to split it per cluster, and this phase adds the capstone
 on top of that.
@@ -150,10 +151,13 @@ discovered in a classroom:
   same on the served copy.
 - `docs/product/curriculum-unit-1.md` exists, is linked from `docs/README.md`, and
   a reader who has never seen the app could assign the unit from it.
-- The proposal's **As built** section is written, and this order, 015, and 016 are
-  `git mv`'d into `plans/done/` **with their relative links re-based one level
-  deeper** — then `node tools/link-check.js`. Skipping that step is how 130 dead
-  links accumulated once already.
+- The proposal's **As built** section is written, and **this order** is `git mv`'d
+  into `plans/done/` **with its relative links re-based one level deeper** — then
+  `node tools/link-check.js`. Skipping that step is how 130 dead links accumulated
+  once already. (015 and 016 were moved when each finished, which is the practice
+  worth keeping: a plan's status lives in where the file sits, not only in its
+  frontmatter. Batching the moves into this order was the wrong idea.)
+- The proposal's own `status:` goes from `doing` to `done`.
 
 Report check output honestly; a red run is reported red with its output.
 

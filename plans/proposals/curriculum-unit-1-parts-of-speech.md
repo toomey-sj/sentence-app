@@ -12,7 +12,7 @@ speech and immediately checks recall with interactive quizzes.
 
 This is the durable document. The work is split across
 [015](../done/015-study-view-and-first-lesson.md),
-[016](../016-unit-pos-remaining-lessons.md), and
+[016](../done/016-unit-pos-remaining-lessons.md), and
 [017](../017-unit-pos-capstone-and-docs.md); "As built" sections are written back
 into **this** file, following the precedent of
 [assignment-mode-proposal.md](assignment-mode-proposal.md).
@@ -431,7 +431,7 @@ or `P1–P8` in [roadmap-platform.md](../../docs/roadmap-platform.md).
 | Order | Contents |
 |---|---|
 | [015](../done/015-study-view-and-first-lesson.md) | **The machinery, proven end to end.** Three new files; `teach` + `choice` + `tap`; progress; router, grouped Example library, Home card; **Orientation and Lesson 1 (Nouns) only**, complete and playable. |
-| [016](../016-unit-pos-remaining-lessons.md) | **The content.** Stops 2–13. Authoring, no new mechanics. |
+| [016](../done/016-unit-pos-remaining-lessons.md) | **The content.** Stops 2–13. Authoring, no new mechanics. |
 | [017](../017-unit-pos-capstone-and-docs.md) | **Finish.** The capstone, the `sort` step kind, and every doc. |
 
 Phase 1 is the one that can go wrong, which is why it ends with one lesson a
@@ -616,7 +616,7 @@ should: a focus lesson runs 10–24 steps and a review 13–16, which is the 20�
 And `js/unit-pos.js` is now **2,325 lines**, past the ~2,000 at which the proposal
 said to split it per cluster. It was left whole: the split costs edits to
 `index.html`, the smoke test's sandbox list, `CLAUDE.md` constraint #4 and
-`architecture.md`, and [016](../016-unit-pos-remaining-lessons.md) is explicitly
+`architecture.md`, and [016](../done/016-unit-pos-remaining-lessons.md) is explicitly
 content-only. **It should be split in [017](../017-unit-pos-capstone-and-docs.md)**,
 which adds the capstone on top.
 

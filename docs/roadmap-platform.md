@@ -263,7 +263,7 @@ Writing the reason down, as the rule above requires. **This does not displace st
 
 Sequenced as three orders, machinery first so the shape is proven before the
 content scales: ~~[015 — the study view and lesson 1](../plans/done/015-study-view-and-first-lesson.md)~~
-· [016 — the remaining stops](../plans/016-unit-pos-remaining-lessons.md)
+· [016 — the remaining stops](../plans/done/016-unit-pos-remaining-lessons.md)
 · [017 — capstone, `sort`, and docs](../plans/017-unit-pos-capstone-and-docs.md).
 
 The `0.1.0` release gate is a **parallel track**, not a dependency. The manual
