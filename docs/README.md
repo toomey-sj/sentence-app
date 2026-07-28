@@ -24,6 +24,18 @@ start in **product**. If you are changing *how it works*, start in **project**.
 | [project/deploying.md](project/deploying.md) | GitHub Pages setup, the two CI workflows, and the release checklist. |
 | [project/taxonomy-workflow.md](project/taxonomy-workflow.md) | The exact sequence for adding or changing a grammar label without leaving docs stale. |
 
+## 🧭 Direction records
+
+Where the product is going and why. Read these before proposing a change that
+crosses a milestone.
+
+- [roadmap-platform.md](roadmap-platform.md) — the decision to treat Sentence
+  Forge as a grammar teaching platform rather than a portable single-purpose app:
+  teacher-only accounts, pluggable delivery, and the data-model seams that come
+  first. Supersedes the "server/backend → 1.0.0" line in the release roadmap.
+- [roadmap-0.1.0.md](roadmap-0.1.0.md) — the `0.1.0` polish pass: workstreams,
+  open questions, and the definition of done for the release gate.
+
 ## 📐 Taxonomy design records
 
 Living documents that predate the split above; both are about the label set

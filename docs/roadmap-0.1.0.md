@@ -191,6 +191,12 @@ Parked deliberately, not forgotten:
 - **A server / backend** (shared libraries, identity, saved results) → the
   **1.0.0** path. This is where "no network, ever" ([SECURITY.md](../SECURITY.md))
   gets revisited, and it's driven by real demand, not a hunch.
+  > **2026-07-28 — superseded by [roadmap-platform.md](roadmap-platform.md).**
+  > Identity and a durable library moved onto the near path as a deliberate
+  > product call, ahead of demonstrated classroom demand. Scope is **teacher
+  > accounts only** (P2) — students stay anonymous, so the student-as-creator
+  > pivot above still needs no identity (P5). `0.1.0` itself is unchanged and
+  > ships on its existing gate.
 - **Taxonomy Tier 3** (punctuation, usage errors, verb dimensions, diagramming)
   — remains a *sibling-tool* concern per [roadmap.md](roadmap.md#tier-3--out-of-scope-for-this-app-documented-for-a-sibling-tool).
 
