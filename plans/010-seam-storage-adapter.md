@@ -40,11 +40,29 @@ Introduce a storage adapter with four methods — `list()`, `get(id)`,
 `readAll()`/`writeAll()` become that implementation's internals rather than the
 model's vocabulary.
 
-**`wjt.store`'s public surface must stay byte-identical.** There are ~20 call
-sites across [js/app.js](../js/app.js), [js/editor.js](../js/editor.js),
-[js/display.js](../js/display.js), and [js/quiz.js](../js/quiz.js), plus
-`wjt.exportAllLessons()` inside `store.js` itself. **Zero** of them should need
-editing. If a call site changes, the extraction went too far.
+**`wjt.store`'s public surface must stay byte-identical.** There are **24 call
+sites outside `store.js`**, plus `wjt.exportAllLessons()` inside it. **Zero** of
+them should need editing. If a call site changes, the extraction went too far.
+
+| File | Calls | Methods used |
+|---|---:|---|
+| [js/app.js](../js/app.js) | 15 | `list` ×4, `save` ×3, `corruptBackup` ×3, `remove` ×2, `create` ×2, `duplicate` |
+| [js/editor.js](../js/editor.js) | 5 | `get`, `save`, `remove`, `mergeSentence`, `rewriteSentenceText` |
+| [js/assignment.js](../js/assignment.js) | 1 | `get` |
+| [js/display.js](../js/display.js) | 1 | `get` |
+| [js/quiz.js](../js/quiz.js) | 1 | `get` |
+| [js/examples.js](../js/examples.js) | 1 | `create` |
+
+Two of those are **not** in the original four-view list, because this order was
+written before them:
+
+- **`js/assignment.js`** is the Assignment builder view ([008](done/008-assignment-phase-2-builder.md)).
+  Nothing special about its one `get()` — just don't forget the file exists.
+- **`js/examples.js` calls `wjt.store.create()` and is a LOGIC file** — it runs in
+  the smoke test's bare `vm` sandbox alongside `store.js`. So `create()` has to
+  keep working with only the sandbox's `getItem`/`setItem`/`removeItem` shim
+  (Task D), or `samples/` regeneration breaks and the "samples are up to date" CI
+  step fails. Regenerate and diff `samples/` as part of this work, not after it.
 
 The model-level behavior stays on `wjt.store`, not in the adapter: `create()`,
 `duplicate()`, the `updatedAt` stamp in `save()`, the sort in `list()`, and the
@@ -136,6 +154,15 @@ the teacher's actual work and must surface a `STORAGE_WRITE_FAILED` toast.
   smoke test.
 - `tools/dom-check.html` reports 0 failed (it boots the real app, so a broken
   store shows up there).
+
+  ⚠️ **As of 2026-07-28 that bar cannot be met**, and not because of anything in
+  this work order: `UI-4` fails on a clean tree and takes the whole run red.
+  [014](014-ui4-dom-check-settle.md) fixes it (a harness bug, ~small). **Land 014
+  first if you can** — the DOM check is one of only two safety nets on the file
+  that holds every teacher's work, and it should be a clean gate for this
+  refactor rather than a count you have to remember. If you go ahead anyway, the
+  bar is **"1 failed, and it is exactly `UI-4`"**; anything else means you broke
+  something, and say which in the commit.
 
 ## Notes
 
