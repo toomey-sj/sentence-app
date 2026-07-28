@@ -139,7 +139,7 @@ Two model calls the builder must use rather than reimplement:
 - **Printing** — that's [009](009-assignment-phase-3-print.md). The preview is
   on-screen only.
 - **URL and QR delivery** — proposal Phases 4–5, re-scoped by
-  [013](../013-seam-delivery-channels.md). Do not call `wjt.assignmentCodec` from
+  [013](013-seam-delivery-channels.md). Do not call `wjt.assignmentCodec` from
   this view yet.
 - **Saving assignment presets into the lesson format.** The proposal lists this
   as out of scope for the first iteration, and the alpha format freeze in

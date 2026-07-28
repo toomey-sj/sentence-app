@@ -117,7 +117,7 @@ leaks the key is the most plausible way to break it by accident.
 - **Grayscale-vs-color palette rework** — that's
   [plans/006](../006-palette-scale-followup.md). Use the palette as it stands.
 - **Any network delivery.** URL and QR are proposal Phases 4–5, re-scoped by
-  [013](../013-seam-delivery-channels.md).
+  [013](013-seam-delivery-channels.md).
 - Changes to `js/assignment-model.js` (`linesFor`, `build`, the key shape are all
   final for this phase).
 

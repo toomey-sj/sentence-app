@@ -5,7 +5,7 @@
  * a question count, supports, and a layout; the model turns those into an
  * assignment; this view renders the student half of it, live, and prints it.
  *
- * Two rules this file exists to keep:
+ * Three rules this file exists to keep:
  *
  *   1. It computes NOTHING about questions. Every number on screen — the pool
  *      size, a skill's availability and its reason, how many ruled lines a
@@ -16,6 +16,10 @@
  *      never sees an answer" is a property of small functions rather than of the
  *      whole view. The one place the `key` is rendered is
  *      wjt.assignmentPrint.answerKey(), which exists to print it.
+ *   3. It decides NOTHING about delivery. Which channels exist, whether one can
+ *      be used here, how big this assignment is for it, and what to say when the
+ *      answer is no all come from wjt.assignmentChannels (seam S5). This view
+ *      does not read location.protocol and does not word its own refusals.
  *
  * Three renderings share one body builder — preview, printed worksheet, printed
  * answer key — so their numbering cannot drift; tools/dom-check.html asserts
@@ -423,13 +427,11 @@
       '    <h3 class="assign-h">Print</h3>' +
       '    <div class="layer-toggles" data-role="colormode"></div>' +
       '    <div class="layer-toggles" data-role="keyopts"></div>' +
-      '    <div class="btn-row assign-print-row">' +
-      '      <button class="btn btn-primary" data-act="print-sheet">🖨 Print worksheet</button>' +
-      '      <button class="btn" data-act="print-key">🔑 Print answer key</button>' +
-      "    </div>" +
-      '    <p class="muted-note">Both open your browser’s print dialog — pick a printer ' +
-      "or “Save as PDF”. The answer key is a separate sheet and is never part of the " +
-      "worksheet. No network needed for either.</p>" +
+      '    <h3 class="assign-h">Delivery</h3>' +
+      '    <div class="assign-channels" data-role="channels"></div>' +
+      '    <p class="muted-note">Printing opens your browser’s print dialog — pick a ' +
+      "printer or “Save as PDF”. The answer key is a separate sheet and is never part " +
+      "of the worksheet, and a downloaded file carries the student half only.</p>" +
       "  </section>" +
       '  <section class="assign-preview">' +
       '    <div class="section-head">' +
@@ -455,6 +457,7 @@
     var spacingEl = view.querySelector('[data-role="spacing"]');
     var colorModeEl = view.querySelector('[data-role="colormode"]');
     var keyOptsEl = view.querySelector('[data-role="keyopts"]');
+    var channelsEl = view.querySelector('[data-role="channels"]');
     var statusEl = view.querySelector('[data-role="status"]');
     var sheetEl = view.querySelector('[data-role="sheet"]');
 
@@ -660,15 +663,76 @@
       setOn(keyNotesPill, keyNotes);
     });
 
-    view.querySelector('[data-act="print-sheet"]').addEventListener("click", function () {
-      wjt.assignmentPrint.send(wjt.assignmentPrint.worksheet(result.assignment),
-        "worksheet", result.assignment.title);
+    /* ---------------- delivery ----------------
+     * The builder asks wjt.assignmentChannels what can carry this assignment. It
+     * never looks at location.protocol, never measures a payload, and never
+     * words its own refusal — that is the whole point of the seam (S5): when
+     * account-delivery arrives, this block does not change.
+     *
+     * Rows are built once and patched, like every other control row here. Their
+     * shape comes from the channel: a channel with no actions gets no buttons,
+     * which is how `link` shows a size and a reason today and grows a button the
+     * day its student page exists. */
+
+    var channelRows = wjt.assignmentChannels.ORDER.map(function (id) {
+      var channel = wjt.assignmentChannels.get(id);
+      var row = el("div", "assign-channel");
+      row.dataset.channel = id;
+      row.appendChild(el("b", "assign-channel-name", channel.name));
+      row.appendChild(el("p", "muted-note assign-channel-what", channel.what));
+      var detail = el("p", "assign-channel-size");
+      row.appendChild(detail);
+      var buttons = channel.actions.map(function (action, i) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = i === 0 && id === "print" ? "btn btn-primary" : "btn";
+        b.dataset.act = "deliver";
+        b.dataset.channel = id;
+        b.dataset.variant = action.id;
+        b.textContent = action.name;
+        b.addEventListener("click", function () { deliver(id, action.id); });
+        return b;
+      });
+      if (buttons.length) {
+        var actions = el("div", "btn-row assign-channel-actions");
+        buttons.forEach(function (b) { actions.appendChild(b); });
+        row.appendChild(actions);
+      }
+      var why = el("p", "muted-note assign-channel-why");
+      row.appendChild(why);
+      channelsEl.appendChild(row);
+      return { id: id, row: row, detail: detail, why: why, buttons: buttons };
     });
 
-    view.querySelector('[data-act="print-key"]').addEventListener("click", function () {
-      wjt.assignmentPrint.send(wjt.assignmentPrint.answerKey(result.key, { notes: keyNotes }),
-        "key", result.assignment.title + " — Answer Key");
-    });
+    function deliver(id, variant) {
+      var sent = wjt.assignmentChannels.get(id)
+        .deliver(result, { variant: variant, notes: keyNotes });
+      // A channel reports its own failure in teacher language; nothing here
+      // second-guesses it or invents a generic message.
+      if (!sent.ok) { wjt.toast(sent.error); return; }
+      if (sent.filename) wjt.toast("Downloaded “" + sent.filename + "”.");
+    }
+
+    /* Four visible states, all of them the channel's own answer:
+     *   ready        available, sized, and deliverable today
+     *   blocked      available here, but this assignment is too big for it
+     *   planned      available, measured, no student destination yet
+     *   unavailable  not possible in this environment (file:// and the link) */
+    function syncChannels(result) {
+      wjt.assignmentChannels.list(result).forEach(function (c) {
+        var row = null;
+        channelRows.forEach(function (r) { if (r.id === c.id) row = r; });
+        if (!row) return;
+        var state = !c.available ? "unavailable"
+          : c.status === "planned" ? "planned"
+            : c.ready ? "ready" : "blocked";
+        row.row.dataset.state = state;
+        row.detail.textContent = c.detail;
+        row.why.textContent = !c.available ? c.reason
+          : c.status === "planned" ? wjt.assignmentChannels.PLANNED_NOTE : "";
+        row.buttons.forEach(function (b) { b.disabled = state !== "ready"; });
+      });
+    }
 
     /* A teacher who reaches for Ctrl+P instead of the buttons should get the
      * worksheet, not a screenshot of the builder. If a print document is
@@ -748,6 +812,7 @@
       syncColorMode();
       setOn(keyNotesPill, keyNotes);
       renderPool(result);
+      syncChannels(result);
 
       statusEl.textContent = plural(result.assignment.questions.length, "question") +
         " drawn from a pool of " + result.poolSize + ".";

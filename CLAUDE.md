@@ -6,7 +6,7 @@ Guidance for Claude Code working in this repository.
 
 **Sentence Forge** — a build-free vanilla-JS web app where teachers annotate a
 paragraph with grammar labels at four layers, then present it or quiz students on
-it. ~7,700 lines of JS in twelve files, no dependencies, no framework, no build
+it. ~8,300 lines of JS in thirteen files, no dependencies, no framework, no build
 step, no server.
 
 Start with [docs/project/architecture.md](docs/project/architecture.md). It is
@@ -33,11 +33,14 @@ current and it explains the constraints below in detail.
    and offline-capable, and `SECURITY.md` gets rewritten by the change that first
    adds a network call — not before it.
 4. **Keep the logic layer DOM-free** — `js/labels.js`, `js/tokenize.js`,
-   `js/store.js`, `js/examples.js`, `js/assignment-model.js`, and
-   `js/assignment-codec.js`. `tools/smoke-test.js` runs all six in a bare `vm`
-   sandbox; a `document` reference in any of them breaks it. (The two
-   assignment modules are additionally asserted DOM-, storage-, and
-   network-free by a source scan.)
+   `js/store.js`, `js/examples.js`, `js/assignment-model.js`,
+   `js/assignment-codec.js`, and `js/assignment-channels.js`.
+   `tools/smoke-test.js` runs all seven in a bare `vm` sandbox; a `document`
+   reference in any of them breaks it. (The three `assignment-*` modules are
+   additionally asserted DOM-, storage-, and network-free by a source scan —
+   `assignment-channels.js` delegates every actual delivery to
+   `wjt.assignmentPrint` / `wjt.downloadJson` precisely so it can stay in that
+   set.)
 5. **Every path relative.** Absolute paths 404 under GitHub Pages' `/<repo>/`.
 6. **Never rename or remove a label id.** Annotations store ids; a rename
    silently destroys annotations in every teacher's browser, and there's no
@@ -97,7 +100,12 @@ Hard-won details, all of which produce a *silent* wrong answer:
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
 A healthy run reports **0 failed** (the stable contract). The pass *count* is an
-implementation detail — it grows as checks are added (currently 328).
+implementation detail — it grows as checks are added (currently 339).
+
+Note that `tools/dom-check.html` is itself loaded over `file:///`, which makes it
+the place to assert degraded-mode behavior ([P3](docs/roadmap-platform.md#decisions))
+in the environment it is actually about, rather than simulating it — that is what
+the `D-*` delivery-channel checks do.
 
 **Nothing is known-red as of 2026-07-28**: all four matrix sizes report 0 failed.
 (`UI-4` was red for weeks; it was a *harness* bug — the check measured the Present

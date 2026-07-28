@@ -35,7 +35,7 @@ sandbox.window = sandbox;
 vm.createContext(sandbox);
 
 const LOGIC_FILES = ["labels.js", "tokenize.js", "store.js", "examples.js",
-  "assignment-model.js", "assignment-codec.js"];
+  "assignment-model.js", "assignment-codec.js", "assignment-channels.js"];
 for (const f of LOGIC_FILES) {
   vm.runInContext(fs.readFileSync(path.join(root, "js", f), "utf8"), sandbox, { filename: f });
 }
@@ -901,8 +901,162 @@ wjt.EXAMPLES.forEach((ex) => {
     String(lesson.sentences.length).padStart(3) + " sent | " + cells.join("| "));
 });
 
+/* --------------------- delivery channels (seam S5) ---------------------
+ * The interface print, file, and link all satisfy, and the two things it exists
+ * to make testable: that `available()` is where P3 lives (so a teacher on
+ * file:// keeps print and file, and is TOLD why the link is off), and that the
+ * link channel wraps wjt.assignmentCodec rather than reimplementing it. */
+const channels = wjt.assignmentChannels;
+const byId = (list, id) => list.find((c) => c.id === id);
+const FILE_ENV = { protocol: "file:", baseUrl: "file:///C:/lessons/sentence-forge/index.html" };
+const WEB_ENV = { protocol: "https:", baseUrl: BASE };
+const grouped = (n) => String(n).replace(/\B(?=(\d{3})+$)/g, ",");
+// Small on purpose: a 5-question, 2-sentence assignment is the "easy" QR band.
+const small = wjt.assignment.build(sample, { skills: ALL_SKILLS, count: 5, sentences: [1, 2], seed: 42 });
+
+check("channels: three channels, in the order a view shows them",
+  JSON.stringify(channels.ORDER) === JSON.stringify(["print", "file", "link"]));
+check("channels: every one satisfies the same interface", channels.ORDER.every((id) => {
+  const ch = channels.get(id);
+  return ch && ch.id === id && typeof ch.name === "string" && ch.name &&
+    typeof ch.what === "string" && ch.what &&
+    /^(ready|planned)$/.test(ch.status) && Array.isArray(ch.actions) &&
+    typeof ch.available === "function" && typeof ch.report === "function" &&
+    typeof ch.deliver === "function";
+}));
+check("channels: list() is in ORDER and carries everything a view needs",
+  JSON.stringify(channels.list(small, WEB_ENV).map((c) => c.id)) === JSON.stringify(channels.ORDER) &&
+  channels.list(small, WEB_ENV).every((c) =>
+    typeof c.available === "boolean" && typeof c.reason === "string" &&
+    typeof c.ready === "boolean" && typeof c.detail === "string" &&
+    typeof c.length === "number" && Array.isArray(c.actions)));
+
+// --- P3 as code: file:// keeps print and file, and explains the link ---
+const onFile = channels.list(small, FILE_ENV);
+check("channels: print and file are available under file:// — the P3 promise",
+  byId(onFile, "print").available && byId(onFile, "file").available);
+check("channels: print and file are available under every protocol, including none",
+  ["file:", "http:", "https:", "", "chrome-extension:"].every((protocol) =>
+    channels.get("print").available({ protocol }).available &&
+    channels.get("file").available({ protocol }).available));
+check("channels: link is unavailable under file://, with a reason a teacher can read",
+  byId(onFile, "link").available === false &&
+  byId(onFile, "link").reason === channels.NO_LINK_REASON &&
+  /printing works here/.test(channels.NO_LINK_REASON));
+check("channels: an unavailable channel is never measured",
+  byId(onFile, "link").detail === "" && byId(onFile, "link").length === 0);
+check("channels: the file:// gate is in the channel, not in a view — deliver() refuses too",
+  channels.get("link").deliver(small, { env: FILE_ENV }).ok === false &&
+  channels.get("link").deliver(small, { env: FILE_ENV }).error === channels.NO_LINK_REASON);
+check("channels: env() survives a page with no location, and the link gate fails closed",
+  channels.env().protocol === "" && channels.env().baseUrl === "" &&
+  channels.get("link").available().available === false);
+check("channels: link is available on a web origin — the protocol is the whole gate",
+  byId(channels.list(small, WEB_ENV), "link").available === true &&
+  channels.get("link").available({ protocol: "http:" }).available === true);
+
+// --- the link channel is the codec, wrapped: same payload, same URL, same words ---
+const linkOut = channels.get("link").deliver(small, { env: WEB_ENV });
+const smallEnc = codec.encode(small.assignment);
+check("channels: link.deliver() returns the codec's own payload and share URL",
+  linkOut.ok && linkOut.payload === smallEnc.payload &&
+  linkOut.url === codec.shareUrl(BASE, smallEnc.payload) &&
+  linkOut.length === linkOut.url.length && linkOut.state === codec.sizeState(linkOut.length));
+check("channels: a delivered link decodes back to the same assignment", (() => {
+  const back = codec.decode(linkOut.url.split(codec.ROUTE)[1]);
+  return back.ok &&
+    JSON.stringify(back.assignment.questions) === JSON.stringify(small.assignment.questions) &&
+    JSON.stringify(back.assignment.sentences) === JSON.stringify(small.assignment.sentences);
+})());
+const STATE_WORDING = {
+  easy: /scans easily/, dense: /the QR code is dense/,
+  "too-large-qr": /too long for a QR code/, "too-large-url": /link ceiling/,
+};
+check("channels: the size report is the codec's own band, in teacher wording",
+  [[5, [1, 2], "easy"], [10, null, "dense"], [20, null, "too-large-qr"]].every(([count, sentences, want]) => {
+    const built = wjt.assignment.build(sample, { skills: ALL_SKILLS, count, sentences, seed: 42 });
+    const rep = channels.get("link").report(built, WEB_ENV);
+    // The number leads the sentence, comma-grouped, so a teacher can compare it
+    // to the thresholds without counting digits.
+    return rep.state === want && rep.ready === true && STATE_WORDING[want].test(rep.detail) &&
+      rep.detail.indexOf(grouped(rep.length)) === 0;
+  }));
+check("channels: past the URL ceiling the link is not ready, and names the ceiling", (() => {
+  // A long base URL, not a bigger assignment: this exercises `too-large-url`
+  // deterministically, without depending on how the examples happen to grow.
+  const longBase = { protocol: "https:", baseUrl: "https://example.test/" + "a".repeat(codec.LIMITS.url) + "/" };
+  const rep = channels.get("link").report(small, longBase);
+  const out = channels.get("link").deliver(small, { env: longBase });
+  return rep.ready === false && rep.state === "too-large-url" &&
+    STATE_WORDING["too-large-url"].test(rep.detail) &&
+    rep.detail.indexOf(grouped(codec.LIMITS.url)) !== -1 &&
+    out.ok === false && STATE_WORDING["too-large-url"].test(out.error);
+})());
+check("channels: an assignment the codec refuses is reported in the codec's own words", (() => {
+  const big = wjt.assignment.build(sample, { skills: ALL_SKILLS, count: "all", seed: 9 });
+  big.assignment.directions = "x".repeat(codec.LIMITS.directions + 1);
+  const rep = channels.get("link").report(big, WEB_ENV);
+  return rep.ready === false && rep.state === "refused" && /too long/.test(rep.detail);
+})());
+
+// --- print and file: always available, no size limit, and honest readouts ---
+const printDetail = byId(onFile, "print").detail;
+check("channels: the print report counts the questions and sentences really drawn",
+  printDetail.indexOf(small.assignment.questions.length + " question") === 0 &&
+  printDetail.indexOf(small.assignment.sentences.length + " sentence") !== -1 &&
+  /no size limit\.$/.test(printDetail));
+check("channels: the file report measures the real serialized size",
+  byId(onFile, "file").ready === true &&
+  /^One \.json file, about [\d,]+ (bytes|KB) — no size limit\.$/.test(byId(onFile, "file").detail) &&
+  byId(onFile, "file").length ===
+    JSON.stringify(channels.get("file").payload(small), null, 2).length);
+
+// The file channel is a delivery channel, so the same rule applies to it as to
+// the wire form: the student half only, and never the key.
+const filePayload = channels.get("file").payload(capped);
+const fileText = JSON.stringify(filePayload);
+check("channels: the file carries no answer-key material",
+  !/"accepted"|"source"|"answers"|"note"/.test(fileText) &&
+  capped.key.answers.every((a) => fileText.indexOf(a.source) === -1) &&
+  fileText.indexOf(capped.key.format) === -1);
+check("channels: the file drops the seed — a teacher's regenerate handle, not a student's",
+  !("seed" in filePayload) && "seed" in capped.assignment &&
+  Object.keys(capped.assignment).filter((k) => k !== "seed")
+    .every((k) => JSON.stringify(filePayload[k]) === JSON.stringify(capped.assignment[k])));
+check("channels: the file is self-describing, so something can read it back later",
+  filePayload.format === wjt.assignment.FORMAT && filePayload.version === wjt.assignment.VERSION);
+check("channels: the download filename is a slug of the title, and says what it is",
+  /^[a-z0-9-]+\.assignment\.json$/.test(channels.get("file").filename(small)) &&
+  channels.get("file").filename({ assignment: { title: "Sentence 3 — “Fox” practice!" } }) ===
+    "sentence-3-fox-practice.assignment.json" &&
+  channels.get("file").filename({ assignment: { title: "!!!" } }) === "untitled.assignment.json");
+
+// --- status: what can reach a student today, and what is only measured ---
+check("channels: print and file are ready; link is measured but has nowhere to send yet",
+  channels.get("print").status === "ready" && channels.get("print").actions.length === 2 &&
+  channels.get("file").status === "ready" && channels.get("file").actions.length === 1 &&
+  channels.get("link").status === "planned" && channels.get("link").actions.length === 0 &&
+  /Phase 4/.test(channels.PLANNED_NOTE));
+check("channels: nothing throws out of deliver() — a click handler can't be wedged", (() => {
+  // No DOM in this sandbox, so print and file must FAIL rather than throw. That
+  // is the same contract for a browser that refuses a Blob or a print dialog.
+  let threw = false, allAnswered = true;
+  [FILE_ENV, WEB_ENV].forEach((env) => {
+    channels.ORDER.forEach((id) => {
+      ["worksheet", "key", "download", undefined].forEach((variant) => {
+        let r;
+        try { r = channels.get(id).deliver(small, { env, variant }); }
+        catch (e) { threw = true; return; }
+        if (!r || typeof r.ok !== "boolean") allAnswered = false;
+        if (r.ok === false && (typeof r.error !== "string" || !r.error)) allAnswered = false;
+      });
+    });
+  });
+  return !threw && allAnswered;
+})());
+
 // --- the new modules stay DOM-free and storage-free ---
-["assignment-model.js", "assignment-codec.js"].forEach((f) => {
+["assignment-model.js", "assignment-codec.js", "assignment-channels.js"].forEach((f) => {
   const src = fs.readFileSync(path.join(root, "js", f), "utf8");
   check(f + ": touches no DOM, storage, or network",
     !/\bdocument\b|localStorage|sessionStorage|\bfetch\s*\(|XMLHttpRequest|navigator/.test(src));

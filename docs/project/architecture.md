@@ -1,7 +1,7 @@
 # Architecture
 
-Sentence Forge is ~7,700 lines of plain ES5-flavored JavaScript in twelve files, no
-dependencies, no build step. This document explains the shape of it and the
+Sentence Forge is ~8,300 lines of plain ES5-flavored JavaScript in thirteen files,
+no dependencies, no build step. This document explains the shape of it and the
 handful of decisions that everything else follows from.
 
 - [The five constraints](#the-five-constraints)
@@ -12,6 +12,7 @@ handful of decisions that everything else follows from.
 - [The taxonomy](#the-taxonomy)
 - [Rendering](#rendering-one-css-grid-per-sentence)
 - [Routing and views](#routing-and-views)
+- [Delivery channels](#delivery-channels-wjtassignmentchannels)
 - [Quiz generation](#quiz-generation)
 - [Where docs must stay in sync](#the-taxonomy-is-documented-in-five-places)
 
@@ -47,7 +48,7 @@ Load order matters — each file only depends on the ones above it.
 
 | File | Lines | Responsibility |
 |---|---:|---|
-| `index.html` | 38 | The whole app shell: nav, `#app` mount, `#toasts`, twelve script tags. |
+| `index.html` | 39 | The whole app shell: nav, `#app` mount, `#toasts`, thirteen script tags. |
 | `css/styles.css` | — | Design system, both themes, driven by CSS custom properties on `:root[data-theme]`. |
 | `js/labels.js` | 767 | **The taxonomy.** `wjt.LAYERS`, `wjt.LABELS`, `wjt.SENTENCE_TYPES`, and the helpers over them. Zero DOM. |
 | `js/tokenize.js` | 78 | Sentence splitting, tokenizing, and span↔token conversion. Zero DOM. |
@@ -55,7 +56,8 @@ Load order matters — each file only depends on the ones above it.
 | `js/examples.js` | 1,776 | The seven example lessons, each as a `build()` that returns a lesson object. |
 | `js/assignment-model.js` | 583 | Assignment question pool, balanced seeded selection, and the separate answer key. Zero DOM. |
 | `js/assignment-codec.js` | 423 | Compact student-safe wire map, base64url, validation, and URL size states. Zero DOM. |
-| `js/assignment.js` | 769 | 📝 Assignment builder view, `wjt.assignmentRender` (the student-safe sheet), and `wjt.assignmentPrint` (the printed worksheet and teacher answer key). |
+| `js/assignment-channels.js` | 307 | The delivery channels — print, file, link — behind one `available()` / `report()` / `deliver()` shape (seam S5). Reads `window.location` and nothing else. |
+| `js/assignment.js` | 834 | 📝 Assignment builder view, `wjt.assignmentRender` (the student-safe sheet), and `wjt.assignmentPrint` (the printed worksheet and teacher answer key). |
 | `js/render.js` | 860 | The shared sentence renderer: one grid per sentence, POS chips above, span bars below. Plus the label popover. |
 | `js/editor.js` | 523 | ✎ Edit view — selection, the drill-down palette, notes, sentence type chips, merge/delete. |
 | `js/display.js` | 494 | ▶ Present view — one sentence at a time, layer toggles, keyboard nav. |
@@ -85,9 +87,11 @@ There is no module system and no dependency injection — the load order in
 
 This is also what makes the headless checks possible: `tools/smoke-test.js`
 `vm.runInContext`s `labels.js`, `tokenize.js`, `store.js`, `examples.js`,
-`assignment-model.js`, and `assignment-codec.js` into a sandbox with a fake
-`localStorage` and gets the whole logic layer with no DOM.
-**Keep DOM access out of those six files** or you break the smoke test.
+`assignment-model.js`, `assignment-codec.js`, and `assignment-channels.js` into a
+sandbox with a fake `localStorage` and gets the whole logic layer with no DOM.
+**Keep DOM access out of those seven files** or you break the smoke test.
+The three `assignment-*` modules are held to the stricter bar by a source scan in
+the same file: no `document`, no storage, no network, at all.
 
 ## The data model
 
@@ -318,6 +322,49 @@ them so a broken teardown can never wedge navigation.
 
 Hash routing (not the History API) is another `file://` consequence — there's no
 server to rewrite paths.
+
+## Delivery channels: `wjt.assignmentChannels`
+
+Seam **S5** of [roadmap-platform.md](../roadmap-platform.md#seams-to-land-first).
+"How can this assignment reach a student?" has exactly one answer, in one file,
+and three implementations behind one shape:
+
+```js
+channel.available(env)         // -> { available, reason }   can it be used HERE?
+channel.report(built, env)     // -> { ready, state, length, detail }   how big?
+channel.deliver(built, opts)   // -> { ok: true, … } | { ok: false, error }
+```
+
+| Channel | What it is | Availability | Size |
+|---|---|---|---|
+| `print` | the worksheet + the separate answer key | always, every protocol | no limit |
+| `file` | the assignment as one `.json` | always, every protocol | no limit |
+| `link` | `assignment-codec.js`, wrapped | `http:`/`https:` only | the codec's `LIMITS` / `THRESHOLDS` |
+
+Three properties are worth not breaking:
+
+- **`available()` is where [P3](../roadmap-platform.md#decisions) is code.** Under
+  `file://` the link channel returns `available: false` with a *displayed* reason
+  in teacher language, and print and file stay available — that is the roadmap's
+  "a teacher with no login and no network can still print a worksheet", enforced
+  rather than promised. The gate lives here and nowhere else: no view reads
+  `location.protocol`, and `available()` fails closed on an unknown protocol.
+- **The codec is wrapped, never re-derived.** Every number the link channel
+  reports comes from `wjt.assignmentCodec` at call time — `LIMITS.url` and the
+  measured `THRESHOLDS.easy` / `.dense` QR bands. A parallel set of thresholds is
+  how the builder and the QR encoder would start disagreeing.
+- **A channel takes only the half it is entitled to.** `file` and `link` carry the
+  student-safe `assignment`; the answer key leaves the app through exactly one
+  channel — `print` — because a teacher asked for it on paper. `file`
+  additionally drops the `seed`, which is a teacher's regenerate handle.
+
+A channel's `status` is `"ready"` or `"planned"`. `link` is **planned**: its
+availability and size reasoning are live and tested, and `deliver()` really
+returns the URL, but the read-only student page that opens one is proposal
+Phase 4 and doesn't exist yet. The builder renders a channel's buttons from
+`actions` and enables them from `status` + `available` + `ready`, so that phase
+flips two fields and changes no view code. Account-delivery slots in the same way
+once [P7/P8](../roadmap-platform.md#decisions) resolve.
 
 ## Quiz generation
 

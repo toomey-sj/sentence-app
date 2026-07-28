@@ -37,6 +37,11 @@
       answer-key material and no lesson id, the answer key is marked and fully
       answered, all three renderings agree on numbering, and `afterprint` puts
       the builder back untouched.
+    - Delivery-channel checks (13): seam S5 in the real builder. This page IS a
+      file:// origin, which is the degraded mode P3 describes — so "print and
+      file stay on, the link is off and says why in teacher language" is
+      *measured* here rather than reasoned about, and the File button's download
+      is intercepted to prove it carries the student half only.
 
   Run it (the Git-Bash `>` redirect returns an EMPTY dump for this GUI process —
   use PowerShell Start-Process, which waits for the child and captures stdout):
@@ -76,6 +81,7 @@
   <script src="../js/examples.js"></script>
   <script src="../js/assignment-model.js"></script>
   <script src="../js/assignment-codec.js"></script>
+  <script src="../js/assignment-channels.js"></script>
   <script src="../js/assignment.js"></script>
   <script src="../js/render.js"></script>
   <script src="../js/editor.js"></script>
@@ -724,6 +730,11 @@
       });
       check("A-4: Regenerate redraws the same count, still numbered 1..N", stillNumbered);
 
+      // 13. Delivery channels, before anything is printed — the builder's
+      //     resting state under a real file:// origin.
+      try { deliveryChecks(view, densest); }
+      catch (e) { check("delivery checks threw: " + e.message, false); }
+
       // 12. Print, on this same (densest) lesson and this same builder state.
       try { printChecks(view, densest); }
       catch (e) {
@@ -757,9 +768,92 @@
     }
 
     /* -------------------------------------------------------------------- *
+     * Delivery-channel checks (13) — seam S5, in the real builder.
+     *
+     * This page is loaded over file:///, which is exactly the degraded mode P3
+     * describes. So the load-bearing claim — a teacher who double-clicked
+     * index.html keeps print and file, and is TOLD why a link isn't on offer —
+     * is measured in the environment it is about, not simulated.
+     * -------------------------------------------------------------------- */
+    function deliveryChecks(view, lesson) {
+      var order = wjt.assignmentChannels.ORDER;
+      var rows = view.querySelectorAll(".assign-channel");
+      check("D-1: this page really is a file:// origin", location.protocol === "file:");
+      check("D-1: the builder renders one row per channel, in the module's order",
+        rows.length === order.length &&
+        Array.prototype.every.call(rows, function (r, i) {
+          return r.dataset.channel === order[i];
+        }));
+
+      function row(id) {
+        return view.querySelector('.assign-channel[data-channel="' + id + '"]');
+      }
+      function textOf(id, cls) {
+        var node = row(id).querySelector(cls);
+        return (node && node.textContent) || "";
+      }
+
+      check("D-2: print and file stay enabled under file:// — the P3 promise, on screen",
+        ["print", "file"].every(function (id) {
+          return row(id).dataset.state === "ready" &&
+            row(id).querySelectorAll("button:not(:disabled)").length ===
+              wjt.assignmentChannels.get(id).actions.length;
+        }));
+      check("D-3: link is disabled under file://, with the channel's own reason visible",
+        row("link").dataset.state === "unavailable" &&
+        textOf("link", ".assign-channel-why")
+          .indexOf(wjt.assignmentChannels.NO_LINK_REASON) !== -1 &&
+        row("link").querySelectorAll("button").length === 0);
+      check("D-3: the unavailable channel shows no size readout at all",
+        textOf("link", ".assign-channel-size") === "");
+
+      // The readouts are the channel's report, not a view-side estimate — the
+      // same rule A-2 holds the pool readout to. The builder's seed is random,
+      // so this compares against what is actually on the sheet.
+      var drawn = view.querySelectorAll(".assign-sheet .assign-question").length;
+      check("D-4: the print readout counts the questions really drawn (" + drawn + ")",
+        textOf("print", ".assign-channel-size").indexOf(drawn + " question") === 0 &&
+        /no size limit\.$/.test(textOf("print", ".assign-channel-size")));
+      check("D-4: the file readout reports a real serialized size",
+        /^One \.json file, about [\d,]+ (bytes|KB) — no size limit\.$/
+          .test(textOf("file", ".assign-channel-size")));
+
+      // 13b. The File button, with the download intercepted: one .json named
+      //      after the title, carrying the student half and nothing else. This is
+      //      the same leak assertion as A-3/P-2, on the third delivery surface.
+      var realDownload = wjt.downloadJson, got = null;
+      wjt.downloadJson = function (obj, filename) { got = { obj: obj, filename: filename }; };
+      try { row("file").querySelector('button[data-variant="download"]').click(); }
+      finally { wjt.downloadJson = realDownload; }
+      check("D-5: the File button downloads one .json named after the title" +
+        (got ? " (" + got.filename + ")" : ""),
+        !!got && /^[a-z0-9-]+\.assignment\.json$/.test(got.filename));
+      var fileText = got ? JSON.stringify(got.obj) : "";
+      var leaked = "";
+      wjt.assignment.build(lesson, { count: "all" }).key.answers.forEach(function (a) {
+        if (!leaked && fileText.indexOf(a.source) !== -1) leaked = a.source;
+        if (!leaked && a.note && fileText.indexOf(a.note) !== -1) leaked = a.note;
+      });
+      check("D-5: the downloaded file carries no answer-key material" +
+        (leaked ? " (leaked “" + leaked + "”)" : ""), !!got && !leaked);
+      check("D-5: the downloaded file is the assignment format, and drops the seed",
+        !!got && got.obj.format === wjt.assignment.FORMAT &&
+        got.obj.version === wjt.assignment.VERSION && !("seed" in got.obj) &&
+        fileText.indexOf(lesson.id) === -1);
+
+      // 13c. Same shipped code, a web origin: the protocol is the whole gate.
+      check("D-6: the link channel turns on for a web origin, with nothing else changed",
+        wjt.assignmentChannels.get("link").available({ protocol: "https:" }).available === true &&
+        wjt.assignmentChannels.get("link").available({ protocol: "file:" }).available === false);
+    }
+
+    /* -------------------------------------------------------------------- *
      * Print checks (12) — the two print surfaces, driven through the real
-     * builder buttons. window.print is stubbed (a headless print dialog would
-     * hang), so `afterprint` is dispatched by hand to cover the teardown.
+     * builder buttons, which since S5 are the `print` channel's two actions: a
+     * click here goes through wjt.assignmentChannels, so this block covers the
+     * delivery path as well as the two printed sheets. window.print is stubbed
+     * (a headless print dialog would hang), so `afterprint` is dispatched by
+     * hand to cover the teardown.
      *
      * The leak assertion here is the whole point of the phase: a print path
      * that carries the answer key into the student worksheet is the most
@@ -785,7 +879,7 @@
         var preview = questionSignature(view.querySelector(".assign-sheet"));
 
         // 12a. The worksheet mounts a purpose-built document, not the app.
-        view.querySelector('[data-act="print-sheet"]').click();
+        view.querySelector('[data-channel="print"][data-variant="worksheet"]').click();
         var root = document.getElementById("print-root");
         check("P-1: Print worksheet mounts #print-root and calls window.print()",
           !!root && printed === 1);
@@ -834,7 +928,7 @@
           questionSignature(view.querySelector(".assign-sheet")) === preview);
 
         // 12d. The answer key: same numbering, marked, and actually answered.
-        view.querySelector('[data-act="print-key"]').click();
+        view.querySelector('[data-channel="print"][data-variant="key"]').click();
         var keyRoot = document.getElementById("print-root");
         var keyDoc = keyRoot && keyRoot.querySelector(".print-key");
         check("P-5: Print answer key mounts a key document", !!keyDoc && printed === 2);

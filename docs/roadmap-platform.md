@@ -1,6 +1,7 @@
 # Sentence Forge — the platform decision
 
-**Status:** Direction set, no code committed to it yet · **Date:** 2026-07-28
+**Status:** Direction set · all five seams (S1–S5) landed 2026-07-28 · nothing
+committed to P7/P8 yet · **Date:** 2026-07-28
 
 Sentence Forge has been built as a *portable single-purpose app*: no build step,
 no server, no network, runs from a double-clicked `index.html`. This document
@@ -91,8 +92,13 @@ Numbered `P` so they don't collide with `Q1–Q5` in
 
 The expensive part of accounts is not auth — it is the seams that are brutal to
 retrofit once teachers have real work stored. All five are **cheap now,
-reversible, and worth doing regardless of how P7 and P8 resolve.** None is
-user-visible.
+reversible, and worth doing regardless of how P7 and P8 resolve.**
+
+> S1–S4 shipped with no user-visible change at all, as written. **S5 is the
+> exception, and necessarily so:** "the link channel is unavailable here, and here
+> is why" is a sentence a teacher has to be able to read, so it landed as a
+> Delivery section in the assignment builder. An invisible version of S5 would
+> have been the silent failure P3 exists to prevent.
 
 - [x] **S1 — A storage adapter behind [store.js](../js/store.js).** ~~Today it
       hardcodes `localStorage` with whole-list `readAll()`/`writeAll()`.~~ Extract a
@@ -140,11 +146,19 @@ user-visible.
       than machinery whose first execution is the day it matters. An unknown
       version is **refused, not guessed at**: the lesson comes back exactly as
       stored and the refusal is published on `wjt.store.unsupportedVersion`.
-- [ ] **S5 — The delivery-channel interface.** Generalize the assignment codec
+- [x] **S5 — The delivery-channel interface.** ~~Generalize the assignment codec
       from "the URL encoder" to one channel behind a common shape (`available()`,
-      `deliver()`, a size/readiness report). Print, file, and link are the first
+      `deliver()`, a size/readiness report).~~ Print, file, and link are the first
       three; account-delivery slots in later.
-      → [plans/013](../plans/013-seam-delivery-channels.md)
+      → **Done 2026-07-28**, [plans/done/013](../plans/done/013-seam-delivery-channels.md).
+      `wjt.assignmentChannels` in [js/assignment-channels.js](../js/assignment-channels.js).
+      **`available()` is where P3 became code**: under `file://` the link channel
+      returns `available: false` with a reason the builder displays, and print and
+      file stay available on every protocol. The builder asks the channel — it
+      reads no protocol, measures no payload, and words no refusal of its own. The
+      codec was wrapped, not touched. The link channel is `status: "planned"`
+      (measured and deliverable as a URL, but the student page that opens one is
+      proposal Phase 4), which is the field that phase flips.
 
 Sharing a *lesson* teacher-to-teacher may not need a backend at all: the
 assignment codec already proves the pattern — compact payload, base64url, URL
@@ -152,6 +166,20 @@ fragment, no server. Lessons are larger, so compression stops being optional, bu
 "send a colleague a link to this lesson" is achievable before P7 resolves and is
 worth prototyping as a check on whether accounts are needed for sharing or only
 for durability.
+
+> **2026-07-28 — measured while S5 was in this code, and the answer is "yes,
+> plausibly".** A minified lesson export, base64url'd, against the codec's
+> 7,800-character payload ceiling: **5 of the 9 shipped examples already fit
+> uncompressed** (`dracula` 0.7×, `fox` 0.9×, `gatsby` 0.9×, `kinds` 1.0×,
+> `frankenstein` 1.0× of the ceiling), and the worst case is
+> `declaration-of-independence` at **4.7×**. An LZ-style compressor closes that
+> gap for every example. Two caveats: **QR is off the table for lessons at any
+> size** — the smallest is 5,779 characters against a 1,800-character *dense*
+> band — and the channel *shape* transfers but the *work* is a lesson wire codec
+> (a whitelist plus validation, and a different safety argument: a lesson is
+> teacher IP, not a student-safe-vs-not question). So **P7 has to buy durability,
+> not sharing.** That distinction now has numbers behind it. See
+> [plans/done/013](../plans/done/013-seam-delivery-channels.md#task-d-answered--is-a-lesson-link-cheap).
 
 ## What does not change
 
@@ -196,18 +224,20 @@ why.
 
 ### The queue
 
-**2026-07-28 — steps 1–3 are now work orders** in [plans/](../plans/README.md),
-each self-contained enough to be picked up by another machine or a cold session.
-The 1 → 2 order above is being honored deliberately: print is valuable in every
-scenario this document describes and needs no network, and the seams stay cheap
-either way.
+**2026-07-28 — steps 1–3 are done.** They were written as work orders in
+[plans/](../plans/README.md), each self-contained enough to be picked up by
+another machine or a cold session, and executed in the 1 → 2 → 3 order above
+deliberately: print is valuable in every scenario this document describes and
+needs no network, and the seams stayed cheap either way. **Step 4 — the pilot —
+is now the next thing**, and the rule below still stands: don't start step 5
+before it without writing the reason here.
 
 | Step | Work orders |
 |---|---|
 | 1. Assignment Phases 2–3 | ~~[008 — builder and preview](../plans/done/008-assignment-phase-2-builder.md)~~ · ~~[009 — print worksheet and answer key](../plans/done/009-assignment-phase-3-print.md)~~ **both done 2026-07-28** |
 | 1b. Get the DOM check green first | ~~[014 — settle the Present checks](../plans/done/014-ui4-dom-check-settle.md)~~ **done 2026-07-28.** It unblocked the acceptance bar every step below asks for: `UI-4` was failing on a clean tree, so CI was red and "0 failed" unreachable. The DOM check is now **328 passed / 0 failed** at all four matrix sizes, so step 2 gets a clean gate rather than a count to remember. |
-| 2. Land S1–S4 | ~~[010 — storage adapter](../plans/done/010-seam-storage-adapter.md)~~ · ~~[011 — real ids](../plans/done/011-seam-real-ids.md)~~ · ~~[012 — `ownerId` + migration runner](../plans/done/012-seam-owner-and-migrations.md)~~ **all done 2026-07-28.** Step 2 is complete; S5 ([013](../plans/013-seam-delivery-channels.md)) is the last seam. |
-| 3. Re-scope Assignment 4–5 behind S5 | [013 — delivery-channel interface](../plans/013-seam-delivery-channels.md) |
+| 2. Land S1–S4 | ~~[010 — storage adapter](../plans/done/010-seam-storage-adapter.md)~~ · ~~[011 — real ids](../plans/done/011-seam-real-ids.md)~~ · ~~[012 — `ownerId` + migration runner](../plans/done/012-seam-owner-and-migrations.md)~~ **all done 2026-07-28.** Step 2 is complete; S5 ([013](../plans/done/013-seam-delivery-channels.md)) was the last seam. |
+| 3. Re-scope Assignment 4–5 behind S5 | ~~[013 — delivery-channel interface](../plans/done/013-seam-delivery-channels.md)~~ **done 2026-07-28.** All five seams are in, and the proposal's [Phases 4–5](../plans/proposals/assignment-mode-proposal.md#implementation-phases) are rewritten rather than annotated — three of Phase 4's four bullets turned out to be already done, and what remains is the student page alone. |
 | 4. Run the pilot | Not a work order — see [pilot.md](product/pilot.md). |
 | 5. Decide P7 and P8 | Not a work order. The rule above still stands: don't start this before step 4 without writing the reason here. |
 

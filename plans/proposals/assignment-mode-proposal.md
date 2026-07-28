@@ -7,7 +7,7 @@ target: 1.0.0
 
 # Assignment mode — printable worksheets or private, read-only URL delivery
 
-> **2026-07-28 — Phases 1–3 delivered, and delivery is being generalized.**
+> **2026-07-28 — Phases 1–3 delivered, and delivery is now a set of channels.**
 > Phase 1 (model, generator, wire codec), Phase 2 (builder view, route, live
 > preview), and Phase 3 (print worksheet and teacher answer key) are built; see
 > [Phase 1 decisions](#phase-1-decisions), [As built — Phase 1](#as-built--phase-1),
@@ -18,10 +18,15 @@ target: 1.0.0
 > network at all — which is the whole point of landing print before anything that
 > needs one.
 >
-> This document treats a URL and QR code as *the* digital delivery method.
-> [docs/roadmap-platform.md](../../docs/roadmap-platform.md) **P4** makes that one
-> channel among several — file, print, link, and later account-delivery — behind
-> the **S5** channel interface. Read Phases 4 and 5 with that in mind; the
+> **Delivery has been generalized — Phases 4 and 5 are re-scoped, not merely
+> annotated.** This document was written treating a URL and QR code as *the*
+> digital delivery method. [docs/roadmap-platform.md](../../docs/roadmap-platform.md)
+> **P4** makes that one channel among peers — print, file, link, and later
+> account-delivery — and seam **S5**
+> ([plans/done/013](../done/013-seam-delivery-channels.md)) built the interface:
+> `wjt.assignmentChannels`. [Phase 4](#phase-4--the-link-channels-student-page)
+> and [Phase 5](#phase-5--qr-delivery) below have been rewritten accordingly, and
+> three of Phase 4's four original bullets turned out to be already done. The
 > privacy boundary, question design, print requirements, and encoding rules are
 > unaffected.
 
@@ -29,14 +34,19 @@ target: 1.0.0
 
 Add an **Assignment** mode that turns an existing annotated lesson into a
 student-facing, handwritten activity. A teacher builds the assignment once and
-then chooses either delivery method:
+then picks a **delivery channel** (S5 — `wjt.assignmentChannels`):
 
-1. **Print worksheet** — print directly or use the browser's Save as PDF.
-2. **Share URL / QR code** — students open a read-only assignment on a device,
-   write their answers on paper, and hand the paper to the teacher.
+1. **Print** — the worksheet and a separate answer key, direct to a printer or
+   through the browser's Save as PDF. Always available; no size limit.
+2. **File** — the assignment as one `.json`, to keep or hand on. Always
+   available; no size limit.
+3. **Link** — a read-only assignment carried in the URL, opened on a device;
+   students write their answers on paper and hand the paper to the teacher.
+   Size-limited, and unavailable under `file://` — where it says so, in teacher
+   language, rather than failing silently.
 
-The two delivery methods must render the same passage, directions, numbering,
-questions, and optional supports. Sentence Forge must not collect, transmit, or
+Every channel must render the same passage, directions, numbering, questions, and
+optional supports. Sentence Forge must not collect, transmit, or
 store student names, responses, scores, or activity history.
 
 This proposal deliberately does not turn Sentence Forge into a learning
@@ -540,18 +550,63 @@ phases.
 - Verify color and grayscale output.
 - Verify that student print DOM contains no answer-key material.
 
-### Phase 4 — Student URL
+### Phase 4 — The link channel's student page
 
-- Implement versioned encoding, decoding, validation, and error handling.
-- Add the read-only student route.
-- Disable URL delivery on `file:` while retaining print.
-- Add size/readability feedback.
+> **Re-scoped 2026-07-28 by seam S5**
+> ([plans/done/013](../done/013-seam-delivery-channels.md)). A URL is **not** the
+> digital delivery method — it is one channel among peers behind
+> `wjt.assignmentChannels`
+> ([P4](../../docs/roadmap-platform.md#decisions)). Print, file, and link already
+> satisfy that one interface, and account-delivery slots in as a fourth peer once
+> [P7 and P8](../../docs/roadmap-platform.md#decisions) resolve. **Nothing in this
+> phase may re-introduce a second answer to "can this be sent?"**
+
+Three of the four bullets this phase used to own are already done, in the right
+place. What is genuinely left is the student page.
+
+- ~~Versioned encoding, decoding, validation, and error handling~~ — **done in
+  Phase 1**, `js/assignment-codec.js`. Do **not** modify `encode`/`decode`:
+  `KIND_CODES` order *is* the wire format, and reordering it silently breaks
+  every link already in the wild.
+- ~~Disable URL delivery on `file:` while retaining print~~ — **done in S5**, and
+  deliberately not as a `location.protocol` check in a view. It lives in
+  `channels.link.available(env)`, which returns `available: false` plus a reason
+  string the builder displays, while `print` and `file` stay available on every
+  protocol. Do not add a protocol check anywhere else; there is one gate.
+- ~~Size/readability feedback~~ — **done in S5**. `channels.link.report()` returns
+  the codec's own `sizeState` band in teacher wording, and the builder shows it on
+  every rebuild.
+- **Still owed: the read-only student route** at `wjt.assignmentCodec.ROUTE`
+  (`#/assignment/<payload>`), plus its invalid-payload screen. When it exists,
+  flip the link channel's `status` from `"planned"` to `"ready"` and give it one
+  action — the builder grows its button off those two fields alone, and no view
+  code changes.
+
+**The measurement this phase is owed**, carried forward from
+[As built — Phase 1](#as-built--phase-1) so the compression decision is made with
+numbers rather than instinct: a typical 10-question assignment lands at
+**~1,530 characters — *dense*, not *easy*** (measured again through the shipped
+channel at 1,444 characters for the sample lesson over `http://`). A vendored
+LZ-style compressor is the only lever on the table that moves most
+classroom-sized assignments into the *easy* band; **shrinking the schema will
+not** — the payload is passage text and prompt text, and the short-key wire form
+already spends almost nothing on structure. Evaluate compression with those
+measurements in hand, or accept *dense* and print a larger QR code.
 
 ### Phase 5 — QR delivery
 
-- Add the local QR implementation and license/provenance.
-- Add QR preview, image download, and printable handout.
-- Test easy, dense, and rejected payloads on actual phones and paper.
+QR is a **rendering of the link channel**, not a fourth channel: it encodes
+exactly what `channels.link.deliver()` returns, and the *easy* / *dense* /
+*too-large* bands it reacts to are already `channels.link.report().state`. If QR
+work starts inventing its own size arithmetic, that is the bug.
+
+- Add the local QR implementation and license/provenance (see
+  [Q3](#q3--qr-implementation)).
+- Add QR preview, image download, and printable handout — all off the URL the
+  channel produced, never a second encode of the assignment.
+- Test easy, dense, and rejected payloads on actual phones and paper. This is the
+  phase that confirms `THRESHOLDS.easy` / `.dense` against real scans; they are
+  measured capacities today, not scan results.
 
 ### Phase 6 — Documentation and release verification
 

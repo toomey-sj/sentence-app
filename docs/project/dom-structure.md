@@ -605,8 +605,9 @@ div.view.view-assignment
    │  ├─ h3.assign-h "Print"
    │  ├─ div.layer-toggles[data-role=colormode]  ← "Ink": Color | Grayscale
    │  ├─ div.layer-toggles[data-role=keyopts]    ← "Answer key": teaching notes on/off
-   │  ├─ div.btn-row.assign-print-row
-   │  │     └─ button[data-act=print-sheet] · button[data-act=print-key]
+   │  ├─ h3.assign-h "Delivery"
+   │  ├─ div.assign-channels[data-role=channels]
+   │  │     └─ div.assign-channel[data-channel][data-state] ×channel   ← see below
    │  └─ p.muted-note                            ← Save-as-PDF / key-is-separate note
    └─ section.assign-preview
       ├─ div.section-head  (h3.section-title + span.spacer + button[data-act=regen])
@@ -627,6 +628,32 @@ the two readouts are rebuilt on each change.
 Everything under **Print** except colour mode is a print control rather than a
 selection: the teaching-notes toggle changes the answer key only, so it never
 reaches the model and never triggers a rebuild.
+
+### The delivery channels (seam S5)
+
+One row per channel in `wjt.assignmentChannels.ORDER`, built once from the
+channel's own fields and patched by `syncChannels()` on every rebuild:
+
+```
+div.assign-channel[data-channel=print|file|link][data-state=…]
+├─ b.assign-channel-name              ← channel.name
+├─ p.muted-note.assign-channel-what   ← channel.what, one line
+├─ p.assign-channel-size              ← channel.report().detail  (empty → hidden)
+├─ div.btn-row.assign-channel-actions ← omitted when the channel has no actions
+│     └─ button[data-act=deliver][data-channel][data-variant] ×action
+└─ p.muted-note.assign-channel-why    ← the reason / planned note (empty → hidden)
+```
+
+`data-state` is **the channel's answer, never a protocol check in the view** —
+`ready` · `blocked` (too big for this channel) · `planned` (measured, no student
+destination yet) · `unavailable` (not possible here, e.g. a link under `file://`).
+Buttons are enabled only in `ready`. A channel with no `actions` renders no button
+row at all, which is how `link` shows a size and a reason today and grows a button
+the day its student page exists.
+
+The three print/file/link surfaces are therefore the *only* place delivery is
+decided: `wjt.views.assignment` does not read `location.protocol`, does not
+measure a payload, and does not word its own refusals.
 
 ### The shared sheet body
 

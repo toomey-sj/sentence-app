@@ -1488,9 +1488,29 @@ button.type-badge:hover { transform: translateY(-1px); background: color-mix(in 
 
 .assign-empty { margin-top: 12px; }
 
-/* The two print buttons close the controls column; the note under them explains
-   Save-as-PDF and that the key is a separate sheet. */
-.assign-print-row { margin: 14px 0 8px; }
+/* ---------------- delivery channels (seam S5) ----------------
+   One row per channel in wjt.assignmentChannels.ORDER, closing the controls
+   column. `data-state` is the CHANNEL's answer, never a protocol check in the
+   view: ready | blocked | planned | unavailable. A row that can't be used is
+   dimmed but still readable — the reason underneath is the point of showing it
+   at all, so it must never be styled into invisibility. */
+.assign-channels { display: flex; flex-direction: column; gap: 12px; }
+.assign-channel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.assign-channel[data-state="unavailable"],
+.assign-channel[data-state="planned"] { background: var(--bg-soft); }
+.assign-channel-name { display: block; font-size: 15px; }
+.assign-channel-what { margin: 2px 0 0; }
+.assign-channel-size { margin: 6px 0 0; font-size: 13px; }
+/* A size that reads as a refusal gets the same colour as the pool warnings. */
+.assign-channel[data-state="blocked"] .assign-channel-size { color: var(--accent-2); }
+.assign-channel-actions { margin-top: 10px; }
+.assign-channel-why { margin: 8px 0 0; }
+.assign-channel-size:empty,
+.assign-channel-why:empty { display: none; }
 
 /* ---------------- small screens ---------------- */
 @media (max-width: 640px) {
