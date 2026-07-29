@@ -1,15 +1,47 @@
 ---
-status: todo
+status: done
 created: 2026-07-28
+updated: 2026-07-29
 ---
+
+<!-- Landed 2026-07-29. Divergence notes live in the proposal's
+     "As built — Phase 3"; the important ones are summarized below. -->
+
+> **Done 2026-07-29. Unit 1 is finished** — all fifteen stops playable end to end
+> from a double-clicked `index.html`. `node tools/smoke-test.js` 0 failures,
+> `tools/dom-check.html` **445 passed, 0 failed** (was 408), every other check clean.
+>
+> Four things a later session needs, all detailed in
+> [As built — Phase 3](../proposals/curriculum-unit-1-parts-of-speech.md#as-built--phase-3-2026-07-29):
+>
+> 1. **`focus` means two things now.** On the nine lessons it is a claim the smoke
+>    test holds them to; on the capstone it is a filter over unseen text. The
+>    coverage check is scoped by *"a stop with no teach screens is exempt"* rather
+>    than by naming the capstone, so adding a teach screen to it restores the check.
+> 2. **`tapPerLabel`, not `tapPerScreen`, is what bounds a large focus set.** The
+>    old cap slices the batch and takes every question from the first few sentences.
+>    Dropping the capstone's `tapPerLabel: 1` takes it from 33 questions to 63.
+> 3. **`sort` chips never move**, which is what buys no drag, no lost focus, and no
+>    answer carried by colour. Every control is a real `<button>` and must **not**
+>    get its own Enter handler — a real Enter would fire twice.
+> 4. **`js/unit-pos.js` is six files, and load order is path order.** The check
+>    *"stops are numbered 0…14 in path order"* is what keeps `index.html`,
+>    `tools/dom-check.html`, and `UNIT_FILES` in the smoke test from drifting apart.
+>
+> The **fifteen-stop hand pass** in Done-when was done as automation, following
+> [016](016-unit-pos-remaining-lessons.md)'s precedent: dom-check **S-13** walks all
+> fifteen stops to their results screens over `file:///`, **S-14** drives the sort
+> by pointer and by keyboard, and **S-15** plays the capstone and reads its
+> per-cluster results back. All three run over `file://`, which is the environment
+> the claim is about.
 
 # Unit 1 Phase 3 — the capstone, the `sort` step, and the docs
 
-Phase 3 of [Unit 1 — The Nine Parts of Speech](proposals/curriculum-unit-1-parts-of-speech.md).
+Phase 3 of [Unit 1 — The Nine Parts of Speech](../proposals/curriculum-unit-1-parts-of-speech.md).
 Finishes the unit: the cumulative capstone, the one step kind deliberately held
 back, and the teacher- and student-facing documentation.
 
-[016](done/016-unit-pos-remaining-lessons.md) is `done` as of 2026-07-28, so this
+[016](016-unit-pos-remaining-lessons.md) is `done` as of 2026-07-28, so this
 order is unblocked. Read its closing note first — it hands over a file split and
 two new invariants.
 
@@ -42,7 +74,7 @@ Held back from Phase 1 so the unit shipped on the two mechanics `quiz.js` had
 already proved.
 
 - Several words from the current passage, one bucket per part of speech in play.
-- **Tap-to-assign, never drag.** [pilot.md](../docs/product/pilot.md) names
+- **Tap-to-assign, never drag.** [pilot.md](../../docs/product/pilot.md) names
   drag-to-select on a tablet as the single most likely broken thing in the product;
   this is a student-facing surface and must not bet on it. Tap a word to select it,
   tap a bucket to assign it; tap an assigned word to unassign.
@@ -58,7 +90,7 @@ already proved.
 
 ### Task C — split `js/unit-pos.js`
 
-**Handed over from [016](done/016-unit-pos-remaining-lessons.md), which was content-only
+**Handed over from [016](016-unit-pos-remaining-lessons.md), which was content-only
 and deliberately did not do it.** The file is **2,325 lines** — past the ~2,000 at
 which the proposal says to split it per cluster, and this phase adds the capstone
 on top of that.
@@ -72,36 +104,36 @@ is load-bearing:
   `study-model.js` (which owns `wjt.study.register`) and before `app.js`.
 - `tools/smoke-test.js` — the `LOGIC_FILES` sandbox list *and* the DOM-free source
   scan list. Being in that sandbox is the only thing that proves a file is DOM-free.
-- [CLAUDE.md](../CLAUDE.md) — constraint #4's file list and the JS file count.
-- [docs/project/architecture.md](../docs/project/architecture.md) — the file map.
+- [CLAUDE.md](../../CLAUDE.md) — constraint #4's file list and the JS file count.
+- [docs/project/architecture.md](../../docs/project/architecture.md) — the file map.
 
 Do this **before** authoring the capstone, not after, so the capstone lands in a
 file that is already the right size.
 
 ### Task D — docs
 
-Already written in [015](done/015-study-view-and-first-lesson.md), because amending
+Already written in [015](015-study-view-and-first-lesson.md), because amending
 `pilot.md` and `overview.md` created links to it:
 
-- **[`docs/product/curriculum-unit-1.md`](../docs/product/curriculum-unit-1.md)**
+- **[`docs/product/curriculum-unit-1.md`](../../docs/product/curriculum-unit-1.md)**
   — the unit for teachers and students, and its row in
-  [docs/README.md](../docs/README.md). **Extend it here**, don't rewrite it:
+  [docs/README.md](../../docs/README.md). **Extend it here**, don't rewrite it:
   drop the "Orientation and Lesson 1 are complete" status blockquote once every
   stop is authored, and add whatever the capstone needs (it is currently listed in
   the sequence table but not described as an assessment).
 
 Updated:
 
-- [docs/product/teacher-guide.md](../docs/product/teacher-guide.md) — a section on
+- [docs/product/teacher-guide.md](../../docs/product/teacher-guide.md) — a section on
   assigning the unit, and a cross-reference from the existing "Building a unit
   across a week" recipe, which is the closest thing that existed before this.
-- [docs/product/overview.md](../docs/product/overview.md) — "What's built today"
+- [docs/product/overview.md](../../docs/product/overview.md) — "What's built today"
   gains the unit.
-- [docs/project/architecture.md](../docs/project/architecture.md) and
-  [docs/project/dom-structure.md](../docs/project/dom-structure.md) — the `sort`
+- [docs/project/architecture.md](../../docs/project/architecture.md) and
+  [docs/project/dom-structure.md](../../docs/project/dom-structure.md) — the `sort`
   step's DOM, if 015's entries need extending.
 - The proposal's **As built** section: what diverged, and anything authoring 260
-  questions revealed about the step kinds. Per [CLAUDE.md](../CLAUDE.md) the
+  questions revealed about the step kinds. Per [CLAUDE.md](../../CLAUDE.md) the
   divergence notes are the valuable part — do not tidy a caveat away.
 
 ### Task E — a teacher's honest picture of the limits
@@ -123,7 +155,7 @@ discovered in a classroom:
 - **Unit 2.** Named as the home for verbals and sentence structure so the deferral
   has an address; nothing built.
 - **Restoring Practice, or correcting the docs that still advertise it as live** —
-  a real pre-existing mismatch ([js/app.js:316](../js/app.js#L316)), and a decision
+  a real pre-existing mismatch ([js/app.js:316](../../js/app.js#L316)), and a decision
   of its own. See the proposal's Out of scope. Do not paper over it while editing
   `overview.md` for Task D.
 - **A teacher-facing progress view, export of progress, or any transmission of it.**

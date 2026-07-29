@@ -29,10 +29,11 @@
 
   var PROGRESS_VERSION = 1;
 
-  /* The step kinds. `teach` carries no answer; the rest are scored.
-   * `sort` is declared here and implemented in a later phase (see
-   * plans/017) so the view can switch on a stable set. */
+  /* The step kinds. `teach` carries no answer; the rest are scored. */
   var KINDS = ["teach", "choice", "tap", "sort"];
+
+  /* unitId -> { labelId: clusterId }, derived on first use. */
+  var labelClusterCache = {};
 
   wjt.study = {
     PROGRESS_VERSION: PROGRESS_VERSION,
@@ -75,7 +76,9 @@
       return next;
     },
 
-    /** Clusters in path order: [{ id, title, stops: [...] }]. */
+    /** Clusters in path order: [{ id, title, shortTitle, reviewId, stops }].
+     *  `reviewId` is the cluster's review stop, if it has one — which is also
+     *  what makes it a TEACHING cluster (see labelClusters below). */
     clusters: function (unitId) {
       var u = this.unit(unitId);
       if (!u) return [];
@@ -83,12 +86,43 @@
       u.stops.forEach(function (s) {
         var cid = s.cluster || "";
         if (!byId[cid]) {
-          byId[cid] = { id: cid, title: (u.clusters && u.clusters[cid]) || "", stops: [] };
+          var title = (u.clusters && u.clusters[cid]) || "";
+          byId[cid] = {
+            id: cid,
+            title: title,
+            shortTitle: (u.clusterShort && u.clusterShort[cid]) || title,
+            reviewId: "",
+            stops: [],
+          };
           order.push(byId[cid]);
         }
+        if (s.reviews && s.reviews.length) byId[cid].reviewId = s.id;
         byId[cid].stops.push(s);
       });
       return order;
+    },
+
+    /** Which cluster TAUGHT each label: { labelId: clusterId }.
+     *
+     * A teaching cluster is one that ends in a review, and a teaching stop is one
+     * inside it with a passage of its own. That derivation is deliberate: it
+     * excludes the orientation and the capstone, both of which re-use labels the
+     * lessons own rather than owning any themselves, without this file having to
+     * know their ids. tools/smoke-test.js asserts the result covers the whole
+     * label budget exactly once. */
+    labelClusters: function (unitId) {
+      if (labelClusterCache[unitId]) return labelClusterCache[unitId];
+      var reviewed = {}, map = {};
+      var stops = this.stops(unitId);
+      stops.forEach(function (s) {
+        if (s.reviews && s.reviews.length) reviewed[s.cluster] = true;
+      });
+      stops.forEach(function (s) {
+        if (!s.lessonId || (s.reviews && s.reviews.length) || !reviewed[s.cluster]) return;
+        (s.focus || []).forEach(function (id) { map[id] = s.cluster; });
+      });
+      labelClusterCache[unitId] = map;
+      return map;
     },
   };
 
@@ -114,7 +148,7 @@
   wjt.study.lessonFor = lessonFor;
 
   /** Forget built passages — only needed when a test rebuilds the registry. */
-  wjt.study.clearCache = function () { lessonCache = {}; };
+  wjt.study.clearCache = function () { lessonCache = {}; labelClusterCache = {}; };
 
   /* ------------------------------------------------------------------ *
    * Generated `tap` questions.
@@ -124,13 +158,20 @@
    * range of EVERY same-label span in that sentence, so a passage with two
    * possessive nouns doesn't punish a student for picking the other one — the
    * same fairness rule quiz.js applies to its `find` questions.
+   *
+   * Two caps, and they do different jobs. `limit` is a ceiling on the whole
+   * batch, which is how a teach screen keeps its practice to a few questions.
+   * `perLabel` is a ceiling per label, which is what an assessment over a large
+   * focus set needs: the capstone declares all 48 labels, and slicing the batch
+   * would take every question from the first two sentences instead of one per
+   * part of speech. Both default to no cap, which is the pre-existing behaviour.
    * ------------------------------------------------------------------ */
-  function tapStepsFor(lesson, focus, limit) {
+  function tapStepsFor(lesson, focus, limit, perLabel) {
     if (!lesson) return [];
     var want = {};
     (focus || []).forEach(function (id) { want[id] = true; });
 
-    var out = [];
+    var out = [], countPerLabel = {};
     lesson.sentences.forEach(function (s, si) {
       var tokens = wjt.tokenize(s.text);
       var anns = s.annotations || [];
@@ -146,6 +187,7 @@
 
       anns.forEach(function (a) {
         if (!want[a.label] || !wjt.LABELS[a.label]) return;
+        if (perLabel && (countPerLabel[a.label] || 0) >= perLabel) return;
         var r = wjt.spanToTokens(tokens, a.start, a.end);
         if (!r) return;
         // One question per (sentence, label) — a sentence with four common
@@ -155,6 +197,7 @@
           if (q.sentenceIndex === si && q.label === a.label) already = true;
         });
         if (already) return;
+        countPerLabel[a.label] = (countPerLabel[a.label] || 0) + 1;
         out.push({
           kind: "tap",
           id: "tap-" + si + "-" + a.label,
@@ -196,8 +239,26 @@
       return (stop.items || []).filter(function (it) { return it.after === heading; });
     }
 
+    /* An authored item is a `choice` unless it says `kind: "sort"`. Keeping both
+     * in the one `items` array is what lets a sort be placed after a named teach
+     * screen like every other written question. */
     function pushItems(list) {
       list.forEach(function (it, i) {
+        if (it.kind === "sort") {
+          var expected = {};
+          (it.words || []).forEach(function (w) { expected[w.word] = w.bucket; });
+          steps.push({
+            kind: "sort",
+            id: it.id || ("sort-" + steps.length + "-" + i),
+            stem: it.stem,
+            buckets: (it.buckets || []).slice(),
+            words: (it.words || []).map(function (w) { return w.word; }),
+            expected: expected,
+            note: it.note || "",
+            label: it.label || "",
+          });
+          return;
+        }
         steps.push({
           kind: "choice",
           id: it.id || ("choice-" + steps.length + "-" + i),
@@ -231,18 +292,29 @@
       });
     });
 
-    // Anything authored without an `after`, then a final applied set over the
-    // stop's whole focus for the labels no teach screen claimed.
-    pushItems((stop.items || []).filter(function (it) { return !it.after; }));
+    /* Anything authored without an `after`, then a final applied set over the
+     * stop's whole focus for the labels no teach screen claimed.
+     *
+     * `itemsLast` swaps those two. A stop with no teach screens has nothing for
+     * its written items to follow, and standing them in front of the generated
+     * practice would open an assessment with its own summary questions. */
+    var loose = (stop.items || []).filter(function (it) { return !it.after; });
+    if (!stop.itemsLast) pushItems(loose);
 
+    /* Whatever no teach screen claimed. This pass has no batch cap on purpose —
+     * a focus lesson whose screens name its whole focus never reaches it — but a
+     * stop with a large focus and no screens at all (the capstone) MUST set
+     * `tapPerLabel`, or it generates a question for every (sentence, label) pair
+     * in its passage. */
     var unclaimed = (stop.focus || []).filter(function (id) { return !taught[id]; });
     if (unclaimed.length) {
       sources.forEach(function (src) {
-        tapStepsFor(lessonFor(src.lessonId), unclaimed, 0).forEach(function (q) {
-          steps.push(q);
-        });
+        tapStepsFor(lessonFor(src.lessonId), unclaimed, 0, stop.tapPerLabel || 0)
+          .forEach(function (q) { steps.push(q); });
       });
     }
+
+    if (stop.itemsLast) pushItems(loose);
 
     // Stable ids even if a stop repeats a label across screens.
     var seen = {};
@@ -257,6 +329,45 @@
   /** Scored steps only — what a stop's score is out of. */
   wjt.study.scorable = function (steps) {
     return (steps || []).filter(function (s) { return s.kind !== "teach"; });
+  };
+
+  /* ------------------------------------------------------------------ *
+   * Reporting by cluster.
+   *
+   * A stop with `resultsBy: "cluster"` reports "Words that modify — 4 of 7"
+   * instead of a flat list of every question. That is the only form of results a
+   * 30-question assessment can act on: a cluster names a stop the student can
+   * re-enter, and a list of thirty rights and wrongs names nothing.
+   *
+   * `records` is [{ step, correct }], built in memory by the view while a student
+   * plays and dropped when the screen goes away. NOTHING here is written — see
+   * rule 1 at the top of this file, and decision C6.
+   * ------------------------------------------------------------------ */
+  wjt.study.clusterReport = function (unitId, records) {
+    if (!this.unit(unitId)) return [];
+    var byLabel = this.labelClusters(unitId);
+    var rows = [], byId = {};
+
+    this.clusters(unitId).forEach(function (c) {
+      if (!c.reviewId) return;               // not a teaching cluster
+      byId[c.id] = { id: c.id, title: c.shortTitle, stopId: c.reviewId, right: 0, total: 0 };
+      rows.push(byId[c.id]);
+    });
+    /* Anything whose label no cluster owns — a sort that spans the whole unit.
+     * Left untitled on purpose: every other row's title comes from the unit's own
+     * data, and inventing one here would be the only piece of screen prose in this
+     * file. The view names it. */
+    var mixed = { id: "", title: "", stopId: "", right: 0, total: 0 };
+    rows.push(mixed);
+
+    (records || []).forEach(function (r) {
+      if (!r || !r.step) return;
+      var row = byId[byLabel[r.step.label || ""] || ""] || mixed;
+      row.total++;
+      if (r.correct) row.right++;
+    });
+
+    return rows.filter(function (r) { return r.total > 0; });
   };
 
   /* ------------------------------------------------------------------ *
@@ -284,13 +395,20 @@
     }
 
     if (step.kind === "sort") {
-      // { word: bucketId } vs the step's expected map. Every word must be
-      // placed and placed correctly.
+      /* { word: bucketId } vs the step's expected map. Every word must be
+       * placed and placed correctly — per-word bucket equality, and nothing
+       * about the ORDER a student placed them in, which is not part of the
+       * answer. `placed` lets the view refuse an incomplete response without
+       * re-deriving the rule; `wrong` names the words for the feedback. */
       var expected = step.expected || {};
       var given = response || {};
       var words = Object.keys(expected);
       var wrong = words.filter(function (w) { return given[w] !== expected[w]; });
-      return { correct: wrong.length === 0, detail: { wrong: wrong } };
+      var placed = words.filter(function (w) { return !!given[w]; });
+      return {
+        correct: words.length > 0 && wrong.length === 0,
+        detail: { wrong: wrong, placed: placed.length, total: words.length },
+      };
     }
 
     return { correct: false, detail: {} };

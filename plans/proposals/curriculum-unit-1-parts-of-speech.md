@@ -1,7 +1,7 @@
 ---
-status: doing
+status: done
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-07-29
 ---
 
 # Unit 1 — The Nine Parts of Speech
@@ -13,7 +13,7 @@ speech and immediately checks recall with interactive quizzes.
 This is the durable document. The work is split across
 [015](../done/015-study-view-and-first-lesson.md),
 [016](../done/016-unit-pos-remaining-lessons.md), and
-[017](../017-unit-pos-capstone-and-docs.md); "As built" sections are written back
+[017](../done/017-unit-pos-capstone-and-docs.md); "As built" sections are written back
 into **this** file, following the precedent of
 [assignment-mode-proposal.md](assignment-mode-proposal.md).
 
@@ -321,8 +321,10 @@ gap from fact #2, closed.
 **`sort` uses tap-to-assign, never drag.**
 [pilot.md](../../docs/product/pilot.md) names drag-to-select on a tablet as the
 single most likely broken thing in the product; a new student-facing surface must
-not bet on it. `sort` is deferred to [017](../017-unit-pos-capstone-and-docs.md)
-so Phase 1 ships on two proven mechanics.
+not bet on it. `sort` was deferred to
+[017](../done/017-unit-pos-capstone-and-docs.md) so Phase 1 shipped on two proven
+mechanics; see [As built — Phase 3](#as-built--phase-3-2026-07-29) findings 3 and 4
+for how it was built and which words it cannot use.
 
 ### One POS annotation per word — a deliberate divergence
 
@@ -432,7 +434,7 @@ or `P1–P8` in [roadmap-platform.md](../../docs/roadmap-platform.md).
 |---|---|
 | [015](../done/015-study-view-and-first-lesson.md) | **The machinery, proven end to end.** Three new files; `teach` + `choice` + `tap`; progress; router, grouped Example library, Home card; **Orientation and Lesson 1 (Nouns) only**, complete and playable. |
 | [016](../done/016-unit-pos-remaining-lessons.md) | **The content.** Stops 2–13. Authoring, no new mechanics. |
-| [017](../017-unit-pos-capstone-and-docs.md) | **Finish.** The capstone, the `sort` step kind, and every doc. |
+| [017](../done/017-unit-pos-capstone-and-docs.md) | **Finish.** The capstone, the `sort` step kind, and every doc. |
 
 Phase 1 is the one that can go wrong, which is why it ends with one lesson a
 student can actually complete — before ~190 questions are written against the
@@ -488,7 +490,7 @@ passage, never the labelling.
 
 **6. `docs/product/curriculum-unit-1.md` was written in Phase 1, not Phase 3.**
 Amending `pilot.md` and `overview.md` created links to it, and a dangling link in
-user-facing docs is worse than an early doc. [017](../017-unit-pos-capstone-and-docs.md)
+user-facing docs is worse than an early doc. [017](../done/017-unit-pos-capstone-and-docs.md)
 now extends it instead of creating it.
 
 **7. A headless screenshot of any view is faded, and this is not a bug.**
@@ -529,7 +531,7 @@ ignore completed stops reddens `S-3`.
 ## As built — Phase 2 (2026-07-28)
 
 Stops 2–13 ship. Fourteen of the fifteen stops are playable end to end from a
-`file://` page; only the capstone is left, and it is [017](../017-unit-pos-capstone-and-docs.md)'s.
+`file://` page; only the capstone is left, and it is [017](../done/017-unit-pos-capstone-and-docs.md)'s.
 Phase 2 adds **eight Poe passages** (58 sentences, 740 annotations), **42 teach
 screens** and **61 written items**. Unit totals across both phases: ten lessons,
 65 sentences, 762 annotations, 48 teach screens, 73 written items, and **104
@@ -617,7 +619,7 @@ And `js/unit-pos.js` is now **2,325 lines**, past the ~2,000 at which the propos
 said to split it per cluster. It was left whole: the split costs edits to
 `index.html`, the smoke test's sandbox list, `CLAUDE.md` constraint #4 and
 `architecture.md`, and [016](../done/016-unit-pos-remaining-lessons.md) is explicitly
-content-only. **It should be split in [017](../017-unit-pos-capstone-and-docs.md)**,
+content-only. **It should be split in [017](../done/017-unit-pos-capstone-and-docs.md)**,
 which adds the capstone on top.
 
 ### Verification at the close of Phase 2
@@ -653,6 +655,170 @@ clusters it draws from, because finding 4's unlimited fallback regenerates the
 questions the screens stopped claiming. S-12's cluster-coverage assertion is
 sensitive to a review's **sources**, not to its screens.
 
-## As built — Phase 3
+## As built — Phase 3 (2026-07-29)
 
-_Pending._
+**Unit 1 is finished.** All fifteen stops are playable end to end from a
+double-clicked `index.html`; the capstone, the `sort` step kind, and the docs all
+landed together. `js/unit-pos.js` was split six ways first, so the capstone landed
+in a file that was already the right size.
+
+Final shape of the unit: **eleven** Poe passages, 72 sentences, 841 annotations,
+48 teach screens, **83** written items (including **six** sorts), and **131**
+generated `tap` questions. A focus lesson runs 10–24 steps, a review 14–17, and the
+capstone 33. The capstone's own passage is 7 sentences and 79 annotations.
+
+Seven findings, in descending order of how much they would cost someone who did not
+know them.
+
+**1. `focus` means two different things, and the capstone is where that surfaced.**
+For the nine lessons, `focus` is a claim — *these are the labels this stop teaches*
+— and the smoke test holds each one to it: every focus label must have a real
+instance in the passage or be declared `handTaught`. For the capstone, `focus` is
+the whole 48-label budget, and it is a **filter over unseen text**: *any budgeted
+label found in this passage is fair game.* Two paragraphs of Poe cannot contain all
+48, so the coverage check had to be scoped.
+
+**The scoping rule is "a stop with no teach screens is exempt"**, not "the capstone
+is exempt". That is deliberate on two counts: it is the honest reason (the stop
+cannot fail to teach a label it never claimed to teach), and it self-repairs — add
+a teach screen to the capstone and the coverage check starts applying again. What
+the capstone is held to instead is four new assertions: its passage shares no
+sentence with any other stop, it generates exactly one tap per label, it asks about
+all nine parts of speech, and its taps reach all four teaching clusters. This is
+the only change to an existing check's contract in Phase 3.
+
+**2. A 48-label focus needs a per-LABEL cap, not a per-batch one — the existing cap
+is the wrong shape.** `tapPerScreen` slices the whole batch, and `tapStepsFor`
+walks sentences in order, so capping a 48-label generation at 20 takes every
+question from the first three sentences and asks nothing about the last four. A new
+fourth argument, `perLabel`, caps per label instead; the capstone sets
+`tapPerLabel: 1` and gets 27 taps, one for each label its passage really carries.
+Removing that one line takes the capstone from 33 questions to 63 — which the
+smoke test now says out loud.
+
+**3. `sort` needed no drag, no re-parenting, and no key handler of its own.** All
+three fell out of one decision: **the chips never move.** Tap a word to pick it up,
+tap a bucket to drop it, tap a placed word to take it back out — and where a word
+went shows as a tag on the chip itself plus a line in its `aria-label`, never as a
+position. That buys three things at once: no drag (which
+[pilot.md](../../docs/product/pilot.md) names as the most likely thing to be broken
+on a tablet), no focus lost to a re-parented element, and no answer conveyed by
+colour alone.
+
+Every control is a real `<button>`, which is what makes Enter and Space work. **Do
+not give them their own Enter handler** — a real Enter would then fire the handler
+*and* the browser's native activation, picking a word up and putting it straight
+back down. The consequence for testing: a synthetic `keydown` cannot activate them,
+so `S-14` asserts the property that makes Enter work (they are buttons) and uses
+`.click()`, which is what a native Enter dispatches. The arrow keys are ours and
+are asserted directly.
+
+**4. A `sort` is only fair if each word has exactly one honest home, and that ruled
+out the obvious words.** *This*, *these*, *my*, *as*, *back*, *still* — every one
+of them is two parts of speech depending on the next word, which is the whole
+teaching point of the reviews and makes them unsortable out of context. Each of the
+five sorts therefore leaves its most interesting word out and says so in its note;
+Review D's names *as* explicitly and points at the item that does teach it, with a
+sentence attached. The smoke test asserts the mechanical half of fairness (no
+repeated word, every bucket reachable and used, every expected bucket on offer);
+the judgement half is prose in the source, because nothing can check it.
+
+**5. Results by cluster needed a derivation, not a table.** `labelClusters()` maps
+each of the 48 labels to the cluster that taught it, derived as *a teaching cluster
+is one that ends in a review, and a teaching stop is one inside it with a passage
+of its own.* That excludes Orientation and the capstone — both re-use labels the
+lessons own — **without this file knowing either stop's id**, and it also yields the
+stop each results row links back to. Naming `start` and `end` directly would have
+worked today and rotted the first time a unit had a different shape.
+
+The report is built from an in-memory `records` array the view accumulates while a
+student plays and drops when the screen goes away, exactly as the missed-item list
+already did. **C6 is intact**: nothing per-answer is written, even locally, and the
+smoke test still asserts the stored record's keys.
+
+**6. With no teach screens, the written items land in the wrong place.** `steps()`
+pushes items with no `after` *before* the generated fallback, which for the capstone
+meant opening the assessment with its own six summary questions. Fixed with an
+explicit `itemsLast: true` on the stop rather than by inferring it from an empty
+`teach` array — one flag, one line, and it reads as a decision. The shape is still
+imperfect and worth knowing: 27 taps run consecutively before the six written items.
+Interleaving them would need a real placement mechanism, and that is not worth an
+engine change for one stop.
+
+**7. The paragraph numbers in the table above could not be re-verified, and the
+capstone's sentences were chosen by content instead.** `pg1063.txt` is not in the
+repo and neither is Phase 1's normalization probe, so "¶77 and ¶88" is taken on
+trust from the proposal. What *is* verified is the property that actually matters:
+every capstone sentence goes through the real tokenizer, and no sentence of it
+appears in any other stop's passage — asserted, and it names the sharing stop when
+it fails.
+
+Two sentences from those paragraphs had to be dropped, and both for reasons Phase 2
+predicted: *"I hastened **to** make an end of my labour"* for the bare infinitive
+marker, and *"I plastered it **up**"* for a particle. Finding 3 of Phase 2 said the
+lone `to` rules out a third of the story; the particle is the same problem with a
+different word.
+
+### Also worth knowing
+
+- **`js/unit-pos.js` split six ways, and load order is now path order.** Each
+  cluster file appends its stops to the array `unit-pos.js` already handed to
+  `wjt.study.register`. Registering a unit with an empty `stops` array and filling
+  it afterwards is safe only because nothing reads a unit at load time — and the
+  smoke test asserts the stops come out numbered 0…14 in sequence, so a mis-ordered
+  or missing `<script>` tag fails a check instead of quietly reshuffling the unit
+  map. Three files carry that list (`index.html`, `tools/dom-check.html`,
+  `UNIT_FILES` in `tools/smoke-test.js`); that assertion is what keeps them
+  honest.
+- **`S-5` had nothing left to test.** Every stop is authored now, so the
+  "coming soon" card and the "not ready yet" screen have nothing real to point at —
+  and a check with nothing to test is worse than no check. Both paths are live code
+  a second unit will land on, so `S-5` now pushes a synthetic `todo` stop onto the
+  registered unit, asserts both, and pops it off in a `finally`.
+- **The dom-check run needs a bigger virtual-time budget.** `S-13` and `S-15`
+  between them play all fifteen stops; `8000` is no longer enough and `CLAUDE.md`
+  now says `12000`.
+- **No cluster row came out clean in `S-15`.** The walker answers taps by selecting
+  the first token, so every cluster loses something and the `.is-clean` tick branch
+  is only covered at the model level (`clusterReport counts a clean run as clean`).
+  Recorded because the check reports "(4 revisit, 0 clean)" and that is not a
+  failure.
+- **Phase 1's finding 7 bit again, and it is wider than `.view`.** Photographing
+  the capstone's results screen came out with an invisible score ring:
+  `.score-ring` carries `animation: pop-in 0.4s both`, which under
+  `--virtual-time-budget` is held at its `from` state exactly as `.view`'s
+  `view-in` is. **Any** animated element is invisible in a headless screenshot, not
+  just the view wrapper — neutralize them in the harness, never in the app. Both
+  new screens were photographed that way (sort mid-answer, and the per-cluster
+  results) and both are correct.
+- **The unit is identical on a served copy.** `tools/dom-check.html` was run a
+  second time over `http://localhost`, and the only three reds are the `D-*`
+  assertions that exist to prove the page *is* a `file://` origin. All 44 study
+  checks, including the fifteen-stop walk, pass on both protocols.
+
+### Verification at the close of Phase 3
+
+| Check | Result |
+|---|---|
+| `node tools/smoke-test.js` | **0 failures.** One new passage (7 sentences, 79 annotations), complete at the POS layer, on token boundaries, clean round-trip |
+| `node tools/validate-lesson.js samples/*.json docs/custom-gpt-instructions.md` | clean, no warnings |
+| `node tools/validate-lesson.js --complete samples/*.json` | clean (fragment notes only, per **C10**) |
+| `node tools/gen-docs.js --check` | clean — the taxonomy really was untouched |
+| `node tools/link-check.js --check` | clean |
+| `node tools/cvd-check.js --check` | clean |
+| `tools/dom-check.html` | **445 passed, 0 failed** (was 408) |
+
+Every new assertion was **falsified before being trusted**, per
+[014](../done/014-ui4-dom-check-settle.md)'s standard:
+
+- removing `tapPerLabel: 1` reddens the one-tap-per-label check *and* the
+  question-count check, and reports 57 taps and 63 questions;
+- removing `resultsBy: "cluster"` reddens the model check and four `S-15` checks;
+- swapping a capstone sentence for one the pronouns lesson uses reddens the
+  unseen-text check and names `pronouns`;
+- letting every stop claim labels in `labelClusters()` reddens the
+  four-cluster check and reports `(end)`;
+- deleting the walker's `sort` branch in `tools/dom-check.html` reddens nine
+  checks and names all five stops that carry a sort;
+- taking "placed in <bucket>" out of a chip's `aria-label` reddens exactly one
+  `S-14` check — the one about the accessible name.

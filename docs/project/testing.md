@@ -130,7 +130,7 @@ $udd  = Join-Path $env:TEMP ("edge-udd-" + [guid]::NewGuid())
 $dump = Join-Path $env:TEMP ("dom-" + [guid]::NewGuid() + ".html")
 Start-Process -FilePath $edge -Wait -NoNewWindow -RedirectStandardOutput $dump `
   -ArgumentList "--headless=new","--disable-gpu","--no-sandbox",`
-  "--virtual-time-budget=8000","--window-size=1280,720","--dump-dom","--user-data-dir=$udd",`
+  "--virtual-time-budget=12000","--window-size=1280,720","--dump-dom","--user-data-dir=$udd",`
   "file:///C:/dev/sentences/tools/dom-check.html"
 node tools/dom-check-report.js $dump
 ```
@@ -168,6 +168,24 @@ labelled sentence dots, and Practice question focus. A healthy run reports
 **0 failed** and ends with `ALL DOM CHECKS PASSED`. The pass *count* is an
 implementation detail that grows as checks are added — don't hard-code it into a
 green/red judgment.
+
+Two families of check are named rather than numbered, because both are about a
+surface a *student* reaches with no teacher and possibly no network, and both run
+over `file:///` — the degraded mode
+[P3](../roadmap-platform.md#decisions) describes — so the claim is measured in the
+environment it is about rather than simulated:
+
+- **`D-*`** — the delivery channels. Three of them assert that the page really is a
+  `file://` origin, so they are the only checks that legitimately fail if you serve
+  the harness over HTTP.
+- **`S-*`** — study mode. `S-1`–`S-11` cover the unit map, one stop, and the storage
+  guards; `S-12` proves each review's questions come from the passages it reviews;
+  `S-13` walks **all fifteen stops to their results screens**; `S-14` drives a
+  `sort` by pointer and by keyboard; `S-15` plays the capstone and reads its
+  per-cluster results back. `S-13` and `S-15` are why the virtual-time budget above
+  is `12000` rather than the older `8000` — playing the whole unit takes real
+  (virtual) time, and too small a budget truncates the dump instead of failing
+  loudly.
 
 **If you add a check that measures layout, read this first.** Geometry in that
 harness is only as true as the moment it is measured, and the moment is not the

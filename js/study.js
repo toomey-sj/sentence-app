@@ -121,6 +121,200 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * The `sort` step: several words, one bucket per part of speech.
+   *
+   * TAP TO ASSIGN, NEVER DRAG. pilot.md names drag-to-select on a tablet as the
+   * single most likely broken thing in the product, and this is a student-facing
+   * surface with no teacher in the room to work around it. Tap a word to pick it
+   * up, tap a bucket to drop it in, tap a placed word to take it back out.
+   *
+   * THE CHIPS NEVER MOVE. Where a word has been placed shows as a tag on the chip
+   * itself and in its accessible name — so the answer is never carried by colour
+   * or by position alone, and a keyboard user's focus is never yanked away to a
+   * re-parented element. Every control here is a real <button>: Tab reaches it,
+   * Enter and Space activate it, and the arrow keys walk a group as a convenience.
+   * ------------------------------------------------------------------ */
+  function renderSort(step, promptEl, stageEl, answersEl, settle) {
+    var assigned = {};                       // { word: bucketId }
+    var picked = "";                         // the word waiting for a bucket
+    var scored = false;
+
+    promptEl.innerHTML = step.stem;
+
+    stageEl.innerHTML =
+      '<div class="sort-words" data-role="words" role="group" aria-label="Words to sort"></div>' +
+      '<div class="sort-buckets" data-role="buckets" role="group" aria-label="Parts of speech"></div>' +
+      '<p class="sort-status muted-note" data-role="status" role="status" aria-live="polite"></p>';
+
+    var wordsEl = stageEl.querySelector('[data-role="words"]');
+    var bucketsEl = stageEl.querySelector('[data-role="buckets"]');
+    var statusEl = stageEl.querySelector('[data-role="status"]');
+
+    function nameOf(id) { return (wjt.LABELS[id] || {}).name || id; }
+    function colorOf(id) { return (wjt.LABELS[id] || {}).color || "var(--muted)"; }
+    function placedCount() {
+      return step.words.filter(function (w) { return !!assigned[w]; }).length;
+    }
+    function announce(msg) {
+      statusEl.textContent = msg + " " + placedCount() + " of " + step.words.length + " placed.";
+    }
+    function noteHtml() {
+      return step.note ? '<p class="ann-note">📌 ' + wjt.escapeHtml(step.note) + "</p>" : "";
+    }
+
+    function onWord(w) {
+      if (scored) return;
+      if (assigned[w]) {
+        delete assigned[w];
+        picked = "";
+        paint();
+        announce("“" + w + "” taken back out.");
+        return;
+      }
+      picked = picked === w ? "" : w;
+      paint();
+      announce(picked ? "“" + w + "” picked up — now choose a part of speech."
+        : "“" + w + "” put down.");
+    }
+
+    function onBucket(id) {
+      if (scored) return;
+      if (!picked) { wjt.toast("Tap a word first, then tap where it goes."); return; }
+      var w = picked;
+      assigned[w] = id;
+      picked = "";
+      paint();
+      announce("“" + w + "” placed in " + nameOf(id) + ".");
+    }
+
+    /** Redraw both groups from `assigned` and `picked`. Element identity is
+     *  preserved, so whatever had focus keeps it. */
+    function paint() {
+      var counts = {};
+      Array.prototype.forEach.call(wordsEl.querySelectorAll(".sort-word"), function (el) {
+        var w = el.getAttribute("data-word");
+        var at = assigned[w] || "";
+        if (at) counts[at] = (counts[at] || 0) + 1;
+        el.className = "sort-word" + (picked === w ? " is-picked" : "") + (at ? " is-placed" : "");
+        el.setAttribute("aria-pressed", picked === w ? "true" : "false");
+        el.style.setProperty("--c", at ? colorOf(at) : "var(--line)");
+        el.innerHTML = "<span>" + wjt.escapeHtml(w) + "</span>" +
+          '<span class="sort-word-tag">' +
+          (at ? wjt.escapeHtml(nameOf(at)) : "not placed") + "</span>";
+        el.setAttribute("aria-label", w + " — " + (at
+          ? "placed in " + nameOf(at) + ". Activate to take it out."
+          : picked === w
+            ? "picked up. Choose a part of speech."
+            : "not placed. Activate to pick it up."));
+      });
+      Array.prototype.forEach.call(bucketsEl.querySelectorAll(".sort-bucket"), function (el) {
+        var id = el.getAttribute("data-bucket");
+        var n = counts[id] || 0;
+        el.querySelector('[data-role="n"]').textContent = n ? String(n) : "";
+        el.setAttribute("aria-label", nameOf(id) + " — " + n + " word" + (n === 1 ? "" : "s") +
+          (picked ? ". Activate to put “" + picked + "” here." : ""));
+      });
+    }
+
+    /** Arrow keys walk one group. Every button stays tabbable, so this only ever
+     *  adds a way to move — it never takes the Tab route away. */
+    function arrowKeys(host) {
+      host.addEventListener("keydown", function (e) {
+        var dir = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1
+          : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+        if (!dir) return;
+        var all = Array.prototype.slice.call(host.querySelectorAll("button"));
+        var at = all.indexOf(document.activeElement);
+        if (at === -1) return;
+        e.preventDefault();
+        all[(at + dir + all.length) % all.length].focus();
+      });
+    }
+
+    step.words.forEach(function (w) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "sort-word";
+      b.setAttribute("data-word", w);
+      b.addEventListener("click", function () { onWord(w); });
+      wordsEl.appendChild(b);
+    });
+
+    step.buckets.forEach(function (id) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "sort-bucket";
+      b.setAttribute("data-bucket", id);
+      b.style.setProperty("--c", colorOf(id));
+      b.innerHTML = '<span class="swatch" style="--c:' + colorOf(id) + '"></span>' +
+        "<b>" + wjt.escapeHtml(nameOf(id)) + "</b>" +
+        '<span class="sort-bucket-n" data-role="n"></span>';
+      b.addEventListener("click", function () { onBucket(id); });
+      bucketsEl.appendChild(b);
+    });
+
+    arrowKeys(wordsEl);
+    arrowKeys(bucketsEl);
+    paint();
+    statusEl.textContent = "Tap a word, then tap the part of speech it belongs to. " +
+      "0 of " + step.words.length + " placed.";
+
+    answersEl.innerHTML =
+      '<button class="btn btn-primary" data-act="check">Check ✓</button>' +
+      '<button class="btn" data-act="clear">Start over</button>';
+
+    answersEl.querySelector('[data-act="clear"]').addEventListener("click", function () {
+      if (scored) return;
+      assigned = {};
+      picked = "";
+      paint();
+      announce("Cleared.");
+    });
+
+    answersEl.querySelector('[data-act="check"]').addEventListener("click", function () {
+      var verdict = wjt.study.check(step, assigned);
+      // An unfinished answer is refused rather than marked wrong — the same
+      // contract as pressing Check on a `tap` with nothing selected.
+      if (verdict.detail.placed < verdict.detail.total) {
+        wjt.toast("Place every word first — " + verdict.detail.placed + " of " +
+          verdict.detail.total + " so far.");
+        return;
+      }
+      scored = true;
+      var wrong = verdict.detail.wrong;
+
+      Array.prototype.forEach.call(wordsEl.querySelectorAll(".sort-word"), function (el) {
+        var w = el.getAttribute("data-word");
+        var ok = wrong.indexOf(w) === -1;
+        el.disabled = true;
+        el.classList.add(ok ? "is-right" : "is-wrong");
+        el.style.setProperty("--c", colorOf(step.expected[w]));
+        el.querySelector(".sort-word-tag").textContent = ok
+          ? nameOf(step.expected[w])
+          : nameOf(assigned[w]) + " → " + nameOf(step.expected[w]);
+        el.setAttribute("aria-label", w + " — " + (ok
+          ? "correct, " + nameOf(step.expected[w]) + "."
+          : "incorrect. You placed it in " + nameOf(assigned[w]) + "; it belongs in " +
+            nameOf(step.expected[w]) + "."));
+      });
+      Array.prototype.forEach.call(bucketsEl.querySelectorAll("button"), function (b) {
+        b.disabled = true;
+      });
+      Array.prototype.forEach.call(answersEl.querySelectorAll("button"), function (b) {
+        b.disabled = true;
+      });
+
+      settle(verdict.correct, verdict.correct
+        ? "All " + step.words.length + " words in the right place." + noteHtml()
+        : wrong.length + " of " + step.words.length + " ended up in the wrong place. " +
+          wrong.map(function (w) {
+            return "“<b>" + wjt.escapeHtml(w) + "</b>” is a " +
+              wjt.escapeHtml(nameOf(step.expected[w]).toLowerCase());
+          }).join("; ") + "." + noteHtml());
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
    * One stop
    * ------------------------------------------------------------------ */
   function renderStop(view, unit, stop) {
@@ -143,6 +337,10 @@
     var correct = 0;
     var answered = 0;
     var missed = [];
+    /* Every verdict, in play order, so the results screen can report by cluster.
+     * In memory only, and dropped when this screen goes away — see decision C6:
+     * no per-question record is ever written, even locally. */
+    var records = [];
 
     function renderStep() {
       var step = steps[i];
@@ -184,6 +382,7 @@
         answered++;
         if (isCorrect) correct++;
         else missed.push(step);
+        records.push({ step: step, correct: isCorrect });
 
         feedbackEl.hidden = false;
         feedbackEl.className = "quiz-feedback " + (isCorrect ? "is-right" : "is-wrong");
@@ -280,6 +479,9 @@
             label.desc +
             (step.note ? '<p class="ann-note">📌 ' + wjt.escapeHtml(step.note) + "</p>" : ""));
         });
+
+      } else if (step.kind === "sort") {
+        renderSort(step, promptEl, stageEl, answersEl, settle);
       }
 
       answersEl.setAttribute("aria-label", promptEl.textContent);
@@ -324,7 +526,38 @@
       heading.setAttribute("tabindex", "-1");
       try { heading.focus({ preventScroll: true }); } catch (e) { heading.focus(); }
 
-      if (missed.length) {
+      /* An assessment reports by CLUSTER, not by item. Thirty rights and wrongs
+       * are not something a student can act on; "Words that modify — 4 of 7,
+       * revisit Review C" is, because navigation is open and that stop is one
+       * click away. Focus lessons keep the flat list, which is the right shape
+       * for a stop with ten questions about one part of speech. */
+      if (stop.resultsBy === "cluster") {
+        var report = wjt.study.clusterReport(unit.id, records);
+        var cbox = view.querySelector('[data-role="missed"]');
+        var ch = document.createElement("h3");
+        ch.textContent = "How each part of the unit held up:";
+        cbox.appendChild(ch);
+        var list = document.createElement("div");
+        list.className = "cluster-report";
+        report.forEach(function (r) {
+          var row = document.createElement("div");
+          var clean = r.right === r.total;
+          row.className = "cluster-row" + (clean ? " is-clean" : "");
+          row.innerHTML =
+            // A row the model left untitled is the cross-cluster one.
+            "<div><b>" + wjt.escapeHtml(r.title || "Everything at once") + "</b>" +
+            '<div class="muted-note">' + r.right + " of " + r.total + " correct</div></div>" +
+            (clean
+              ? '<span class="cluster-tick" aria-hidden="true">✓</span>'
+              : r.stopId
+                ? '<a class="btn btn-sm" href="#/study/' + unit.id + "/" + r.stopId +
+                  '">Revisit →</a>'
+                : "");
+          list.appendChild(row);
+        });
+        cbox.appendChild(list);
+
+      } else if (missed.length) {
         var box = view.querySelector('[data-role="missed"]');
         var h = document.createElement("h3");
         h.textContent = "Worth another look:";
@@ -339,6 +572,15 @@
               "<div><b>" + wjt.escapeHtml(l.name) + "</b>: “" +
               wjt.escapeHtml(s.sentence.text.slice(s.start, s.end)) + "”" +
               '<div class="muted-note">' + wjt.escapeHtml(s.sentence.text) + "</div></div>";
+          } else if (s.kind === "sort") {
+            row.innerHTML =
+              '<span class="swatch" style="--c:var(--muted)"></span>' +
+              "<div>" + s.stem +
+              '<div class="muted-note">Answer: ' +
+              s.words.map(function (w) {
+                return wjt.escapeHtml(w) + " → " +
+                  wjt.escapeHtml((wjt.LABELS[s.expected[w]] || {}).name || s.expected[w]);
+              }).join(" · ") + "</div></div>";
           } else {
             var answer = s.options.filter(function (o) { return o.correct; })[0];
             row.innerHTML =
@@ -351,7 +593,7 @@
       }
 
       view.querySelector('[data-act="again"]').addEventListener("click", function () {
-        i = 0; correct = 0; answered = 0; missed = [];
+        i = 0; correct = 0; answered = 0; missed = []; records = [];
         steps = wjt.study.steps(unit.id, stop.id);
         scorable = wjt.study.scorable(steps);
         renderStep();

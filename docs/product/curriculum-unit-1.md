@@ -9,6 +9,7 @@ directly at `#/study/pos`.
 
 - [What it is](#what-it-is)
 - [Scope and sequence](#scope-and-sequence)
+- [The capstone](#the-capstone)
 - [What it teaches — and what it doesn't](#what-it-teaches--and-what-it-doesnt)
 - [Assigning it](#assigning-it)
 - [What a teacher can and cannot see](#what-a-teacher-can-and-cannot-see)
@@ -31,7 +32,12 @@ Each stop follows the same rhythm:
 2. **Recall questions** on what that screen just said.
 3. **Applied questions** on the real passage: *"Select the possessive noun in this
    sentence."* The student clicks or keyboards to the word and presses Check.
-4. **A results screen** naming what to look at again.
+4. **A sorting question**, on the reviews and the capstone: several words from the
+   passage and one box per part of speech. **Tap a word, then tap where it goes** —
+   there is no dragging anywhere in this unit, deliberately, because dragging is
+   the thing most likely to fail on a school tablet. Tap a word you have already
+   placed to take it back out.
+5. **A results screen** naming what to look at again.
 
 The whole unit runs about **five hours** — roughly a two-week independent study.
 Individual stops are 20–25 minutes, which is the unit a student can finish in one
@@ -80,14 +86,32 @@ ticked and the next unstarted one is highlighted. Nothing is locked, on purpose 
 a student working alone has nobody to unstick them, and a teacher may want to
 assign stop 7 directly.
 
-> **Status.** Fourteen of the fifteen stops are complete and playable — the
-> orientation, all nine lessons, and all four reviews. Only the **capstone** is
-> still being written; it appears on the map marked *Coming soon* so a student can
-> see where the path goes, and it is
-> [017](../../plans/017-unit-pos-capstone-and-docs.md).
->
-> A student can work the unit from end to end today. The capstone is the final
-> assessment on unseen text, not a prerequisite for anything before it.
+All fifteen stops are complete and playable.
+
+## The capstone
+
+Stop 14 is the only one that is **an assessment rather than a lesson**, and it is
+built differently on purpose.
+
+- **No teaching.** There are no teach screens at all. It opens on its first
+  question.
+- **Text the student has not seen.** The passage is drawn from the story's closing
+  paragraphs, and not one of its sentences appears in any of the nine lessons or
+  four reviews. That is the only thing that shows the unit taught something
+  transferable rather than something memorised, and it is a checked property of the
+  app, not an intention.
+- **About thirty questions, mostly *find the word*.** Roughly thirty questions
+  spread across all nine parts of speech, weighted towards finding one in a real
+  sentence rather than reciting a definition — because that is the skill that
+  survives the unit. It ends with two sorting questions that between them use all
+  nine boxes.
+- **Results by cluster, not by question.** The results screen reads *"Words that
+  modify — 4 of 7"* with a link straight back into Review C, rather than listing
+  thirty rights and wrongs. Thirty rows tell a student nothing they can do; four
+  named clusters point at a stop they can re-open in one click.
+
+Expect about **30 minutes**. It is the last stop, but it is not a gate — nothing
+before it depends on it, and a student can take it twice.
 
 ## What it teaches — and what it doesn't
 
@@ -157,7 +181,14 @@ Each of these will otherwise be discovered mid-class.
   correct.
 - **Drag-select on a tablet is the least-tested part of the app.** Clicking a
   single word works, and so does the keyboard path (Tab to a word, then Enter, or
-  Shift+Arrow to extend). If a class is on iPads, teach the click.
+  Shift+Arrow to extend). If a class is on iPads, teach the click. The sorting
+  questions never use dragging at all, for exactly this reason.
+- **Every question can be answered from the keyboard.** Tab reaches every word,
+  option, and sorting box; Enter or Space activates it; the arrow keys walk a row
+  of words or boxes. Nothing in the unit needs a mouse.
+- **The score you see is the best score, not the latest.** Re-taking a stop can
+  only improve what the map shows, which is deliberate — a student experimenting
+  with a stop they have already passed cannot lose anything by it.
 - **The unit does not teach sentence structure** — no subjects, predicates,
   phrases, or clauses. That is what Present mode and a later unit are for.
 - **The story is about a murder.** Poe's narrator walls a man up alive. It is

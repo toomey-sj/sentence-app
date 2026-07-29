@@ -30,9 +30,18 @@
   <script src="js/assignment-codec.js"></script>
   <script src="js/assignment-channels.js"></script>
   <script src="js/assignment.js"></script>
-  <!-- Study mode: the engine, then the unit content that registers against it. -->
+  <!-- Study mode: the engine, then the unit content that registers against it.
+       THE ORDER OF THE unit-pos-* TAGS IS THE ORDER OF THE UNIT MAP — each one
+       appends its stops to the array unit-pos.js already registered. Reorder
+       them and the unit reorders; tools/smoke-test.js fails if they are not
+       numbered 0…14 in sequence. -->
   <script src="js/study-model.js"></script>
   <script src="js/unit-pos.js"></script>
+  <script src="js/unit-pos-a.js"></script>
+  <script src="js/unit-pos-b.js"></script>
+  <script src="js/unit-pos-c.js"></script>
+  <script src="js/unit-pos-d.js"></script>
+  <script src="js/unit-pos-capstone.js"></script>
   <script src="js/render.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/display.js"></script>

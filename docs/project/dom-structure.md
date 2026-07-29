@@ -640,6 +640,7 @@ What sits in `[data-role=answers]` is the only thing that varies by step kind:
 | `teach` | empty | `button[data-act=next]` ("Got it →") |
 | `choice` | empty | `button.quiz-option.study-choice` per option — `.study-choice` exists because options carry prose and must wrap |
 | `tap` | `renderSentence(…, {layers:["pos"], showAnnotations:false, interactive:true})` + `div.sentence-tip` | `button[data-act=check]` + `button[data-act=clear]` |
+| `sort` | the two groups below | `button[data-act=check]` + `button[data-act=clear]` ("Start over") |
 
 After an answer, `.quiz-feedback` is unhidden, gains `.is-right`/`.is-wrong`, and
 holds the explanation plus `button[data-act=next]`, which takes focus. Correct and
@@ -647,9 +648,47 @@ incorrect are also written into each option's `aria-label` — colour alone does
 reach a screen reader. On a `tap`, the stage is re-rendered with
 `highlight:{start,end}` so the answer appears as `.gl-token.is-hl`.
 
+**The `sort` stage** (`renderSort`, built into `[data-role=stage]`):
+
+```
+div.quiz-stage[data-role=stage]
+├─ div.sort-words[data-role=words][role=group][aria-label="Words to sort"]
+│  └─ button.sort-word[data-word=<word>][aria-pressed][style=--c]
+│     ├─ span                            ← the word
+│     └─ span.sort-word-tag              ← "not placed" | the bucket's label name
+├─ div.sort-buckets[data-role=buckets][role=group][aria-label="Parts of speech"]
+│  └─ button.sort-bucket[data-bucket=<labelId>][style=--c]
+│     ├─ span.swatch[--c] + b           ← the label's colour and name
+│     └─ span.sort-bucket-n[data-role=n] ← how many words it holds, "" when none
+└─ p.sort-status.muted-note[data-role=status][role=status][aria-live=polite]
+```
+
+**A chip never moves.** Assignment is carried by `.is-placed`, the `--c` custom
+property, the text in `.sort-word-tag`, *and* the chip's `aria-label` ("placed in
+Noun. Activate to take it out."). That redundancy is the point: the answer is never
+conveyed by colour or by position alone, and no element is re-parented, so a
+keyboard user's focus survives every action. `.is-picked` marks the word waiting for
+a bucket and is mirrored in `aria-pressed`. After scoring, each chip gains
+`.is-right`/`.is-wrong`, its tag becomes `"<what you chose> → <where it belonged>"`,
+and everything is `disabled`.
+
+Every control is a real `<button type="button">` — that is what makes Enter and
+Space work, so none of them carries its own key handler. The arrow keys move focus
+within a group (`ArrowRight`/`ArrowDown` forward, `ArrowLeft`/`ArrowUp` back,
+wrapping); every button stays tabbable, so the arrows only ever add a route.
+
 **Results screen** (`finish`): `section.card.quiz-results` with `div.score-ring`,
-an `h2` that takes focus, and `div[data-role=missed]` holding one `div.missed-row`
-per miss — the same shapes Practice's results use.
+an `h2` that takes focus, and `div[data-role=missed]`, whose contents depend on the
+stop:
+
+- default — one `div.missed-row` per miss, the same shapes Practice's results use.
+- `resultsBy: "cluster"` (the capstone) — an `h3` plus `div.cluster-report` holding
+  one `div.cluster-row` per cluster: a `b` with the cluster's short title, a
+  `div.muted-note` reading "n of m correct", and then either
+  `span.cluster-tick` ("✓", when the row is clean, which also adds `.is-clean`) or
+  `a.btn.btn-sm[href=#/study/<unitId>/<reviewStopId>]` ("Revisit →"). A row for
+  anything no cluster owns — a sort spanning the whole unit — is titled "Everything
+  at once" and has no link.
 
 ## Assignment view
 

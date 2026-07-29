@@ -1663,6 +1663,74 @@ a.study-stop:hover { transform: translateY(-3px); border-color: var(--accent); }
 .study-choice { text-align: left; white-space: normal; max-width: 100%; }
 .study-stop-label { margin-left: auto; }
 
+/* ---- the `sort` step ----
+   Tap to assign, never drag: the words and the buckets are two flat rows of
+   real buttons, and a word chip STAYS PUT when it is placed — where it went
+   shows on the chip. That is deliberate on three counts: no drag on a tablet
+   (pilot.md), no focus lost to a re-parented element, and no answer conveyed
+   by position. Colour here is decoration on top of the chip's own text tag. */
+.sort-words,
+.sort-buckets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sort-buckets { margin-top: 14px; }
+.sort-status { margin-top: 12px; min-height: 1.2em; }
+
+.sort-word,
+.sort-bucket {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 2px solid var(--c, var(--line));
+  border-radius: 10px;
+  background: var(--card-2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.sort-word:hover:not(:disabled),
+.sort-bucket:hover:not(:disabled) { border-color: var(--accent); }
+
+.sort-word-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+.sort-word.is-placed .sort-word-tag { color: var(--c, var(--muted)); }
+.sort-word.is-picked {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.sort-word.is-right { border-color: var(--ok); }
+.sort-word.is-wrong { border-color: var(--danger); border-style: dashed; }
+.sort-word:disabled,
+.sort-bucket:disabled { cursor: default; opacity: 1; }
+
+.sort-bucket { font-weight: 700; }
+.sort-bucket-n { font-weight: 800; color: var(--muted); min-width: 1ch; }
+
+/* ---- results by cluster (the capstone) ----
+   One row per cluster with a way back into it, because that is the only thing a
+   thirty-question score is actionable as. */
+.cluster-report { display: grid; gap: 8px; margin-top: 10px; text-align: left; }
+.cluster-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card-2);
+}
+.cluster-row > div:first-child { flex: 1; min-width: 0; }
+.cluster-row.is-clean { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.cluster-tick { color: var(--ok); font-weight: 800; }
+
 /* Mounted only while a print is in flight, and never visible on screen. */
 #print-root { display: none; }
 

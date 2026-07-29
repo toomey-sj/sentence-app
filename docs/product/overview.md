@@ -111,6 +111,16 @@ Saying no to these keeps the app teachable in five minutes:
   family so wrong answers are the ones worth ruling out.
 - A **library of seven ready-made passages** — a starter demo plus Shakespeare,
   Fitzgerald, Shelley, and Stoker — each fully labeled and copyable.
+- **🎓 Unit 1 — The Nine Parts of Speech**: a complete self-paced student course
+  above the lesson, and the first thing in the app that sequences anything.
+  Fifteen stops on one Poe story — an orientation, nine lessons, four cluster
+  reviews, and a capstone on closing paragraphs no lesson uses — roughly five
+  hours of work. It teaches 48 of the 54 part-of-speech labels, needs no account
+  and no network, and **collects nothing**: a resume point and a best score,
+  in one browser, never transmitted. See
+  [curriculum-unit-1.md](curriculum-unit-1.md); the eleven passages are also
+  ordinary lessons in the Example library, so a teacher can Present or print any
+  of them.
 - **Import / export JSON**, dark and light themes, keyboard navigation in
   Present mode.
 

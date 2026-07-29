@@ -22,7 +22,7 @@ updated: 2026-07-28
 >    question gets two right answers. Now asserted over every unit passage.
 > 3. **`js/unit-pos.js` is 2,325 lines** — past the ~2,000 at which the proposal
 >    said to split it per cluster. Deliberately left whole here (this order is
->    content-only) and handed to [017](../017-unit-pos-capstone-and-docs.md).
+>    content-only) and handed to [017](017-unit-pos-capstone-and-docs.md).
 >
 > The **hand walk-through** in Done-when was done as automation instead: dom-check
 > **S-13** walks all fourteen authored stops to their results screens over
@@ -127,7 +127,7 @@ in the proposal before writing all four.**
 ## Out of scope
 
 - **The capstone** (stop 14) and the `sort` step kind — both in
-  [017](../017-unit-pos-capstone-and-docs.md).
+  [017](017-unit-pos-capstone-and-docs.md).
 - **Any new step kind, engine change, or view change.** If one seems necessary,
   that is a finding to record, not to implement here.
 - Every exclusion in 015 still holds: no taxonomy change, no lesson-format change,

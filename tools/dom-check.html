@@ -88,7 +88,13 @@
   <script src="../js/display.js"></script>
   <script src="../js/quiz.js"></script>
   <script src="../js/study-model.js"></script>
+  <!-- Same order as index.html: it is the unit's path order. -->
   <script src="../js/unit-pos.js"></script>
+  <script src="../js/unit-pos-a.js"></script>
+  <script src="../js/unit-pos-b.js"></script>
+  <script src="../js/unit-pos-c.js"></script>
+  <script src="../js/unit-pos-d.js"></script>
+  <script src="../js/unit-pos-capstone.js"></script>
   <script src="../js/study.js"></script>
   <script src="../js/app.js"></script>
 
@@ -318,6 +324,8 @@
         { name: "assignment checks", fn: assignmentChecks },
         { name: "study map checks", fn: studyMapChecks },
         { name: "study review checks", fn: studyReviewChecks },
+        { name: "study sort checks", fn: studySortChecks },
+        { name: "study capstone checks", fn: studyCapstoneChecks },
         { name: "study stop checks", fn: studyStopChecks },
         { name: "study walk-every-stop checks", fn: studyWalkAllChecks },
       ], finish);
@@ -937,19 +945,41 @@
         app.querySelector(".view-study").querySelectorAll(".study-stop.is-done").length === 0);
 
       /* An unauthored stop must say so rather than render an empty quiz.
-       * `capstone` is the last one left (plans/017); this check moved off `verbs`
-       * when plans/016 authored it. Read the flag rather than naming a stop, so
-       * the check cannot quietly stop testing anything at all. */
-      var pending = stops.filter(function (s) { return s.todo; })[0];
-      check("S-5: at least one stop is still unauthored, so this check tests something",
-        !!pending);
-      if (pending) {
-        location.hash = "#/study/pos/" + pending.id;
+       *
+       * EVERY stop in Unit 1 is authored now (plans/017 finished the capstone), so
+       * there is nothing real left for this to point at — and a check with nothing
+       * to test is worse than no check. Both paths are still live code that a
+       * second unit will land on, so drive them with a stop that exists for the
+       * length of this check and then take it away again. */
+      check("S-5: no stop in Unit 1 is unauthored any more",
+        stops.filter(function (s) { return s.todo; }).length === 0);
+
+      var unit = wjt.study.unit("pos");
+      unit.stops.push({
+        id: "dom-check-pending", n: 99, cluster: "end", todo: true,
+        title: "Not written yet", blurb: "Exists only inside this check.",
+      });
+      try {
+        location.hash = "#/study/pos";
         wjt.rerender();
-        check("S-5: an unauthored stop (" + pending.id + ") shows a 'not ready' state, " +
-          "not a broken quiz",
+        var withPending = app.querySelector(".view-study");
+        check("S-5: a stop marked todo appears on the map, greyed out and not a link",
+          withPending.querySelectorAll(".study-stop.is-todo").length === 1 &&
+          withPending.querySelectorAll("a.study-stop.is-todo").length === 0 &&
+          /Coming soon/.test(withPending.querySelector(".study-stop.is-todo").textContent || ""));
+        check("S-5: a todo stop is never offered as the next one",
+          (withPending.querySelector(".study-stop.is-next") || {}).getAttribute &&
+          withPending.querySelector(".study-stop.is-next").getAttribute("href") !==
+            "#/study/pos/dom-check-pending");
+
+        location.hash = "#/study/pos/dom-check-pending";
+        wjt.rerender();
+        check("S-5: a stop that assembles no steps shows a 'not ready' state, not a " +
+          "broken quiz",
           !!app.querySelector(".view-study .empty-state") &&
           !app.querySelector(".view-study .quiz-card"));
+      } finally {
+        unit.stops.pop();
       }
     }
 
@@ -1007,7 +1037,10 @@
      *
      * Order matters: an open feedback panel owns the flow, and a `tap` question
      * must be given a SELECTION before Check — pressing Check empty is designed
-     * to refuse and not score, so clicking it blindly loops forever. */
+     * to refuse and not score, so clicking it blindly loops forever. A `sort` has
+     * the same property with every word: Check refuses until they are all placed.
+     * Getting either of those wrong shows up as a stalled stop in S-13, which is
+     * how this function is really tested. */
     function studyAdvance() {
       var v = app.querySelector(".view-study");
       if (!v) return false;
@@ -1019,6 +1052,21 @@
       }
 
       var chk = v.querySelector('[data-act="check"]');
+
+      // Every word into the FIRST bucket, one action at a time — mostly wrong on
+      // purpose, like the tap walker's first-token answer.
+      var tray = v.querySelector('[data-role="words"]');
+      if (tray && chk) {
+        var loose = tray.querySelector(".sort-word:not(.is-placed)");
+        if (loose) {
+          loose.click();
+          v.querySelector(".sort-bucket").click();
+          return true;
+        }
+        chk.click();
+        return true;
+      }
+
       if (chk) {
         var tok = v.querySelector('[data-role="stage"] .gl-token');
         if (tok) { tok.focus(); key(tok, { key: "Enter" }); }
@@ -1063,8 +1111,8 @@
         if (wjt.study.progress.read("pos").done[stop.id] !== 1) unrecorded.push(stop.id);
       });
 
-      check("S-13: every authored stop is walkable (" + authored.length + " of 15)",
-        authored.length === 14);
+      check("S-13: every stop is walkable (" + authored.length + " of 15)",
+        authored.length === 15);
       check("S-13: no stop stalls or loops" +
         (stalled.length ? " (stalled: " + stalled.join(", ") + ")" : ""), !stalled.length);
       check("S-13: every stop reaches its results screen" +
@@ -1074,17 +1122,246 @@
         (unrecorded.length ? " (not recorded: " + unrecorded.join(", ") + ")" : ""),
         !unrecorded.length);
 
-      // Having walked them all, the map must agree there is nothing left but the
-      // one stop plans/017 still owes.
+      // Having walked them all, the map must agree the unit is finished.
       location.hash = "#/study/pos";
       wjt.rerender();
       var mapView = app.querySelector(".view-study");
-      check("S-13: with every authored stop done, the map offers no next stop",
+      check("S-13: with every stop done, the map offers no next stop",
         !wjt.study.nextStop("pos", wjt.study.progress.read("pos")) &&
         !mapView.querySelector(".study-stop.is-next"));
-      check("S-13: the map ticks all 14 and still shows the capstone as coming soon",
-        mapView.querySelectorAll(".study-stop.is-done").length === 14 &&
-        mapView.querySelectorAll(".study-stop.is-todo").length === 1);
+      check("S-13: the map ticks all fifteen and shows nothing as coming soon",
+        mapView.querySelectorAll(".study-stop.is-done").length === 15 &&
+        mapView.querySelectorAll(".study-stop.is-todo").length === 0);
+
+      wjt.study.progress.reset("pos");
+    }
+
+    /* The `sort` step (plans/017). Walk a review stop to its sort screen and drive
+     * it the way a student would — and the way an AT user would.
+     *
+     * On Enter: every control here is a real <button>, so Enter and Space activate
+     * it through the browser's own behaviour. A synthetic keydown does NOT produce
+     * a click, and giving the buttons their own Enter handler would make a real
+     * Enter fire twice. So what is asserted is the thing that makes Enter work —
+     * that these are buttons — plus `.click()`, which is exactly what a native
+     * Enter dispatches. The arrow keys are ours and are asserted directly. */
+    function studySortChecks() {
+      wjt.study.progress.reset("pos");
+      location.hash = "#/study/pos/review-a";
+      wjt.rerender();
+
+      var step = wjt.study.steps("pos", "review-a").filter(function (s) {
+        return s.kind === "sort";
+      })[0];
+      check("S-14: review-a assembles a sort step", !!step);
+      if (!step) return;
+
+      // Stop ON the sort screen: studyAdvance() would start filling it in.
+      var guard = 0, v = app.querySelector(".view-study");
+      while (guard++ < 200) {
+        v = app.querySelector(".view-study");
+        if (!v || v.querySelector('[data-role="words"]')) break;
+        if (!studyAdvance()) break;
+      }
+      v = app.querySelector(".view-study");
+      var tray = v.querySelector('[data-role="words"]');
+      check("S-14: the sort screen is reachable by walking the stop", !!tray);
+      if (!tray) return;
+
+      var chips = v.querySelectorAll(".sort-word");
+      var buckets = v.querySelectorAll(".sort-bucket");
+      check("S-14: one chip per word (" + chips.length + ") and one bucket per part " +
+        "of speech (" + buckets.length + ")",
+        chips.length === step.words.length && buckets.length === step.buckets.length);
+      check("S-14: every control is a real button, which is what makes Enter and Space work",
+        Array.prototype.every.call(v.querySelectorAll(".sort-word, .sort-bucket"),
+          function (b) { return b.tagName === "BUTTON" && b.type === "button"; }));
+      check("S-14: nothing is placed to begin with, and every chip says so in its name",
+        Array.prototype.every.call(chips, function (c) {
+          return !c.classList.contains("is-placed") &&
+            /not placed/.test(c.getAttribute("aria-label") || "");
+        }));
+
+      // Check with nothing placed must refuse rather than score it wrong.
+      var fbBefore = v.querySelector(".quiz-feedback").hidden;
+      v.querySelector('[data-act="check"]').click();
+      v = app.querySelector(".view-study");
+      check("S-14: Check refuses an empty sort instead of marking it wrong",
+        fbBefore === true && v.querySelector(".quiz-feedback").hidden === true);
+
+      // --- the pointer path: tap a word, tap a bucket ---
+      var first = v.querySelectorAll(".sort-word")[0];
+      var firstWord = first.getAttribute("data-word");
+      first.click();
+      check("S-14: tapping a word picks it up, and says so without relying on colour",
+        first.getAttribute("aria-pressed") === "true" &&
+        first.classList.contains("is-picked") &&
+        /picked up/.test(first.getAttribute("aria-label") || ""));
+      check("S-14: while a word is picked up, each bucket offers to take it",
+        /put/.test(v.querySelector(".sort-bucket").getAttribute("aria-label") || "") &&
+        (v.querySelector(".sort-bucket").getAttribute("aria-label") || "")
+          .indexOf(firstWord) !== -1);
+
+      function bucketEl(id) {
+        return v.querySelector('.sort-bucket[data-bucket="' + id + '"]');
+      }
+      var home = step.expected[firstWord];
+      bucketEl(home).click();
+      check("S-14: tapping a bucket places the word, and the ASSIGNMENT is in its name",
+        first.classList.contains("is-placed") &&
+        (first.getAttribute("aria-label") || "")
+          .indexOf("placed in " + wjt.LABELS[home].name) !== -1);
+      check("S-14: the bucket counts what it holds",
+        bucketEl(home).querySelector('[data-role="n"]').textContent === "1");
+      check("S-14: the live region reports progress",
+        /1 of \d+ placed/.test(v.querySelector('[data-role="status"]').textContent || ""));
+
+      // Tapping a placed word takes it back out — the undo path.
+      first.click();
+      check("S-14: tapping a placed word takes it back out",
+        !first.classList.contains("is-placed") &&
+        /not placed/.test(first.getAttribute("aria-label") || "") &&
+        bucketEl(home).querySelector('[data-role="n"]').textContent === "");
+
+      // --- the keyboard path: arrows walk a group, then activate ---
+      first.focus();
+      key(first, { key: "ArrowRight" });
+      check("S-14: ArrowRight moves focus to the next word",
+        document.activeElement === v.querySelectorAll(".sort-word")[1]);
+      key(document.activeElement, { key: "ArrowLeft" });
+      check("S-14: ArrowLeft moves back", document.activeElement === first);
+      var b0 = v.querySelectorAll(".sort-bucket")[0];
+      b0.focus();
+      key(b0, { key: "ArrowDown" });
+      check("S-14: the arrow keys walk the buckets too, and wrap inside their own group",
+        document.activeElement === v.querySelectorAll(".sort-bucket")[1 % buckets.length]);
+
+      // --- place them all, correctly, and score it ---
+      Array.prototype.forEach.call(v.querySelectorAll(".sort-word"), function (c) {
+        var w = c.getAttribute("data-word");
+        c.click();
+        bucketEl(step.expected[w]).click();
+      });
+      check("S-14: every word can be placed", !v.querySelector(".sort-word:not(.is-placed)"));
+      v.querySelector('[data-act="check"]').click();
+      v = app.querySelector(".view-study");
+      var fb = v.querySelector(".quiz-feedback");
+      check("S-14: a completed sort is scored", !!fb && fb.hidden === false);
+      check("S-14: the correct sort is scored RIGHT",
+        !!fb && fb.classList.contains("is-right"));
+      check("S-14: the verdict reaches a screen reader on every chip",
+        Array.prototype.every.call(v.querySelectorAll(".sort-word"), function (c) {
+          return /correct/.test(c.getAttribute("aria-label") || "");
+        }));
+      check("S-14: everything is disabled once scored",
+        Array.prototype.every.call(
+          v.querySelectorAll(".sort-word, .sort-bucket, .quiz-answers button"),
+          function (b) { return b.disabled; }));
+
+      /* And the wrong path, on a different stop, because it is the one that has to
+       * name where each word actually belonged. */
+      location.hash = "#/study/pos/review-b";
+      wjt.rerender();
+      var stepB = wjt.study.steps("pos", "review-b").filter(function (s) {
+        return s.kind === "sort";
+      })[0];
+      var g2 = 0;
+      while (g2++ < 200) {
+        v = app.querySelector(".view-study");
+        if (!v || v.querySelector('[data-role="words"]')) break;
+        if (!studyAdvance()) break;
+      }
+      v = app.querySelector(".view-study");
+      if (!v.querySelector('[data-role="words"]') || !stepB) {
+        check("S-14: review-b's sort is reachable", false);
+        return;
+      }
+      // Everything into the first bucket: at least one word must land wrong.
+      var wrongBucket = v.querySelectorAll(".sort-bucket")[0].getAttribute("data-bucket");
+      Array.prototype.forEach.call(v.querySelectorAll(".sort-word"), function (c) {
+        c.click();
+        v.querySelectorAll(".sort-bucket")[0].click();
+      });
+      v.querySelector('[data-act="check"]').click();
+      v = app.querySelector(".view-study");
+      fb = v.querySelector(".quiz-feedback");
+      var misplaced = Object.keys(stepB.expected).filter(function (w) {
+        return stepB.expected[w] !== wrongBucket;
+      });
+      check("S-14: a wrong sort is scored wrong", !!fb && fb.classList.contains("is-wrong"));
+      check("S-14: the feedback names every misplaced word (" + misplaced.length + ")",
+        misplaced.every(function (w) { return (fb.textContent || "").indexOf(w) !== -1; }));
+      check("S-14: each wrong chip says where the word really belonged",
+        misplaced.every(function (w) {
+          var c = v.querySelector('.sort-word[data-word="' + w + '"]');
+          return !!c && c.classList.contains("is-wrong") &&
+            (c.getAttribute("aria-label") || "")
+              .indexOf("belongs in " + wjt.LABELS[stepB.expected[w]].name) !== -1;
+        }));
+
+      wjt.study.progress.reset("pos");
+    }
+
+    /* The capstone (plans/017). It is the one stop that assesses rather than
+     * teaches, and the one whose results screen reports by CLUSTER — which is the
+     * whole reason it is worth a suite of its own. Played end to end over
+     * file:///, then the results screen is read back. */
+    function studyCapstoneChecks() {
+      wjt.study.progress.reset("pos");
+      location.hash = "#/study/pos/capstone";
+      wjt.rerender();
+
+      var v = app.querySelector(".view-study");
+      check("S-15: the capstone renders a quiz, not a 'coming soon' card",
+        !!v && !!v.querySelector(".quiz-card") && !v.querySelector(".empty-state"));
+      if (!v || !v.querySelector(".quiz-card")) return;
+      check("S-15: it opens on a question — an assessment has no teach screen",
+        !v.querySelector(".study-labels"));
+
+      var steps = wjt.study.steps("pos", "capstone");
+      var scorable = wjt.study.scorable(steps);
+      check("S-15: every step of the capstone is a scored question (" + scorable.length + ")",
+        scorable.length === steps.length && scorable.length >= 25);
+
+      /* Walk it. Taps are answered by selecting the first token and sorts by
+       * dropping everything in the first bucket, so some clusters come out clean
+       * and some do not — which is what exercises BOTH forms of a results row. */
+      var out = 0;
+      while (out++ < 600 && studyAdvance()) { /* play */ }
+      check("S-15: the capstone terminates rather than looping (" + out + " actions)",
+        out < 600);
+      v = app.querySelector(".view-study");
+      check("S-15: it reaches a results screen", !!v.querySelector(".quiz-results"));
+
+      var rows = v.querySelectorAll(".cluster-report .cluster-row");
+      check("S-15: results are reported BY CLUSTER (" + rows.length + " rows), never as a " +
+        "list of thirty items",
+        rows.length >= 4 && !v.querySelector(".missed-row"));
+      var counted = 0, clean = 0, revisit = 0, wellFormed = true;
+      Array.prototype.forEach.call(rows, function (r) {
+        var m = /(\d+) of (\d+) correct/.exec(r.textContent || "");
+        if (!m) { wellFormed = false; return; }
+        counted += +m[2];
+        if (r.classList.contains("is-clean")) clean++;
+        if (r.querySelector("a.btn")) revisit++;
+        // Every row must either be clean or hand back a way into that cluster.
+        if (!r.classList.contains("is-clean") && !r.querySelector("a.btn") &&
+          r.textContent.indexOf("Everything at once") === -1) wellFormed = false;
+      });
+      check("S-15: every row reads “n of m correct”, and a row that is not clean offers " +
+        "a way back in (" + revisit + " revisit, " + clean + " clean)", wellFormed);
+      check("S-15: the rows account for every question asked (" + counted + "/" +
+        scorable.length + ")", counted === scorable.length);
+      check("S-15: at least one cluster row points back at a stop to re-enter",
+        revisit > 0);
+      var links = v.querySelectorAll(".cluster-report a.btn");
+      check("S-15: those links are real routes into the unit",
+        Array.prototype.every.call(links, function (a) {
+          return /^#\/study\/pos\/[a-z-]+$/.test(a.getAttribute("href") || "");
+        }));
+      check("S-15: finishing the capstone records it done, with a score",
+        wjt.study.progress.read("pos").done.capstone === 1 &&
+        typeof wjt.study.progress.read("pos").best.capstone === "number");
 
       wjt.study.progress.reset("pos");
     }

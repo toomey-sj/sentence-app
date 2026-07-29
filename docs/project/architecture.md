@@ -49,11 +49,11 @@ Load order matters — each file only depends on the ones above it.
 
 | File | Lines | Responsibility |
 |---|---:|---|
-| `index.html` | 39 | The whole app shell: nav, `#app` mount, `#toasts`, thirteen script tags. |
+| `index.html` | 52 | The whole app shell: nav, `#app` mount, `#toasts`, twenty-one script tags. |
 | `css/styles.css` | — | Design system, both themes, driven by CSS custom properties on `:root[data-theme]`. |
 | `js/labels.js` | 767 | **The taxonomy.** `wjt.LAYERS`, `wjt.LABELS`, `wjt.SENTENCE_TYPES`, and the helpers over them. Zero DOM. |
-| `js/tokenize.js` | 78 | Sentence splitting, tokenizing, and span↔token conversion. Zero DOM. |
-| `js/store.js` | 609 | Lesson model, the storage adapter (`localStorage` implementation), the migration runner, JSON import/export, the built-in sample lesson. Nearly zero DOM. |
+| `js/tokenize.js` | 122 | Sentence splitting, tokenizing, and span↔token conversion. Zero DOM. |
+| `js/store.js` | 664 | Lesson model, the storage adapter (`localStorage` implementation), the migration runner, JSON import/export, the built-in sample lesson. Nearly zero DOM. |
 | `js/examples.js` | 1,776 | The seven example lessons, each as a `build()` that returns a lesson object. |
 | `js/assignment-model.js` | 583 | Assignment question pool, balanced seeded selection, and the separate answer key. Zero DOM. |
 | `js/assignment-codec.js` | 423 | Compact student-safe wire map, base64url, validation, and URL size states. Zero DOM. |
@@ -63,10 +63,15 @@ Load order matters — each file only depends on the ones above it.
 | `js/editor.js` | 523 | ✎ Edit view — selection, the drill-down palette, notes, sentence type chips, merge/delete. |
 | `js/display.js` | 494 | ▶ Present view — one sentence at a time, layer toggles, keyboard nav. |
 | `js/quiz.js` | 461 | 🎯 Practice view — question generation, distractor choice, scoring, results. |
-| `js/study-model.js` | 367 | **Study mode's engine.** Step assembly, label-scoped question generation, answer checking, local progress. Zero DOM. |
-| `js/unit-pos.js` | 547 | **Unit 1 — The Nine Parts of Speech.** Eleven Poe passages, teach screens, and the authored question bank. Zero DOM. |
-| `js/study.js` | 382 | 🎓 Study view — the unit map, teach screens, quiz screens, results. |
-| `js/app.js` | 486 | Hash routing, the library view, import, theme, toasts, first-run seeding. |
+| `js/study-model.js` | 482 | **Study mode's engine.** Step assembly, label-scoped question generation, answer checking, per-cluster reporting, local progress. Zero DOM. |
+| `js/unit-pos.js` | 314 | **Unit 1 — The Nine Parts of Speech.** The `line()`/`passage()` authoring helpers, `wjt.unitPos`, the cluster titles, the label budget, Orientation, and the `wjt.study.register` call. Zero DOM. |
+| `js/unit-pos-a.js` | 723 | Cluster A — nouns, determiners, pronouns, Review A. Zero DOM. |
+| `js/unit-pos-b.js` | 351 | Cluster B — verbs, Review B. Zero DOM. |
+| `js/unit-pos-c.js` | 566 | Cluster C — adjectives, adverbs, Review C. Zero DOM. |
+| `js/unit-pos-d.js` | 578 | Cluster D — prepositions, conjunctions, interjections, Review D. Zero DOM. |
+| `js/unit-pos-capstone.js` | 240 | The Capstone — the closing paragraphs, no teach screens, results by cluster. Zero DOM. |
+| `js/study.js` | 623 | 🎓 Study view — the unit map, teach screens, quiz screens, the `sort` surface, results. |
+| `js/app.js` | 546 | Hash routing, the library view, import, theme, toasts, first-run seeding. |
 
 `tools/` is **not shipped** — it holds the two check suites, the doc generator,
 and a lesson validator. `samples/` is documentation and hand-off material, not app input:
@@ -408,22 +413,58 @@ generators select by *layer*, never by label family** — `annsForLayers` in
 possessive noun" without also asking about every other part of speech in the
 passage. `study-model.js` filters by label id, which is the whole difference.
 
-Three files, mirroring the assignment split:
+Three responsibilities, mirroring the assignment split — but the content half is
+now **six files**, because all of it together ran past 2,300 lines:
 
-- **`unit-pos.js`** — content. Eleven Poe passages, each an ordinary lesson
-  registered into `wjt.EXAMPLES` with an additive `group: "unit-pos"`, plus the
-  teach screens and the authored question bank. Passages are labelled **one POS
-  label per token** by a `line()` helper that takes a label per token in order:
-  substring matching silently mislabels short function words (`"he"` matches
-  inside `"The"`), and a base *and* its subtype on one span would generate two
-  questions with one highlighted word and two right answers.
+- **`unit-pos.js` + `unit-pos-a…d.js` + `unit-pos-capstone.js`** — content. Eleven
+  Poe passages, each an ordinary lesson registered into `wjt.EXAMPLES` with an
+  additive `group: "unit-pos"`, plus the teach screens and the authored question
+  bank. `unit-pos.js` holds the authoring helpers, the cluster titles, the label
+  budget, Orientation, and the `wjt.study.register` call; each other file appends
+  its cluster's stops through `wjt.unitPos.stops()`. **Load order is path order** —
+  a cluster file appends to the array `unit-pos.js` already registered, so the
+  `<script>` tag order in `index.html` is the order of the unit map. Nothing reads
+  a unit's stops at load time, which is what makes filling it afterwards safe, and
+  the smoke test asserts the stops come out numbered 0…14 in sequence so a drifted
+  tag fails a check rather than reshuffling the unit.
+
+  Passages are labelled **one POS label per token** by a `line()` helper that takes
+  a label per token in order: substring matching silently mislabels short function
+  words (`"he"` matches inside `"The"`), and a base *and* its subtype on one span
+  would generate two questions with one highlighted word and two right answers.
 - **`study-model.js`** — the engine. `steps()` assembles a stop, generating one
   `tap` question per (sentence, focus label) with `accept` covering every
   same-label span, the fairness rule `quiz.js` uses. `check()` is pure and takes
-  plain data — the view reads `selection.get()` and hands over `{first,last}`, so
-  no element ever reaches the model.
+  plain data — the view reads `selection.get()` and hands over `{first,last}` for a
+  `tap` or a `{ word: bucketId }` map for a `sort`, so no element ever reaches the
+  model. `clusterReport()` groups a finished run by the cluster that taught each
+  label, which is what the capstone's results screen renders.
 - **`study.js`** — the view. Reuses `wjt.renderSentence` and the `.quiz-*` chrome,
   so a question here behaves like a question anywhere else.
+
+### Four step kinds, and why `sort` is built the way it is
+
+`teach` (no answer), `choice` (index equality), `tap` (token-range equality against
+any same-label span), and `sort` (per-word bucket equality).
+
+`sort` is **tap-to-assign, never drag**: tap a word to pick it up, tap a bucket to
+drop it in, tap a placed word to take it back out. `pilot.md` names drag-to-select
+on a tablet as the single most likely broken thing in the product, and this is a
+student-facing surface with no teacher in the room. Two consequences worth knowing
+before changing it:
+
+- **The chips never move.** Where a word has been placed shows as a tag on the chip
+  and in its `aria-label`, so the answer is never carried by colour or position
+  alone and a keyboard user's focus is never yanked to a re-parented element.
+- **Every control is a real `<button>`**, which is what makes Enter and Space work;
+  the arrow keys walk a group on top of that. Nothing has its own Enter handler,
+  because that would fire alongside the browser's native activation.
+
+Two stop fields shape generation, and both exist for the capstone: `tapPerLabel`
+caps generated questions **per label** rather than per batch (a 48-label focus over
+one passage would otherwise emit a question for every sentence×label pair), and
+`itemsLast` puts the written items after the generated practice, since a stop with
+no teach screens has nothing for them to follow.
 
 Unit passages carry **no `types` badges and no part/phrase/clause annotations**.
 That is what keeps `tools/completeness.js` satisfiable: a sentence with no badge

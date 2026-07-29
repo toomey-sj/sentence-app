@@ -263,8 +263,12 @@ Writing the reason down, as the rule above requires. **This does not displace st
 
 Sequenced as three orders, machinery first so the shape is proven before the
 content scales: ~~[015 — the study view and lesson 1](../plans/done/015-study-view-and-first-lesson.md)~~
-· [016 — the remaining stops](../plans/done/016-unit-pos-remaining-lessons.md)
-· [017 — capstone, `sort`, and docs](../plans/017-unit-pos-capstone-and-docs.md).
+· ~~[016 — the remaining stops](../plans/done/016-unit-pos-remaining-lessons.md)~~
+· ~~[017 — capstone, `sort`, and docs](../plans/done/017-unit-pos-capstone-and-docs.md)~~.
+**All three landed (2026-07-29); Unit 1 is complete** — fifteen stops, playable from
+a `file://` page, storing a resume point and a best score and transmitting nothing.
+Sequencing above the lesson now has one worked example rather than none; what it
+still does not have is a general course model, deliberately (**C2**).
 
 The `0.1.0` release gate is a **parallel track**, not a dependency. The manual
 cross-browser pass still owed by

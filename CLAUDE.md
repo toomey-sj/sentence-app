@@ -7,8 +7,9 @@ Guidance for Claude Code working in this repository.
 **Sentence Forge** — a build-free vanilla-JS web app where teachers annotate a
 paragraph with grammar labels at four layers, then present it or quiz students on
 it. It also carries a self-paced student **unit** on the nine parts of speech
-(`js/study.js` + `js/unit-pos.js`). ~9,650 lines of JS in sixteen files, no
-dependencies, no framework, no build step, no server.
+(`js/study.js`, `js/study-model.js`, and six `js/unit-pos*.js` content files).
+~12,200 lines of JS in twenty-one files, no dependencies, no framework, no build
+step, no server.
 
 Start with [docs/project/architecture.md](docs/project/architecture.md). It is
 current and it explains the constraints below in detail.
@@ -36,14 +37,21 @@ current and it explains the constraints below in detail.
 4. **Keep the logic layer DOM-free** — `js/labels.js`, `js/tokenize.js`,
    `js/store.js`, `js/examples.js`, `js/assignment-model.js`,
    `js/assignment-codec.js`, `js/assignment-channels.js`, `js/study-model.js`,
-   and `js/unit-pos.js`.
-   `tools/smoke-test.js` runs all nine in a bare `vm` sandbox; a `document`
+   and the six unit-content files `js/unit-pos.js`, `js/unit-pos-a.js`,
+   `js/unit-pos-b.js`, `js/unit-pos-c.js`, `js/unit-pos-d.js`,
+   `js/unit-pos-capstone.js`.
+   `tools/smoke-test.js` runs all fourteen in a bare `vm` sandbox; a `document`
    reference in any of them breaks it. (The three `assignment-*` modules plus
-   the two study-mode modules are additionally asserted DOM-, storage-, and
-   network-free by a source scan — `assignment-channels.js` delegates every
-   actual delivery to `wjt.assignmentPrint` / `wjt.downloadJson`, and
-   `study-model.js` reaches storage only through `wjt.safeStorage`, precisely so
-   both can stay in that set.)
+   the study engine and all six unit files are additionally asserted DOM-,
+   storage-, and network-free by a source scan — `assignment-channels.js`
+   delegates every actual delivery to `wjt.assignmentPrint` / `wjt.downloadJson`,
+   and `study-model.js` reaches storage only through `wjt.safeStorage`, precisely
+   so both can stay in that set.)
+   The six `unit-pos*.js` files are **loaded in a fixed order**, which is the
+   unit's path order — `unit-pos.js` first (it defines `wjt.unitPos` and registers
+   the unit), then A, B, C, D, capstone. `index.html`, `tools/dom-check.html`, and
+   `UNIT_FILES` in `tools/smoke-test.js` all carry that list, and the check
+   *"stops are numbered 0…14 in path order"* is what fails if one of them drifts.
 5. **Every path relative.** Absolute paths 404 under GitHub Pages' `/<repo>/`.
 6. **Never rename or remove a label id.** Annotations store ids; a rename
    silently destroys annotations in every teacher's browser, and there's no
@@ -84,7 +92,7 @@ $udd  = Join-Path $env:TEMP ("edge-udd-" + [guid]::NewGuid())
 $dump = Join-Path $env:TEMP ("dom-" + [guid]::NewGuid() + ".html")
 Start-Process -FilePath $edge -Wait -NoNewWindow -RedirectStandardOutput $dump `
   -ArgumentList "--headless=new","--disable-gpu","--no-sandbox",`
-  "--virtual-time-budget=8000","--window-size=1280,720","--dump-dom","--user-data-dir=$udd",`
+  "--virtual-time-budget=12000","--window-size=1280,720","--dump-dom","--user-data-dir=$udd",`
   "file:///C:/dev/sentences/tools/dom-check.html"
 node tools/dom-check-report.js $dump
 ```
@@ -103,14 +111,17 @@ Hard-won details, all of which produce a *silent* wrong answer:
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
 A healthy run reports **0 failed** (the stable contract). The pass *count* is an
-implementation detail — it grows as checks are added (currently 408).
+implementation detail — it grows as checks are added (currently 445). Note that
+this run now takes longer than it used to: `S-13` and `S-15` play all fifteen
+stops of the unit end to end, so give it `--virtual-time-budget=12000` rather
+than the older `8000`.
 
 Note that `tools/dom-check.html` is itself loaded over `file:///`, which makes it
 the place to assert degraded-mode behavior ([P3](docs/roadmap-platform.md#decisions))
 in the environment it is actually about, rather than simulating it — that is what
 the `D-*` delivery-channel checks do.
 
-**Nothing is known-red as of 2026-07-28**: all four matrix sizes report 0 failed.
+**Nothing is known-red as of 2026-07-29**: all four matrix sizes report 0 failed.
 (`UI-4` was red for weeks; it was a *harness* bug — the check measured the Present
 breakdown in the same task that rendered it, so it read the deliberate pre-wrap
 single-line layout. The renderer was always fine. Fixed in

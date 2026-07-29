@@ -34,11 +34,18 @@ const sandbox = {
 sandbox.window = sandbox;
 vm.createContext(sandbox);
 
+/* Study mode's content files, in the same order index.html loads them — which is
+ * the unit's path order, because each one appends its stops to the array
+ * js/unit-pos.js registered. "study: stops are numbered 0…14 in path order"
+ * below is what catches a wrong order in either list. */
+const UNIT_FILES = ["unit-pos.js", "unit-pos-a.js", "unit-pos-b.js",
+  "unit-pos-c.js", "unit-pos-d.js", "unit-pos-capstone.js"];
+
 const LOGIC_FILES = ["labels.js", "tokenize.js", "store.js", "examples.js",
   "assignment-model.js", "assignment-codec.js", "assignment-channels.js",
   // Study mode: the engine, then the unit content that registers against it.
   // Running them here is what proves they are DOM-free.
-  "study-model.js", "unit-pos.js"];
+  "study-model.js"].concat(UNIT_FILES);
 for (const f of LOGIC_FILES) {
   vm.runInContext(fs.readFileSync(path.join(root, "js", f), "utf8"), sandbox, { filename: f });
 }
@@ -1060,7 +1067,7 @@ check("channels: nothing throws out of deliver() — a click handler can't be we
 
 // --- the new modules stay DOM-free and storage-free ---
 ["assignment-model.js", "assignment-codec.js", "assignment-channels.js",
-  "study-model.js", "unit-pos.js"].forEach((f) => {
+  "study-model.js"].concat(UNIT_FILES).forEach((f) => {
   const src = fs.readFileSync(path.join(root, "js", f), "utf8");
   check(f + ": touches no DOM, storage, or network",
     !/\bdocument\b|localStorage|sessionStorage|\bfetch\s*\(|XMLHttpRequest|navigator/.test(src));
@@ -1081,6 +1088,13 @@ console.log("\n-- study: unit 1 --");
     new Set(stops.map((s) => s.id)).size === stops.length);
   check("study: every stop has a title and a blurb",
     stops.every((s) => !!s.title && !!s.blurb));
+
+  /* The unit is assembled from six files, each appending its stops in load
+   * order, so the <script> tags in index.html ARE the path order. This is what
+   * makes a mis-ordered or missing tag fail a check instead of quietly
+   * reshuffling the unit map. */
+  check("study: stops are numbered 0…14 in path order",
+    stops.every((s, i) => s.n === i));
 
   // --- the label budget cannot drift ---
   const POS = wjt.labelsForLayer("pos");
@@ -1137,9 +1151,17 @@ console.log("\n-- study: unit 1 --");
    * instead, and both halves of that bargain are asserted here: the missing set
    * must be EXACTLY the declared set (so a real gap cannot hide behind the
    * declaration, and the declaration cannot rot once a passage changes), and every
-   * declared label must be claimed by an item. */
+   * declared label must be claimed by an item.
+   *
+   * A stop with NO TEACH SCREENS is exempt, and there is exactly one — the
+   * capstone. Its `focus` is the whole 48-label budget because it is a filter over
+   * unseen text, not a list of labels it claims to teach, and no two paragraphs of
+   * Poe could carry all 48. What it is held to instead is asserted below: unseen
+   * sentences, one tap per label, and coverage of all nine parts of speech and all
+   * four clusters. Add a teach screen to the capstone and this check starts
+   * applying to it again, which is the right way round. */
   authored.forEach((stop) => {
-    if (!stop.lessonId) return;
+    if (!stop.lessonId || !(stop.teach || []).length) return;
     const lesson = wjt.study.lessonFor(stop.lessonId);
     check("study: " + stop.id + " has its passage", !!lesson);
     if (!lesson) return;
@@ -1164,10 +1186,33 @@ console.log("\n-- study: unit 1 --");
   // --- authored questions are well formed ---
   authored.forEach((stop) => {
     (stop.items || []).forEach((it, i) => {
+      const where = "study: " + stop.id + " item " + (i + 1);
+      if (it.kind === "sort") {
+        /* A sort is only fair if a word can go in exactly one bucket, so the
+         * things asserted here are the ways that breaks: a word that appears
+         * twice collapses in the { word: bucket } map and silently drops a
+         * question; a bucket nothing is sorted into is a decoy the student can
+         * never be right about; an expected bucket that is not on offer is
+         * unanswerable. */
+        const words = (it.words || []).map((w) => w.word);
+        const buckets = it.buckets || [];
+        check(where + " (sort) has a stem, 2+ buckets, and 3+ words",
+          !!it.stem && buckets.length >= 2 && words.length >= 3);
+        check(where + " (sort) has no repeated word",
+          new Set(words).size === words.length);
+        check(where + " (sort) every bucket is a real POS label",
+          buckets.every((b) => wjt.LABELS[b] && wjt.LABELS[b].layer === "pos"));
+        check(where + " (sort) every word's bucket is one of the buckets on offer",
+          (it.words || []).every((w) => buckets.indexOf(w.bucket) !== -1));
+        check(where + " (sort) every bucket gets at least one word",
+          buckets.every((b) => (it.words || []).some((w) => w.bucket === b)));
+        check(where + " (sort) no bucket is one of the six excluded labels",
+          buckets.every((b) => EXCLUDED.indexOf(b) === -1));
+        return;
+      }
       const correct = it.options.filter((o) => o.correct);
-      check("study: " + stop.id + " item " + (i + 1) + " has exactly one correct option",
-        correct.length === 1);
-      check("study: " + stop.id + " item " + (i + 1) + " has a stem and feedback on every option",
+      check(where + " has exactly one correct option", correct.length === 1);
+      check(where + " has a stem and feedback on every option",
         !!it.stem && it.options.length >= 2 && it.options.every((o) => !!o.text && !!o.feedback));
     });
     (stop.teach || []).forEach((t, i) => {
@@ -1209,6 +1254,42 @@ console.log("\n-- study: unit 1 --");
         const wrong = s.options.reduce((acc, o, i) => (!o.correct ? i : acc), -1);
         return wjt.study.check(s, right).correct && !wjt.study.check(s, wrong).correct;
       }));
+
+    /* `sort` scores per-word bucket equality and nothing else, so all four
+     * verdicts are worth pinning: the right map passes, ONE word moved fails and
+     * is named, a half-finished map is not correct AND reports how far along it
+     * is (which is what lets the view refuse it rather than mark it wrong), and
+     * placing every word in one bucket fails. */
+    const sorts = steps.filter((s) => s.kind === "sort");
+    if (!sorts.length) return;               // most stops have none; don't assert vacuously
+    check("study: " + stop.id + " check() accepts a fully correct sort",
+      sorts.every((s) => wjt.study.check(s, s.expected).correct));
+    check("study: " + stop.id + " check() fails a sort with one word moved, and names it",
+      sorts.every((s) => {
+        const words = Object.keys(s.expected);
+        const moved = words.find((w) => s.buckets.some((b) => b !== s.expected[w]));
+        const given = Object.assign({}, s.expected);
+        given[moved] = s.buckets.filter((b) => b !== s.expected[moved])[0];
+        const v = wjt.study.check(s, given);
+        return !v.correct && v.detail.wrong.length === 1 && v.detail.wrong[0] === moved;
+      }));
+    check("study: " + stop.id + " check() reports a half-placed sort as unfinished",
+      sorts.every((s) => {
+        const words = Object.keys(s.expected);
+        const given = {};
+        words.slice(0, words.length - 1).forEach((w) => { given[w] = s.expected[w]; });
+        const v = wjt.study.check(s, given);
+        return !v.correct && v.detail.placed === words.length - 1 &&
+          v.detail.total === words.length;
+      }));
+    check("study: " + stop.id + " check() fails a sort with everything in one bucket",
+      sorts.every((s) => {
+        const given = {};
+        Object.keys(s.expected).forEach((w) => { given[w] = s.buckets[0]; });
+        return !wjt.study.check(s, given).correct;
+      }));
+    check("study: " + stop.id + " check() rejects an empty sort response",
+      sorts.every((s) => !wjt.study.check(s, null).correct));
   });
 
   // A `tap` question must never ask about a span that carries two POS labels —
@@ -1262,6 +1343,99 @@ console.log("\n-- study: unit 1 --");
     });
     return clean;
   })());
+
+  /* ------------------------------------------------------------------ *
+   * The capstone — the one stop that is an assessment rather than a lesson.
+   * ------------------------------------------------------------------ */
+  {
+    const cap = wjt.study.stop("pos", "capstone");
+    const steps = wjt.study.steps("pos", "capstone");
+    const taps = steps.filter((s) => s.kind === "tap");
+    const scorable = wjt.study.scorable(steps);
+
+    check("study: capstone is authored", !!cap && !cap.todo);
+    check("study: capstone carries NO teach screens — it assesses, it does not teach",
+      !(cap.teach || []).length);
+    check("study: capstone focus is exactly the 48-label budget",
+      cap.focus.length === budget.length && budget.every((id) => cap.focus.indexOf(id) !== -1));
+    check("study: capstone reports by cluster", cap.resultsBy === "cluster");
+
+    /* THE point of a capstone. Every sentence must be text the student has not
+     * already been quizzed on, or it measures memory of the lessons instead of
+     * transfer to new prose. */
+    const seen = {};
+    stops.forEach((s) => {
+      if (!s.lessonId || s.id === "capstone") return;
+      const lesson = wjt.study.lessonFor(s.lessonId);
+      (lesson ? lesson.sentences : []).forEach((x) => { seen[x.text] = s.id; });
+    });
+    const capLesson = wjt.study.lessonFor("unit-pos-capstone");
+    const reused = (capLesson ? capLesson.sentences : [])
+      .filter((x) => seen[x.text]).map((x) => seen[x.text]);
+    check("study: capstone is UNSEEN TEXT — no sentence of it appears in another stop" +
+      (reused.length ? " (shared with: " + reused.join(", ") + ")" : ""),
+      !!capLesson && capLesson.sentences.length > 0 && reused.length === 0);
+
+    /* `tapPerLabel: 1` is the only thing standing between a 48-label focus and a
+     * question for every (sentence, label) pair in the passage. */
+    const perLabel = {};
+    taps.forEach((s) => { perLabel[s.label] = (perLabel[s.label] || 0) + 1; });
+    check("study: capstone generates exactly one tap per label (" + taps.length + ")",
+      taps.length > 0 && Object.keys(perLabel).every((id) => perLabel[id] === 1));
+    check("study: capstone asks ~30 questions (" + scorable.length + ")",
+      scorable.length >= 25 && scorable.length <= 40);
+    check("study: capstone is tap-heavy — finding a word in real prose, not reciting",
+      taps.length > scorable.length / 2);
+
+    // Across all nine parts of speech, and across all four teaching clusters.
+    const familyOf = (id) => {
+      let at = id;
+      while (wjt.LABELS[at] && wjt.LABELS[at].parent) at = wjt.LABELS[at].parent;
+      return at;
+    };
+    const asked = {};
+    steps.forEach((s) => { if (s.label) asked[familyOf(s.label)] = true; });
+    (cap.items || []).forEach((it) => {
+      (it.buckets || []).forEach((b) => { asked[familyOf(b)] = true; });
+    });
+    const missingBase = bases.filter((id) => !asked[id]);
+    check("study: capstone asks about all nine parts of speech" +
+      (missingBase.length ? " (missing: " + missingBase.join(", ") + ")" : ""),
+      missingBase.length === 0);
+
+    const byCluster = wjt.study.labelClusters("pos");
+    const clusterHits = {};
+    taps.forEach((s) => { if (byCluster[s.label]) clusterHits[byCluster[s.label]] = true; });
+    check("study: capstone's tap questions reach all four teaching clusters (" +
+      Object.keys(clusterHits).sort().join(",") + ")",
+      Object.keys(clusterHits).length === 4);
+
+    /* labelClusters() is what the results screen groups by, so it must cover the
+     * whole budget and attribute each label to exactly one cluster. */
+    check("study: every budgeted label is owned by exactly one teaching cluster",
+      budget.every((id) => !!byCluster[id]));
+
+    /* The report itself: a fabricated all-correct run, then an all-wrong one. It
+     * is built from in-memory records and must add up to the scorable count —
+     * nothing may be silently dropped out of a results screen. */
+    const allRight = scorable.map((s) => ({ step: s, correct: true }));
+    const rowsRight = wjt.study.clusterReport("pos", allRight);
+    const total = rowsRight.reduce((n, r) => n + r.total, 0);
+    check("study: clusterReport accounts for every scored question (" + total + "/" +
+      scorable.length + ")", total === scorable.length);
+    check("study: clusterReport names a title and a stop to revisit for each cluster row",
+      rowsRight.filter((r) => r.id).every((r) => !!r.stopId && !!r.title));
+    check("study: clusterReport leaves the cross-cluster row untitled for the view to name",
+      rowsRight.filter((r) => !r.id).every((r) => r.title === "" && r.stopId === ""));
+    check("study: clusterReport counts a clean run as clean",
+      rowsRight.every((r) => r.right === r.total));
+    const rowsWrong = wjt.study.clusterReport("pos",
+      scorable.map((s) => ({ step: s, correct: false })));
+    check("study: clusterReport counts a failed run as failed",
+      rowsWrong.length === rowsRight.length && rowsWrong.every((r) => r.right === 0));
+    check("study: clusterReport drops rows nothing was asked about",
+      wjt.study.clusterReport("pos", []).length === 0);
+  }
 
   // --- progress: a resume point and a score, and nothing else ---
   const P = wjt.study.progress;

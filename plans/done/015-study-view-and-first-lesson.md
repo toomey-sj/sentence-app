@@ -222,7 +222,7 @@ New file, DOM-ful. Registers `wjt.views.study(container, unitId, stopId)`.
   [016](016-unit-pos-remaining-lessons.md). Resist authoring "just the easy ones"
   — the point of this phase is that the machinery is proven before the content
   scales.
-- **The `sort` step kind.** Deferred to [017](../017-unit-pos-capstone-and-docs.md);
+- **The `sort` step kind.** Deferred to [017](017-unit-pos-capstone-and-docs.md);
   it is the only mechanic that needs tap-to-assign UI, and Phase 1 should ship on
   the two mechanics `quiz.js` already proved.
 - **A general course/unit data model.** Decision **C2** — one unit, hard-coded.

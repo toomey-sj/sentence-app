@@ -9,6 +9,7 @@ opens, you're ready.
 - [Student practice](#student-practice---practice-mode)
 - [Paper assignments](#paper-assignments---assignment-mode)
 - [Sharing lessons](#sharing-lessons)
+- [Assigning the unit](#assigning-the-unit--unit-1)
 - [Classroom recipes](#classroom-recipes)
 - [Troubleshooting](#troubleshooting)
 
@@ -235,6 +236,39 @@ The format is documented for teachers in
 [grammar-reference.md](grammar-reference.md) and precisely in
 [project/lesson-json.md](../project/lesson-json.md).
 
+## Assigning the unit — 🎓 Unit 1
+
+Everything above is something *you* drive. **Unit 1 — The Nine Parts of Speech** is
+the opposite: a self-paced course a student works through alone, fifteen stops on
+one Poe story, about five hours of work. No account, no login, no network.
+
+Assigning it takes one line in Google Classroom:
+
+> Open <the app's address>#/study/pos and work through Unit 1. Start at
+> Orientation.
+
+That is the whole setup. There is nothing to provision, nothing to mark, and no
+roster. Three things are worth knowing before you send it:
+
+1. **Nothing comes back to you.** A student's progress is a resume point and a best
+   score per stop, kept in that one browser on that one machine. It is never
+   uploaded and never attached to a name. If you need evidence a student did the
+   work, use a printed [worksheet and answer key](#paper-assignments---assignment-mode)
+   — that path is designed for it and this one is not.
+2. **Shared machines share progress.** There are no accounts to keep two students
+   apart at the same seat, which is why **Reset my progress** sits in plain sight on
+   the unit map. Point it out to a class working off a cart.
+3. **You can assign one stop.** Navigation is open — `#/study/pos/adverbs` opens
+   stop 8 directly, and nothing is locked behind anything else.
+
+The unit's eleven passages are also ordinary lessons, in the **🎓 Unit 1** section
+of the Example library. Add one to your lessons and you can Present it, Edit it, or
+build a worksheet from it like any other passage — which is the route to take if you
+want Poe without the course.
+
+Full detail, including the capstone and an honest list of the limits:
+[curriculum-unit-1.md](curriculum-unit-1.md).
+
 ## Classroom recipes
 
 **Bell-ringer.** Present one sentence from last night's reading with all levels
@@ -244,7 +278,9 @@ check. Three minutes.
 **Building a unit across a week.** Make one lesson from a passage and enable only
 Parts of Speech on Monday. Add Sentence Parts on Tuesday, Phrases Wednesday,
 Clauses Thursday. Same passage all week — the sentence gets familiar and the
-structure gets visible.
+structure gets visible. *If what you want is the parts of speech specifically,
+[Unit 1](#assigning-the-unit--unit-1) already does two weeks of this, self-paced,
+with the questions written.*
 
 **Their own writing.** Paste three anonymized sentences from student drafts.
 Label the clause structure. Present it and ask which one is a run-on. (Sentence
