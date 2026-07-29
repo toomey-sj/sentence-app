@@ -3,6 +3,19 @@ status: doing   # todo | doing | done
 created: 2026-07-22
 ---
 
+> **Read this first (2026-07-29). The code in this order shipped in July; only the
+> manual walk is left.** Tasks A–F are implemented and the automated gate is green
+> at all four matrix sizes. If you are picking this file up cold, **do not start at
+> [Worker start here](#worker-start-here) and do not implement Tasks A–F** — they
+> are a record of what was built, not a queue. The single remaining gate is the
+> [manual interaction/browser pass](#manual-interactionbrowser-pass), and it is
+> **deliberately deferred**: Unit 1 added a whole student-facing surface after this
+> matrix was written, Unit 2 will add more, and walking it now means walking it
+> twice. See [Deferred, and what the matrix is missing](#deferred-and-what-the-matrix-is-missing).
+>
+> `status:` stays `doing` because the gate is genuinely open, not because there is
+> code to write.
+
 # Presentation UI remediation — make Present behave like a slide deck
 
 This is the standalone worker handoff for
@@ -81,6 +94,11 @@ release is ready to tag; the later UI audit supersedes that claim.
 10. [Done when](#done-when)
 
 ## Worker start here
+
+**Historical as of 2026-07-29 — steps 1–8 were carried out in July.** Read them to
+understand how the shipped code got its shape; do not execute them. The only open
+work is the amended manual walk described in
+[Deferred, and what the matrix is missing](#deferred-and-what-the-matrix-is-missing).
 
 1. Set this file's `status` to `doing` before editing code.
 2. Read the files in the [required reading order](#required-reading-order). Do
@@ -454,6 +472,48 @@ allowing at most a 1px rounding tolerance. Record panel/nav/stage bounding rects
 
 Also perform the full lesson loop in `docs/project/testing.md` to ensure the UI
 shell work did not break Edit, Practice, export, or import.
+
+### Deferred, and what the matrix is missing (2026-07-29)
+
+The manual pass above is deferred rather than skipped, and the reason is that the
+matrix is now **incomplete**, not merely unwalked. It was written on 2026-07-22,
+before Study mode existed. Since then Unit 1 shipped fifteen stops
+([curriculum-unit-1-parts-of-speech.md](proposals/curriculum-unit-1-parts-of-speech.md)),
+which is a second interactive student-facing surface with two mechanics — `tap`
+and `sort` — that no row above mentions. Walking the July matrix as written would
+produce a recorded pass that says nothing about the surface most likely to be used
+by a student on a tablet.
+
+So: **amend the matrix before walking it, and walk it once, after the next unit's
+content lands.** Three things to add when that happens.
+
+- **Study rows.** `#/study/pos` (the unit map) and `#/study/pos/<stopId>` at the
+  four required sizes, plus keyboard-only and touch. The `sort` mechanic is
+  keyboard-operable by construction and its controls are real `<button>`s — see
+  [017](done/017-unit-pos-capstone-and-docs.md) and Phase 3 finding 3 — so the
+  interesting rows are touch and zoom, not keyboard.
+- **A decision about whether UI-1 applies to Study, recorded either way.**
+  `tools/dom-check.html` carries 44 study assertions and **no** viewport or
+  overflow assertion among them; the no-document-scroll contract in
+  [Design contract and fixed decisions](#design-contract-and-fixed-decisions) was
+  written for Present and never extended. That is probably right — a projector
+  slide must fit one screen, a student's lesson page may legitimately scroll — but
+  nobody has written it down, so it currently reads as an oversight in either
+  direction. One line in that section settles it.
+- **Multi-token drag on touch, which is not yet a Study concern but is about to
+  be.** Every one of Unit 1's 841 annotations spans exactly one token, so all 131
+  of its generated `tap` questions are single taps and
+  `attachSelection`'s pointer-drag path ([js/render.js](../js/render.js) ~line 784)
+  has never been exercised by a student. Unit 2's layers make that path
+  load-bearing. That is [019](019-multi-token-tap-spike.md)'s question, not this
+  order's, and it should be answered before the amended matrix is walked so the
+  touch rows know what they are testing.
+
+None of this reopens Tasks A–F or changes a fixed decision. Present's shell
+contract is unchanged and still green.
+
+The running order this walk waits on is in [020](020-unit-2-groundwork.md), where
+it is step 4.
 
 ## Documentation and close-out
 

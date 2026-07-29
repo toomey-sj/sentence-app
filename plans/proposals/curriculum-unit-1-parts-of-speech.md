@@ -861,3 +861,53 @@ not survive "select the twelfth of fifteen identical `ugh!`s".
 The lesson for whoever writes Unit 2: **a passing check suite is not a played
 unit.** Both faults were invariants nobody had written down, and 445 green checks
 were silent on both.
+
+## What Unit 1 leaves for Unit 2 — one measured constraint (2026-07-29)
+
+Not an "as built" note: nothing here changed, and this is not a defect in the
+finished unit. It is the one property of Unit 1 that **stops being true** in Unit 2,
+recorded here because it is invisible from the code and expensive to discover late.
+
+**Every `tap` question in this unit is a single click on a single word.** Measured
+across all fifteen stops:
+
+| | |
+|---|---|
+| Annotations | **841**, over 11 passages and 72 sentences |
+| …spanning more than one token | **0** |
+| Generated `tap` questions | **131** |
+| …requiring a multi-token selection | **0** |
+
+That is not a coincidence, it is the `pos` layer: a part of speech is a property of
+one word. The consequence is that the **drag-to-select path in
+[`js/render.js`](../../js/render.js) `attachSelection()` has never been exercised by
+a student** — not on touch, not with a mouse, not once in the surface this whole
+proposal built. `sort` deliberately avoids it (Phase 3 finding 3), `choice` has no
+sentence, and every `tap` is one click.
+
+**Unit 2 cannot inherit that.** Its subject — sentence parts, phrases, clauses — is
+multi-token by definition, so `tap` at phrase level *is* a span selection, and
+[pilot.md](../../docs/product/pilot.md) has named drag-on-a-tablet as the product's
+least-tested surface since before Study mode existed. Two consequences worth having
+in hand before authoring anything:
+
+- **The engine is probably already sufficient; the student's side is the unknown.**
+  `tapStepsFor` resolves spans through `wjt.spanToTokens` and `wjt.study.check`
+  compares `first`/`last` token indices, so multi-token scoring needs no change.
+  What is unverified is input on touch and **fairness at phrase boundaries**: exact
+  `first`/`last` equality is unambiguous for one word and arguable for *"of the
+  vaults"* versus *"the vaults"*, where a student can be right about the grammar and
+  wrong about the boundary.
+- **The tap tip already promises drag.** [`js/study.js`](../../js/study.js) line 476
+  tells students they may *"drag across several"* — an instruction no question in
+  this unit requires and nobody has confirmed on touch. If drag is broken there, that
+  line is wrong **today**, for Unit 1.
+
+Both are [019](../019-multi-token-tap-spike.md)'s to answer, and it is scoped to run
+*before* a Unit 2 design record exists, because the answer changes what that record
+can say about its step kinds. Its findings come back here, or into the Unit 2
+document if that exists first.
+
+This is the same shape of gap as the answer-order faults above, caught earlier:
+an invariant that held by construction, was never written down, and would have
+silently stopped holding. **Unit 1 was single-token by nature, not by decision.**
