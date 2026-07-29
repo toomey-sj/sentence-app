@@ -521,7 +521,7 @@ content lands.** Three things to add when that happens.
 None of this reopens Tasks A–F or changes a fixed decision. Present's shell
 contract is unchanged and still green.
 
-The running order this walk waits on is in [020](020-unit-2-groundwork.md), where
+The running order this walk waits on is in [020](done/020-unit-2-groundwork.md), where
 it is step 4.
 
 ## Documentation and close-out

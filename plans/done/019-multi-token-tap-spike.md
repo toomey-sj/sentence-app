@@ -41,7 +41,7 @@ and writes the answer down. If it ends in "no, drag is not good enough — Unit 
 needs a different mechanic," that is a **success**: it is the outcome that saves
 the authoring.
 
-> **Where this sits in the sequence:** [020](../020-unit-2-groundwork.md) is the
+> **Where this sits in the sequence:** [020](020-unit-2-groundwork.md) is the
 > handoff for Unit 2 and carries the whole running order. This order is its step 2
 > and is **not blocked by step 1** — the two can run in either order or at once.
 > This order's finding becomes `C11`'s decision in the Unit 2 proposal that step 1

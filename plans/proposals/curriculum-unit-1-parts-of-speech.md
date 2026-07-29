@@ -868,6 +868,14 @@ Not an "as built" note: nothing here changed, and this is not a defect in the
 finished unit. It is the one property of Unit 1 that **stops being true** in Unit 2,
 recorded here because it is invisible from the code and expensive to discover late.
 
+> **Unit 2 now has a design record**, and it is where everything below has been
+> carried: [curriculum-unit-2-sentence-structure.md](curriculum-unit-2-sentence-structure.md).
+> It is *How a Sentence Is Built* — the `part`, `phrase`, and `clause` layers plus
+> the eight sentence-type badges, seventeen stops, and the three verbals **C8**
+> deferred. Two of this file's own numbers are corrected there: **C10**'s "triples
+> the authoring cost" is **1.90× measured** (with a **1.38×** floor), and the
+> constraint below is answered as its **C11**.
+
 **Every `tap` question in this unit is a single click on a single word.** Measured
 across all fifteen stops:
 
@@ -1007,6 +1015,9 @@ question even though it is a fair one. Unit 2 should choose sentences and
 `tapPerLabel` so that count stays small, or ask with `choice` instead.
 
 ### For `C11` in the Unit 2 proposal
+
+Now carried there:
+[curriculum-unit-2-sentence-structure.md § Open questions](curriculum-unit-2-sentence-structure.md#open-questions).
 
 > **C11** — At `phrase` and `clause` level a `tap` answer is a multi-token span,
 > and spans nest by nature. **Decided (019):** the drag mechanic carries it —
