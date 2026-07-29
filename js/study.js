@@ -19,6 +19,17 @@
 
   function pct(n) { return Math.round(n * 100); }
 
+  /** "a" or "an" in front of a label's name. A plain vowel test is enough for
+   *  this taxonomy — every name it has to handle is "an adjective", "an adverb
+   *  of manner", "an irregular verb", "a helping (auxiliary) verb". */
+  function article(name) { return /^[aeiou]/i.test(name) ? "an" : "a"; }
+
+  /** A full stop, unless the text already ends in punctuation of its own. Poe's
+   *  tokens carry theirs — "vaults." and 'ugh!"' — and “vaults.”. reads as a
+   *  typo. Takes the RAW word, not the escaped one, so &quot; can't hide the
+   *  quote mark that ends it. */
+  function stopAfter(raw) { return /[.!?,;:"'”’]$/.test(raw) ? "" : "."; }
+
   /** A label's swatch + name + description + example, as used on teach screens. */
   function labelCardHtml(id) {
     var l = wjt.LABELS[id];
@@ -435,9 +446,24 @@
 
       } else if (step.kind === "tap") {
         var label = wjt.LABELS[step.label];
-        promptEl.innerHTML = "Select the " +
-          '<span class="prompt-label" style="--c:' + label.color + '">' +
-          wjt.escapeHtml(label.name.toLowerCase()) + "</span> in this sentence.";
+        var name = wjt.escapeHtml(label.name.toLowerCase());
+        var accept = step.accept || [];
+        var howMany = accept.length;
+
+        /* A sentence with six prepositions must not ask for "the" preposition.
+         * Every one of them scores right (see tapStepsFor), so the question says
+         * how many there are and asks for any one. That is also the honest thing
+         * to ask of real Poe rather than of a sentence built to have one answer.
+         *
+         * The label name stays SINGULAR here on purpose: "adverb of frequency"
+         * and "particle (phrasal verb)" have no naive +s plural, so the count
+         * goes in a clause of its own instead of into the noun. */
+        var chip = '<span class="prompt-label" style="--c:' + label.color + '">' +
+          name + "</span>";
+        promptEl.innerHTML = howMany > 1
+          ? "Select any <b>one</b> " + chip + " in this sentence — there are " +
+            howMany + "."
+          : "Select the " + chip + " in this sentence.";
 
         var r = wjt.renderSentence(step.sentence, {
           layers: ["pos"],
@@ -464,18 +490,51 @@
 
           var verdict = wjt.study.check(step, sel);
 
-          // Reveal the answer by highlighting it on a fresh render.
+          /* Reveal the word the STUDENT picked when it was one of the right ones,
+           * and the generator's own when it wasn't. Accepting a pick and then
+           * highlighting a different word — which is what this did while `accept`
+           * held only token ranges — is what made a third of these questions read
+           * as broken: "Correct." over a sentence pointing somewhere else. */
+          var shown = null;
+          accept.forEach(function (r) {
+            if (r.first === sel.first && r.last === sel.last) shown = r;
+          });
+          if (!shown) shown = { start: step.start, end: step.end };
+
           stageEl.innerHTML = "";
           var reveal = wjt.renderSentence(step.sentence, {
             layers: ["pos"],
             showAnnotations: false,
-            highlight: { start: step.start, end: step.end },
+            highlight: { start: shown.start, end: shown.end },
           });
           stageEl.appendChild(reveal.root);
 
+          function rawAt(r) { return step.sentence.text.slice(r.start, r.end); }
+          function wordAt(r) { return wjt.escapeHtml(rawAt(r)); }
+
+          /* Name the alternatives when there are few enough to be worth reading:
+           * one of them by name when there are two, a list up to six, and nothing
+           * beyond that — the interjection passage has fifteen identical "ugh!"s,
+           * and reciting them teaches nothing the count hasn't already said. */
+          var others = "";
+          if (howMany === 2) {
+            var other = accept.filter(function (r) { return r.start !== shown.start; })[0];
+            others = " The other one is “<b>" + wordAt(other) + "</b>”" +
+              stopAfter(rawAt(other));
+          } else if (howMany > 2 && howMany <= 6) {
+            others = " All " + howMany + " here: " + accept.map(wordAt).join(", ") +
+              stopAfter(rawAt(accept[accept.length - 1]));
+          }
+
           settle(verdict.correct,
-            "The " + wjt.escapeHtml(label.name.toLowerCase()) + " is “<b>" +
-            wjt.escapeHtml(step.sentence.text.slice(step.start, step.end)) + "</b>”. " +
+            (howMany > 1
+              ? (verdict.correct
+                ? "“<b>" + wordAt(shown) + "</b>” is " + article(label.name) + " " +
+                  name + " — one of the " + howMany + " in this sentence." + others
+                : "One of the " + howMany + " is “<b>" + wordAt(shown) + "</b>”" +
+                  stopAfter(rawAt(shown)) + others)
+              : "The " + name + " is “<b>" + wordAt(shown) + "</b>”" +
+                stopAfter(rawAt(shown))) + " " +
             label.desc +
             (step.note ? '<p class="ann-note">📌 ' + wjt.escapeHtml(step.note) + "</p>" : ""));
         });

@@ -111,7 +111,7 @@ Hard-won details, all of which produce a *silent* wrong answer:
   `tools/dom-check-report.js`, which reads only the `<pre id="result">` block.
 
 A healthy run reports **0 failed** (the stable contract). The pass *count* is an
-implementation detail — it grows as checks are added (currently 445). Note that
+implementation detail — it grows as checks are added (currently 460). Note that
 this run now takes longer than it used to: `S-13` and `S-15` play all fifteen
 stops of the unit end to end, so give it `--virtual-time-budget=12000` rather
 than the older `8000`.

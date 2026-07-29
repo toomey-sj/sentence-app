@@ -63,14 +63,14 @@ Load order matters — each file only depends on the ones above it.
 | `js/editor.js` | 523 | ✎ Edit view — selection, the drill-down palette, notes, sentence type chips, merge/delete. |
 | `js/display.js` | 494 | ▶ Present view — one sentence at a time, layer toggles, keyboard nav. |
 | `js/quiz.js` | 461 | 🎯 Practice view — question generation, distractor choice, scoring, results. |
-| `js/study-model.js` | 482 | **Study mode's engine.** Step assembly, label-scoped question generation, answer checking, per-cluster reporting, local progress. Zero DOM. |
+| `js/study-model.js` | 569 | **Study mode's engine.** Step assembly, label-scoped question generation, answer shuffling, answer checking, per-cluster reporting, local progress. Zero DOM. |
 | `js/unit-pos.js` | 314 | **Unit 1 — The Nine Parts of Speech.** The `line()`/`passage()` authoring helpers, `wjt.unitPos`, the cluster titles, the label budget, Orientation, and the `wjt.study.register` call. Zero DOM. |
 | `js/unit-pos-a.js` | 723 | Cluster A — nouns, determiners, pronouns, Review A. Zero DOM. |
 | `js/unit-pos-b.js` | 351 | Cluster B — verbs, Review B. Zero DOM. |
 | `js/unit-pos-c.js` | 566 | Cluster C — adjectives, adverbs, Review C. Zero DOM. |
 | `js/unit-pos-d.js` | 578 | Cluster D — prepositions, conjunctions, interjections, Review D. Zero DOM. |
 | `js/unit-pos-capstone.js` | 240 | The Capstone — the closing paragraphs, no teach screens, results by cluster. Zero DOM. |
-| `js/study.js` | 623 | 🎓 Study view — the unit map, teach screens, quiz screens, the `sort` surface, results. |
+| `js/study.js` | 683 | 🎓 Study view — the unit map, teach screens, quiz screens, the `sort` surface, results. |
 | `js/app.js` | 546 | Hash routing, the library view, import, theme, toasts, first-run seeding. |
 
 `tools/` is **not shipped** — it holds the two check suites, the doc generator,
@@ -442,10 +442,43 @@ now **six files**, because all of it together ran past 2,300 lines:
 - **`study.js`** — the view. Reuses `wjt.renderSentence` and the `.quiz-*` chrome,
   so a question here behaves like a question anywhere else.
 
+### Answer order: authored one way, delivered another
+
+Items are **authored correct-answer-first**, and a `sort`'s words are authored
+cycling through the buckets in order. Both are the readable way to write a
+question and a giveaway to *play* — all 77 items in Unit 1 were written that way,
+so clicking the first button scored 100% on every choice question in the unit
+without reading a word of it. `steps()` therefore **shuffles on the way out**:
+the authoring convention stays, the student never sees it.
+
+The shuffle is **seeded from the question's own stem**, not from `Math.random()`,
+and that is load-bearing. `steps()` is called more than once for the same stop and
+callers compare the results — `tools/dom-check.html` re-derives a step to work out
+which option it must click in order to answer *wrong* on purpose. Under a per-call
+random order it would click the right answer while asserting a wrong one,
+intermittently. Same seed, same permutation, every call; where the answer lands is
+decided by the stem it belongs to, which is why it isn't a fixed slot either.
+
+`check()` and the results screen read the `correct` flag off the option itself and
+`expected` off a `{ word: bucket }` map, so neither cares about order — **nothing
+downstream may assume index 0.** The smoke test asserts both halves: the source is
+still written correct-first, and the delivered order isn't.
+
 ### Four step kinds, and why `sort` is built the way it is
 
 `teach` (no answer), `choice` (index equality), `tap` (token-range equality against
 any same-label span), and `sort` (per-word bucket equality).
+
+**A `tap` often has several right answers** — 42 of Unit 1's 131 as of this
+writing, because the passages are real Poe and a sentence of it has six
+prepositions in it. `accept` holds them all, so the prompt says so out loud
+("Select any **one** preposition in this sentence — there are 6.") rather than
+asking for "the" preposition and hoping. Each `accept` entry carries the span in
+**both forms** — `{first,last}` token indices for `check()`, `{start,end}`
+character offsets for the view — which is what lets the reveal highlight *the word
+the student picked*. Before it did, `accept` held token ranges only, so the reveal
+could only ever spotlight the span the question was generated from: a student who
+correctly picked "vaults." was told "Correct" and then shown "moss".
 
 `sort` is **tap-to-assign, never drag**: tap a word to pick it up, tap a bucket to
 drop it in, tap a placed word to take it back out. `pilot.md` names drag-to-select

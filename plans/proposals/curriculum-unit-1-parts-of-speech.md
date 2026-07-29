@@ -12,8 +12,9 @@ speech and immediately checks recall with interactive quizzes.
 
 This is the durable document. The work is split across
 [015](../done/015-study-view-and-first-lesson.md),
-[016](../done/016-unit-pos-remaining-lessons.md), and
-[017](../done/017-unit-pos-capstone-and-docs.md); "As built" sections are written back
+[016](../done/016-unit-pos-remaining-lessons.md),
+[017](../done/017-unit-pos-capstone-and-docs.md), and
+[018](../done/018-unit-pos-answer-order-and-ambiguous-taps.md); "As built" sections are written back
 into **this** file, following the precedent of
 [assignment-mode-proposal.md](assignment-mode-proposal.md).
 
@@ -310,8 +311,8 @@ Four. The first is not a question.
 | Kind | The student sees | Checked by |
 |---|---|---|
 | `teach` | A concept screen: what this part of speech does, then each focus subtype with its `wjt.LABELS[id].desc`, its `.example`, and a swatch of its real palette color. No answer. | — |
-| `choice` | A hand-written stem, 3–4 options, feedback on every option. Carries the concept and rule questions the app cannot generate — "Which of these is a collective noun?" | index equality |
-| `tap` | A real Poe sentence rendered `showAnnotations:false, interactive:true`: "Select the possessive noun in this sentence." | token-range equality against **any** same-label span in that sentence — the `q.accept` pattern from [js/quiz.js](../../js/quiz.js) line 338, so a sentence with two instances does not punish picking the other one |
+| `choice` | A hand-written stem, 3–4 options, feedback on every option. Carries the concept and rule questions the app cannot generate — "Which of these is a collective noun?" | index equality. Options are authored correct-first and **delivered shuffled** — see [As built — answer order](#as-built--answer-order-2026-07-29) |
+| `tap` | A real Poe sentence rendered `showAnnotations:false, interactive:true`: "Select the possessive noun in this sentence." Where the sentence holds more than one, the prompt says so and asks for **any one** of them | token-range equality against **any** same-label span in that sentence — the `q.accept` pattern from [js/quiz.js](../../js/quiz.js) line 338, so a sentence with two instances does not punish picking the other one |
 | `sort` | Several words from the passage and one bucket per part of speech; tap a word, then tap a bucket. | per-word bucket equality |
 
 `tap` items are **generated** by `study-model.js` from the stop's lesson: keep
@@ -822,3 +823,41 @@ Every new assertion was **falsified before being trusted**, per
   checks and names all five stops that carry a sort;
 - taking "placed in <bucket>" out of a chip's `aria-label` reddens exactly one
   `S-14` check — the one about the accessible name.
+
+## As built — answer order (2026-07-29)
+
+Found by **playing the finished unit**, not by any check. Work order:
+[018](../done/018-unit-pos-answer-order-and-ambiguous-taps.md), which carries the
+decisions and the falsification record. Two things the design above got wrong:
+
+**1. Every one of the 77 `choice` items was authored correct-answer-first, and
+delivered that way.** Nothing in this proposal said to shuffle, and nothing
+checked it, so clicking option one scored 100% on every multiple-choice question
+in all fifteen stops — the reviews and the capstone included. `steps()` now
+shuffles a `choice`'s options and a `sort`'s words on the way out. **Keep writing
+them correct-first**; that convention is now itself asserted, paired with a check
+that the delivered order differs.
+
+The shuffle is **seeded from the stem**, not random, because `steps()` is called
+more than once for the same stop and `tools/dom-check.html` compares the results.
+An unseeded version is not reliably red — it reddened 2, 3, and 0 times over three
+runs.
+
+**2. "Select the possessive noun in this sentence" was not always a true
+question.** The passages are real Poe: **42 of 131** generated `tap` questions ask
+for a label that occurs more than once in that sentence, one of them for an
+interjection in a sentence with fifteen. The `q.accept` fairness rule cited in the
+step-kinds table was doing its job — any of them scored right — but `accept` held
+token ranges only, so the reveal could only highlight the span the question was
+generated from. A student who correctly picked "vaults." was told **"Correct"** and
+then shown **"moss"**.
+
+The prompt now states the count and asks for any one; an `accept` entry carries the
+span in **both** forms so the reveal follows the student's pick. The alternative —
+ordinals, *"select the second preposition"*, accepting only that one — was declined
+in **Q2** of 018: it turns 42 grammar questions into a counting exercise and does
+not survive "select the twelfth of fifteen identical `ugh!`s".
+
+The lesson for whoever writes Unit 2: **a passing check suite is not a played
+unit.** Both faults were invariants nobody had written down, and 445 green checks
+were silent on both.

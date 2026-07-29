@@ -182,7 +182,12 @@ environment it is about rather than simulated:
   guards; `S-12` proves each review's questions come from the passages it reviews;
   `S-13` walks **all fifteen stops to their results screens**; `S-14` drives a
   `sort` by pointer and by keyboard; `S-15` plays the capstone and reads its
-  per-cluster results back. `S-13` and `S-15` are why the virtual-time budget above
+  per-cluster results back; `S-16` asserts the view renders a choice's options in
+  the **shuffled** order rather than the authored one, and that clicking the first
+  button is now wrong; `S-17` drives a `tap` with several right answers — the
+  prompt states the count, the *second* right answer scores right, and the reveal
+  highlights **that** word rather than the one the question was generated from.
+  `S-13` and `S-15` are why the virtual-time budget above
   is `12000` rather than the older `8000` — playing the whole unit takes real
   (virtual) time, and too small a budget truncates the dump instead of failing
   loudly.

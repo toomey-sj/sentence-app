@@ -325,6 +325,7 @@
         { name: "study map checks", fn: studyMapChecks },
         { name: "study review checks", fn: studyReviewChecks },
         { name: "study sort checks", fn: studySortChecks },
+        { name: "study answer-order checks", fn: studyAnswerOrderChecks },
         { name: "study capstone checks", fn: studyCapstoneChecks },
         { name: "study stop checks", fn: studyStopChecks },
         { name: "study walk-every-stop checks", fn: studyWalkAllChecks },
@@ -1298,6 +1299,167 @@
             (c.getAttribute("aria-label") || "")
               .indexOf("belongs in " + wjt.LABELS[stepB.expected[w]].name) !== -1;
         }));
+
+      wjt.study.progress.reset("pos");
+    }
+
+    /* Answer order, and a tap question with more than one right answer (plans/018).
+     *
+     * The model-level facts live in tools/smoke-test.js. What belongs HERE is that
+     * the view honours them: it must not re-sort options back into the order they
+     * were authored in, and a tap that accepts six words has to reveal the word the
+     * student picked rather than the one the generator built the question from.
+     * Both are things only a rendered screen can be wrong about. */
+    function studyAnswerOrderChecks() {
+      wjt.study.progress.reset("pos");
+      location.hash = "#/study/pos/nouns";
+      wjt.rerender();
+
+      var stop = wjt.study.stop("pos", "nouns");
+      var steps = wjt.study.steps("pos", "nouns");
+      var v = app.querySelector(".view-study"), guard = 0;
+
+      // Walk to the first choice question.
+      while (guard++ < 20) {
+        v = app.querySelector(".view-study");
+        if (v.querySelector(".quiz-option")) break;
+        if (!studyAdvance()) break;
+      }
+      v = app.querySelector(".view-study");
+      var opts = v.querySelectorAll(".quiz-option");
+      var step = steps.filter(function (s) { return s.kind === "choice"; })[0];
+      check("S-16: a choice question renders one button per option",
+        opts.length > 0 && !!step && opts.length === step.options.length);
+      if (!opts.length || !step) return;
+
+      var rendered = Array.prototype.map.call(opts, function (b) { return b.innerHTML; }).join("|");
+      check("S-16: the view renders the options in the model's order",
+        rendered === step.options.map(function (o) { return o.text; }).join("|"));
+
+      var src = (stop.items || []).filter(function (it) { return it.stem === step.stem; })[0];
+      check("S-16: and that is NOT the order the item was written in",
+        !!src && src.options.map(function (o) { return o.text; }).join("|") !== rendered);
+
+      var answerAt = -1;
+      step.options.forEach(function (o, i) { if (o.correct) answerAt = i; });
+      check("S-16: the answer to this question is not sitting in the first slot",
+        answerAt > 0);
+      /* Every item in this unit is AUTHORED correct-answer-first, so before the
+       * shuffle this click scored 100% on every choice question in all fifteen
+       * stops without reading a word of it. */
+      opts[0].click();
+      v = app.querySelector(".view-study");
+      var fb = v.querySelector(".quiz-feedback");
+      check("S-16: clicking the first option is WRONG, where it always used to be right",
+        !!fb && fb.classList.contains("is-wrong"));
+      check("S-16: and the option that really is correct is the one revealed",
+        v.querySelectorAll(".quiz-option")[answerAt].classList.contains("is-right"));
+
+      /* --- a tap with several right answers --- *
+       * The first tap of `nouns` asks for a noun in a sentence with two of them,
+       * built from the first ("moss") and also accepting the second ("vaults."). */
+      wjt.study.progress.reset("pos");
+      location.hash = "#/study/pos/nouns";
+      wjt.rerender();
+
+      var tapStep = null;
+      wjt.study.steps("pos", "nouns").forEach(function (s) {
+        if (s.kind === "tap" && !tapStep) tapStep = s;
+      });
+      var hops = 0;
+      while (hops++ < 40) {
+        v = app.querySelector(".view-study");
+        if (v.querySelector('[data-act="check"]') &&
+          v.querySelector('[data-role="stage"] .gl-token')) break;
+        if (!studyAdvance()) break;
+      }
+      v = app.querySelector(".view-study");
+      check("S-17: nouns opens on a tap with more than one right answer (" +
+        (tapStep ? tapStep.accept.length : 0) + ")", !!tapStep && tapStep.accept.length > 1);
+      if (!tapStep || tapStep.accept.length < 2) return;
+
+      var promptText = v.querySelector(".quiz-prompt").textContent || "";
+      check("S-17: the prompt asks for ANY ONE of them and says how many there are",
+        /any\s*one/i.test(promptText) &&
+        promptText.indexOf("there are " + tapStep.accept.length) !== -1);
+
+      // Answer with the SECOND right answer, which is not the one it was built from.
+      var second = tapStep.accept[1];
+      var target = v.querySelectorAll('[data-role="stage"] .gl-token')[second.first];
+      check("S-17: the second right answer is a selectable token", !!target);
+      if (!target) return;
+      target.focus();
+      key(target, { key: "Enter" });
+      v.querySelector('[data-act="check"]').click();
+      v = app.querySelector(".view-study");
+
+      var tfb = v.querySelector(".quiz-feedback");
+      var word = tapStep.sentence.text.slice(second.start, second.end);
+      check("S-17: the second right answer scores RIGHT, not just the first",
+        !!tfb && tfb.classList.contains("is-right"));
+      /* The picked word must be the SUBJECT of the feedback, not merely mentioned
+       * in it. With two right answers the wording names both — "…is a noun. The
+       * other one is “moss”." — so a bare indexOf passes even when the two are the
+       * wrong way round, which is the very fault being tested. */
+      check("S-17: the feedback leads with the word the student picked (“" + word + "”)",
+        (tfb.textContent || "").indexOf("“" + word + "” is ") !== -1);
+      /* The defect this replaces: `accept` carried token ranges only, so the reveal
+       * could only ever highlight the span the question was BUILT from. A student
+       * who correctly picked "vaults." was told "Correct" and then shown "moss". */
+      var toks = v.querySelectorAll('[data-role="stage"] .gl-token');
+      var hl = v.querySelectorAll('[data-role="stage"] .gl-token.is-hl');
+      check("S-17: the reveal highlights THAT word, not the one the question came from",
+        hl.length > 0 && hl[0] === toks[second.first]);
+
+      // The next tap along has one right answer, and must still read "Select the".
+      var single = "", g3 = 0;
+      while (g3++ < 60) {
+        v = app.querySelector(".view-study");
+        var p = v.querySelector(".quiz-prompt");
+        if (p && v.querySelector('[data-act="check"]') &&
+          v.querySelector('[data-role="stage"] .gl-token') &&
+          /^Select the /.test(p.textContent || "")) { single = p.textContent; break; }
+        if (!studyAdvance()) break;
+      }
+      check("S-17: a tap with ONE right answer still reads “Select the …”",
+        !!single && !/any\s*one/i.test(single));
+
+      /* The fifteen-interjection sentence — "Ugh! ugh! ugh! — …". It must still
+       * say how many there are, and must NOT recite them: printing fifteen
+       * identical words teaches nothing the count hasn't already said. */
+      wjt.study.progress.reset("pos");
+      location.hash = "#/study/pos/interjections";
+      wjt.rerender();
+
+      var bigStep = null;
+      wjt.study.steps("pos", "interjections").forEach(function (s) {
+        if (s.kind === "tap" && !bigStep) bigStep = s;
+      });
+      var g4 = 0;
+      while (g4++ < 60) {
+        v = app.querySelector(".view-study");
+        if (v.querySelector('[data-act="check"]') &&
+          v.querySelector('[data-role="stage"] .gl-token')) break;
+        if (!studyAdvance()) break;
+      }
+      v = app.querySelector(".view-study");
+      check("S-17: the many-interjection sentence states its count (" +
+        (bigStep ? bigStep.accept.length : 0) + ")",
+        !!bigStep && bigStep.accept.length > 6 &&
+        (v.querySelector(".quiz-prompt").textContent || "")
+          .indexOf("there are " + bigStep.accept.length) !== -1);
+      if (bigStep) {
+        var t0 = v.querySelectorAll('[data-role="stage"] .gl-token')[bigStep.accept[0].first];
+        if (t0) {
+          t0.focus();
+          key(t0, { key: "Enter" });
+          v.querySelector('[data-act="check"]').click();
+          v = app.querySelector(".view-study");
+          check("S-17: and does not recite all " + bigStep.accept.length + " of them",
+            (v.querySelector(".quiz-feedback").textContent || "")
+              .indexOf("All " + bigStep.accept.length + " here") === -1);
+        }
+      }
 
       wjt.study.progress.reset("pos");
     }

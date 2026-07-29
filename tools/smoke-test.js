@@ -1237,8 +1237,11 @@ console.log("\n-- study: unit 1 --");
 
     // A check that can't fail is not a check: assert BOTH verdicts.
     const taps = steps.filter((s) => s.kind === "tap");
-    check("study: " + stop.id + " check() accepts each tap's own range",
-      taps.every((s) => wjt.study.check(s, s.accept[0]).correct));
+    /* EVERY accepted range, not just the first. A third of these questions have
+     * more than one right answer, and "accept any of them" is the fairness rule
+     * the prompt now promises out loud ("there are 6"). */
+    check("study: " + stop.id + " check() accepts every range a tap allows",
+      taps.every((s) => s.accept.every((r) => wjt.study.check(s, r).correct)));
     check("study: " + stop.id + " check() rejects a deliberately wrong range",
       taps.every((s) => {
         const bad = { first: s.accept[0].first + 7, last: s.accept[0].last + 9 };
@@ -1291,6 +1294,122 @@ console.log("\n-- study: unit 1 --");
     check("study: " + stop.id + " check() rejects an empty sort response",
       sorts.every((s) => !wjt.study.check(s, null).correct));
   });
+
+  /* --- answer order ---
+   *
+   * Items are AUTHORED correct-answer-first, and a sort's words are authored
+   * cycling through the buckets, because that is the readable way to write them.
+   * Both are a giveaway to PLAY, so `steps()` shuffles on the way out. What is
+   * asserted here is that pair: the source keeps the convention, the delivered
+   * step doesn't, and repeated calls agree with each other.
+   *
+   * That last one is not a nicety. tools/dom-check.html calls `steps()` a second
+   * time to work out which option it must click in order to answer wrong on
+   * purpose; if the two calls disagreed it would click the right answer and
+   * assert a wrong one, intermittently. */
+  console.log("\n-- study: answer order --");
+  {
+    /* Delivered steps paired with the item each came from. Paired BY STEM, never
+     * by index: `steps()` orders items by the teach screen they follow, and
+     * `itemsLast` moves a whole group, so the two lists are not parallel. */
+    const pairs = [], sortPairs = [];
+    authored.forEach((stop) => {
+      const items = stop.items || [];
+      wjt.study.steps("pos", stop.id).forEach((s) => {
+        if (s.kind !== "choice" && s.kind !== "sort") return;
+        const src = items.filter((it) => it.stem === s.stem &&
+          (it.kind === "sort") === (s.kind === "sort"));
+        if (src.length !== 1) {
+          check("study: " + stop.id + " step “" + String(s.stem).slice(0, 40) +
+            "” traces back to exactly one authored item", false);
+          return;
+        }
+        (s.kind === "sort" ? sortPairs : pairs).push({ step: s, item: src[0], stop: stop.id });
+      });
+    });
+
+    const authoredItems = authored.reduce((acc, stop) =>
+      acc.concat((stop.items || []).filter((it) => it.kind !== "sort")), []);
+    check("study: every authored item is still written correct-answer-first (" +
+      authoredItems.length + ")",
+      authoredItems.length > 0 &&
+      authoredItems.every((it) => it.options.findIndex((o) => o.correct) === 0));
+    check("study: every authored item reaches the student exactly once (" +
+      pairs.length + ")", pairs.length === authoredItems.length);
+
+    const at = pairs.map((p) => p.step.options.findIndex((o) => o.correct));
+    check("study: delivered choices are shuffled — the answer is not always first",
+      at.length > 0 && at.some((i) => i !== 0));
+    /* Every slot gets used. A shuffle that only ever swapped the first two would
+     * pass the check above and still be guessable. */
+    check("study: the answer lands in every slot of a four-option question (" +
+      [0, 1, 2, 3].map((i) => at.filter((x) => x === i).length).join("/") + ")",
+      [0, 1, 2, 3].every((i) => at.filter((x) => x === i).length > 0));
+    check("study: no slot takes more than half of all the answers",
+      [0, 1, 2, 3].every((i) => at.filter((x) => x === i).length <= at.length / 2));
+    check("study: shuffling preserves exactly one correct option per choice",
+      pairs.every((p) => p.step.options.filter((o) => o.correct).length === 1));
+    check("study: shuffling loses no option and invents none",
+      pairs.every((p) =>
+        JSON.stringify(p.item.options.map((o) => o.text).sort()) ===
+        JSON.stringify(p.step.options.map((o) => o.text).sort())));
+    check("study: the shuffled option keeps its OWN feedback",
+      pairs.every((p) => p.step.options.every((o) =>
+        p.item.options.some((src) => src.text === o.text && src.feedback === o.feedback &&
+          !!src.correct === !!o.correct))));
+
+    check("study: a sort's words are shuffled out of their authored bucket order",
+      sortPairs.length > 0 &&
+      sortPairs.some((p) => p.item.words.map((w) => w.word).join("|") !== p.step.words.join("|")));
+    check("study: a shuffled sort still asks about exactly its own words",
+      sortPairs.every((p) =>
+        p.step.words.slice().sort().join("|") === Object.keys(p.step.expected).sort().join("|") &&
+        p.step.words.slice().sort().join("|") ===
+          p.item.words.map((w) => w.word).sort().join("|")));
+
+    let stable = true;
+    authored.forEach((stop) => {
+      const a = wjt.study.steps("pos", stop.id);
+      const b = wjt.study.steps("pos", stop.id);
+      a.forEach((s, i) => {
+        if (s.kind === "choice" &&
+          s.options.map((o) => o.text).join("|") !== b[i].options.map((o) => o.text).join("|")) stable = false;
+        if (s.kind === "sort" && s.words.join("|") !== b[i].words.join("|")) stable = false;
+      });
+    });
+    check("study: two steps() calls for one stop deliver the SAME order", stable);
+  }
+
+  /* --- `tap` questions with more than one right answer ---
+   *
+   * 42 of 131 as of this writing. `accept` holds all of them in both forms, so
+   * the view can highlight the word the student picked instead of contradicting
+   * an answer it just accepted. */
+  {
+    const taps = [];
+    authored.forEach((stop) => {
+      wjt.study.steps("pos", stop.id).forEach((s) => { if (s.kind === "tap") taps.push(s); });
+    });
+    check("study: every accepted range carries BOTH a token range and a char span",
+      taps.length > 0 && taps.every((s) => s.accept.length > 0 &&
+        s.accept.every((r) => [r.first, r.last, r.start, r.end]
+          .every((v) => typeof v === "number"))));
+    check("study: the span a tap was built from is among the ones it accepts",
+      taps.every((s) => s.accept.some((r) => r.start === s.start && r.end === s.end)));
+    check("study: accepted ranges are in reading order, which is how the view lists them",
+      taps.every((s) => s.accept.every((r, i) => i === 0 || s.accept[i - 1].start < r.start)));
+    check("study: an accepted range names the same text its token range covers",
+      taps.every((s) => {
+        const tokens = wjt.tokenize(s.sentence.text);
+        return s.accept.every((r) => {
+          const span = wjt.tokensToSpan(tokens, r.first, r.last);
+          return span.start === r.start && span.end === r.end;
+        });
+      }));
+    const many = taps.filter((s) => s.accept.length > 1);
+    check("study: some tap questions really do have several right answers (" +
+      many.length + " of " + taps.length + ")", many.length > 0);
+  }
 
   // A `tap` question must never ask about a span that carries two POS labels —
   // that would be two right answers for one highlighted word (decision C5).
