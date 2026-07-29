@@ -155,4 +155,8 @@ class, that's exactly what the pilot is for. Say so.
   [roadmap Tier 3](../roadmap.md#tier-3--out-of-scope-for-this-app-documented-for-a-sibling-tool).
 - **Lessons are per-browser.** Export is the backup, and the only way to move one.
 - **Touch devices are the least-tested surface.** Drag-to-select on an iPad is
-  the single most likely thing to be broken.
+  the single most likely thing to be broken. It now works with a mouse and a
+  stylus, including across a wrapped line, and two bugs in it were fixed in July
+  2026 — but **nobody has yet tried it with a finger on a real tablet.** Short
+  words are about half a fingertip wide, so "I couldn't grab the right words" is
+  exactly the kind of report that's useful.

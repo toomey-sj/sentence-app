@@ -191,19 +191,28 @@ are bare bars.
 
 ### Selection (`wjt.attachSelection`)
 
-Attached when `interactive` is true. Pointer events (mouse + touch) on
+Attached when `interactive` is true. Pointer events (mouse + touch + pen) on
 `.gl-token` elements paint `.is-sel` / `.is-sel-first` / `.is-sel-last` across
 the dragged range and call `onSelect({first,last})` on pointer-up. Ownership is
 by `container.contains(tok)` — because a sentence's tokens now live across
-several line-grids, not one. Returns `{ clear, set, get }`.
+several line-grids, not one, which is also what lets a drag cross a wrapped line.
+The word under a moving pointer is resolved with `document.elementFromPoint`, not
+from the event target, because a real move event is delivered to the element that
+was *pressed*. A **`pointercancel`** drops the tracking listeners and clears the
+range: the browser can take a pointer away mid-gesture and no `pointerup` follows,
+and an interrupted gesture is not an answer. Returns `{ clear, set, get }`.
 
 It is also **keyboard-operable**: each token is a focusable `[role=button]` with
 a roving `tabindex` (only one token is in the Tab order at a time). Arrow moves
-focus between words, **Shift+Arrow** extends a selection from the focused word,
-**Enter/Space** commits (a single word if nothing was extended), and **Escape**
-clears. Keyboard and pointer feed the *same* `onSelect`, so there is one commit
-path — the editor palette and the Quiz "find" answer are both reachable without a
-pointer.
+focus between words **and abandons any selection in progress**, **Shift+Arrow**
+extends a selection from the focused word, **Enter/Space** commits (a single word
+if nothing was extended), and **Escape** clears. Keyboard and pointer feed the
+*same* `onSelect`, so there is one commit path — the editor palette and the Quiz
+"find" answer are both reachable without a pointer.
+
+`tools/dom-check.html`'s `MT-*` checks cover the multi-token half of all of this,
+including a drag across a line break; the two behaviours called out above were
+faults until [plans/done/019](../../plans/done/019-multi-token-tap-spike.md).
 
 ### Type badges (`wjt.renderTypeBadges`)
 

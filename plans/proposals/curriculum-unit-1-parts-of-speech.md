@@ -903,7 +903,7 @@ in hand before authoring anything:
   this unit requires and nobody has confirmed on touch. If drag is broken there, that
   line is wrong **today**, for Unit 1.
 
-Both are [019](../019-multi-token-tap-spike.md)'s to answer, and it is scoped to run
+Both are [019](../done/019-multi-token-tap-spike.md)'s to answer, and it is scoped to run
 *before* a Unit 2 design record exists, because the answer changes what that record
 can say about its step kinds. Its findings come back here, or into the Unit 2
 document if that exists first.
@@ -911,3 +911,114 @@ document if that exists first.
 This is the same shape of gap as the answer-order faults above, caught earlier:
 an invariant that held by construction, was never written down, and would have
 silently stopped holding. **Unit 1 was single-token by nature, not by decision.**
+
+## 019's answer — multi-token selection, measured (2026-07-29)
+
+The spike above ran: [019](../done/019-multi-token-tap-spike.md). It produced real
+multi-token `tap` questions from a throwaway phrase-annotated passage, played them
+through the real study view and the real `wjt.attachSelection()`, and threw the
+passage away. **The mechanic carries Unit 2 — and two faults in it were found and
+fixed on the way.** This section is that record; the work order carries the method.
+
+### Q-A — does a multi-token selection work, per input path?
+
+Each row is either verified against something that was actually driven, or marked
+**not verified**. Nothing here is inferred from "the code looks right."
+
+| Path | Verdict | What backs it |
+|---|---|---|
+| Mouse drag across 2–7 words | **Works** | `MT-1`/`MT-2` in [tools/dom-check.html](../../tools/dom-check.html), plus the probe playing a real generated 7-word `prepositional-phrase` question and being scored **Correct** |
+| Pen / stylus drag | **Works** | the same drags with `pointerType: "pen"` |
+| Touch drag across 2–7 words | **Not verified on hardware.** The code path is exercised and correct with `pointerType: "touch"` | no iPad or Android tablet was available. Synthetic touch-type pointer events in headless Edge drive the same JS, and pass — but they do not test the compositor's scroll-vs-drag decision, `touch-action`, finger precision, or iOS's own selection and long-press behaviour |
+| Drag spanning a **line wrap** | **Works** (mouse, pen; touch as above) | `MT-5`; and in the study view a 7-word span crossing lines 1→2 of a 3-line stage scored **Correct**. `attachSelection` scopes a drag by containment in the sentence root, not in one line grid, which is why |
+| Tab + Shift+Arrow, Enter | **Works, at a price** | one 7-word phrase starting at word 6 costs **13 keystrokes**: 6 plain arrows to reach it, 6 Shift+Arrows to extend, 1 Enter. A Unit 1 word question costs an arrow walk plus Enter |
+| 125% / 150% zoom | **Not verified on hardware** | element-`zoom` geometry only: the narrowest word grows 19px → 24px → 29px wide and 38px → 47px → 57px tall, while the dead gap between words stays **6.7px**. Drags still commit. This is layout arithmetic, not a finger on glass |
+
+Hit-area geometry at the default 19px, for whoever plans the tablet walk: a 13-word
+sentence occupies 704px, of which **87% is word** and the rest is 6.7px gaps where a
+`pointerdown` hits no token at all and the page pans instead. The narrowest words
+("of", "a") are **19px wide** against a ~34px fingertip. That is the number the
+iPad walk should be looking at — not whether drag works, but whether a finger can
+*start* it on the right word.
+
+### The two faults, both fixed here
+
+Both were live, unasserted code; neither was reachable often enough in Unit 1 to be
+noticed, and both are fixed in [js/render.js](../../js/render.js) with regression
+checks that are **red on the pre-fix code and green after** (five checks, verified
+by reverting the fix and re-running).
+
+1. **A cancelled gesture leaked its listeners.** `pointerdown` attached
+   `pointermove`/`pointerup` to `document` and only `pointerup` removed them — but
+   the browser can take a pointer away mid-gesture (`pointercancel`: a system
+   gesture, a second finger, the touch leaving the glass), and then no `pointerup`
+   ever comes. The `move` handler writes the *shared* `head`, so from that moment
+   the selection **followed an unpressed pointer**: in the probe, hovering across
+   the sentence grew a 1-word selection to 6, and `Check` would have scored it. A
+   cancel is far likelier on touch than with a mouse — this is a Unit 1 bug on
+   tablets today, on the single-tap path, not a Unit 2 one. Fixed: `pointercancel`
+   detaches and clears, because an interrupted gesture is not an answer.
+2. **A plain Arrow did not abandon the selection in progress.** A student who
+   Shift+Arrowed the wrong words, arrowed over to the right ones and extended again
+   was measured **from the abandoned anchor** — and `Enter` committed that span,
+   not the word under the cursor. Invisible in Unit 1, where `Enter` on one word is
+   the whole gesture and the anchor is never set; unavoidable in Unit 2, where
+   getting a span wrong and retrying is the normal case. Fixed: a plain arrow
+   clears the anchor, so the next Shift+Arrow extends from the focused word.
+
+### Q-B — exact boundary equality: keep it, and let `accept` do the fairness
+
+**Decision: keep exact `first`/`last` equality. No engine change. The
+accepted-boundary set already exists — `accept` holds every same-label span in the
+sentence — so at phrase level fairness becomes an *authoring* property, and the
+prompt already says how many answers there are.** Measured, across the repo's
+existing four-layer lessons (the only real multi-token annotation there is):
+
+| | |
+|---|---|
+| `phrase`/`clause` tap questions generatable today | **102**, every one multi-token |
+| …with more than one accepted span | **27** (one has 18, another 12) |
+| …with exactly one | **75** |
+| Multi-token steps where a span **one word short** scores wrong | **170 of 170** (either end; measured over `part` as well as `phrase`/`clause`) |
+| …with a same-layer, *different*-label span sharing exactly one edge | **51 of 102** |
+
+Three findings behind the decision:
+
+- **A student cannot make a sub-word boundary error at all.** Selection is whole
+  tokens and `wjt.spanToTokens` snaps outward, so punctuation travels with its
+  word and the only possible mistake is a whole-word one. That is a much smaller
+  space of wrong answers than "phrase boundaries are arguable" suggests.
+- **Nested readings are already free when the passage annotates them.**
+  `declaration-of-independence-full` annotates the nested noun phrases, so its
+  generated question accepts *"the consent of the governed."*, *"the consent"* and
+  *"the governed."* alike. `fox` annotates only maximal phrases, so it accepts one.
+  Same engine, opposite fairness — which is why this is an authoring rule and not a
+  code change: **annotate every same-label span you would accept.**
+- **A span-choice step kind was considered and declined as the default.** It is a
+  real engine change, and its value would be avoiding drag — which works. It also
+  makes the task *easier* than Unit 1's: choosing among candidate spans is
+  recognition, where producing one is production, and the phrase half of the
+  curriculum should not be the easier half. Keep it in reserve for a specific
+  question type if a tablet walk finds drag genuinely unusable.
+
+The caution that comes with the decision: the prompt reads *"Select any **one**
+noun phrase — there are 18."* when a sentence is fully annotated, which is a bad
+question even though it is a fair one. Unit 2 should choose sentences and
+`tapPerLabel` so that count stays small, or ask with `choice` instead.
+
+### For `C11` in the Unit 2 proposal
+
+> **C11** — At `phrase` and `clause` level a `tap` answer is a multi-token span,
+> and spans nest by nature. **Decided (019):** the drag mechanic carries it —
+> verified with mouse and pen, including across a line wrap, and unverified only on
+> real touch hardware; two faults in `attachSelection()` were fixed in the process.
+> Exact boundary equality stays, with fairness supplied by `accept` and by an
+> authoring rule: annotate every same-label span you would accept. A span-choice
+> step kind is declined as the default because it turns production into
+> recognition.
+
+Still owed, and not this spike's to pay: **the tablet walk**. Every touch row above
+is honest about being unverified, and [pilot.md](../../docs/product/pilot.md) still
+names drag-on-an-iPad as the most likely broken thing. The `js/study.js` tap tip
+that promises *"drag across several"* was left alone, because nothing here
+falsified it.

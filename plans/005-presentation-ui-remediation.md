@@ -504,10 +504,19 @@ content lands.** Three things to add when that happens.
   be.** Every one of Unit 1's 841 annotations spans exactly one token, so all 131
   of its generated `tap` questions are single taps and
   `attachSelection`'s pointer-drag path ([js/render.js](../js/render.js) ~line 784)
-  has never been exercised by a student. Unit 2's layers make that path
-  load-bearing. That is [019](019-multi-token-tap-spike.md)'s question, not this
-  order's, and it should be answered before the amended matrix is walked so the
-  touch rows know what they are testing.
+  had never been exercised by a student. Unit 2's layers make that path
+  load-bearing.
+
+  **[019](done/019-multi-token-tap-spike.md) has now answered the half of this that
+  can be answered without hardware**, and it narrows what this walk is for. The
+  mechanic works with a mouse and a pen, including across a line wrap; two faults
+  in it were found and fixed; `MT-1`–`MT-5` in `tools/dom-check.html` now hold the
+  automated half. What is **left for a real tablet** is precisely: can a finger
+  *start* a drag on the right word (87% of a sentence's width is word, with 6.7px
+  dead gaps and 19px-wide short words), does the compositor pan the page instead of
+  dragging, and does iOS's own selection or long-press behaviour interfere. The
+  findings and the numbers are in the
+  [Unit 1 proposal](proposals/curriculum-unit-1-parts-of-speech.md#q-a--does-a-multi-token-selection-work-per-input-path).
 
 None of this reopens Tasks A–F or changes a fixed decision. Present's shell
 contract is unchanged and still green.

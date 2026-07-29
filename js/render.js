@@ -724,9 +724,10 @@
    * Drag-to-select whole tokens inside one grid. Works with mouse and touch
    * (tokens set touch-action: none in CSS). Single click selects one token.
    * Also fully keyboard-operable (audit P0-3): tokens are focusable with a
-   * roving tabindex; Arrow moves focus, Shift+Arrow extends a selection from the
-   * focused word, Enter/Space commits, Escape clears. Keyboard and pointer feed
-   * the SAME onDone, so there is one commit path.
+   * roving tabindex; Arrow moves focus (and abandons a selection in progress),
+   * Shift+Arrow extends a selection from the focused word, Enter/Space commits,
+   * Escape clears. Keyboard and pointer feed the SAME onDone, so there is one
+   * commit path.
    * Returns { clear(), set(range), get() }.
    */
   wjt.attachSelection = function (container, tokenEls, onDone) {
@@ -769,7 +770,18 @@
           paint();
           focusToken(head);
         } else {
-          focusToken(i + dir);   // plain arrow just moves focus
+          /* A plain arrow moves focus AND abandons any selection in progress,
+           * which is what a composite widget does and what the next gesture
+           * needs: with the anchor left standing, a student who shift-selected
+           * the wrong words, arrowed over to the right ones and extended again
+           * got a span measured from the ABANDONED anchor — and Enter committed
+           * that, not the word under the cursor. Invisible in Unit 1, where
+           * every answer is one word and Enter alone answers it (plans/019). */
+          var to = i + dir;
+          if (to >= 0 && to < tokenEls.length) {
+            if (anchor > -1) { anchor = head = -1; paint(); }
+            focusToken(to);
+          }
         }
         e.preventDefault();
       } else if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
@@ -795,15 +807,34 @@
         // so check ownership by containment rather than a single parent grid.
         if (tk && container.contains(tk)) { head = +tk.dataset.i; paint(); }
       }
-      function up(ev) {
+      function detach() {
         document.removeEventListener("pointermove", move);
         document.removeEventListener("pointerup", up);
+        document.removeEventListener("pointercancel", cancel);
+      }
+      function up(ev) {
+        detach();
         if (anchor > -1) {
           onDone({ first: Math.min(anchor, head), last: Math.max(anchor, head) }, ev);
         }
       }
+      /* The browser can take the pointer away mid-gesture — a system gesture, a
+       * second finger, the touch leaving the surface — and then `pointerup`
+       * never comes. Without this, `move` stayed on `document` for the life of
+       * the page, and since it writes the SHARED `head`, the selection then
+       * followed the pointer with nothing pressed: hovering across the sentence
+       * silently re-selected words, and Check scored whatever it had landed on.
+       * An interrupted gesture is not an answer, so drop the listeners and clear
+       * it rather than leaving a half-drag on screen for Check to score
+       * (plans/019 found this; a cancel is far likelier on touch than on a mouse). */
+      function cancel() {
+        detach();
+        anchor = head = -1;
+        paint();
+      }
       document.addEventListener("pointermove", move);
       document.addEventListener("pointerup", up);
+      document.addEventListener("pointercancel", cancel);
     });
 
     return {

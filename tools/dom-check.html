@@ -18,6 +18,11 @@
     - Runtime checks (6–8): load the FULL app (app.js/display.js/quiz.js) against
       the real page chrome and verify boot, storage guards, the keyboard token
       selection path, and the confirmation dialog's a11y (audit P0-2/P0-3).
+    - Multi-token selection (MT-1..5): the DRAG half of attachSelection, which
+      Unit 1 cannot reach — every one of its annotations is one word wide — and
+      which Unit 2's phrase questions are made of. Pointer drags in three pointer
+      types, an interrupted gesture, the keyboard anchor, and a drag across a line
+      break. See plans/done/019; two of the five were faults when first asserted.
     - Presentation checks (9–10): drive the real Present and Quiz views and assert
       the slide-shell contract (UI audit 0.1.0) — no document overflow, stage/nav/
       controls/panel within the viewport, clean state reserves no hidden lanes,
@@ -272,6 +277,56 @@
       stressHost.parentNode.removeChild(stressHost);
     }
 
+    /* MT-5 (plans/019): a drag that CROSSES A LINE BREAK. A wrapped sentence is
+     * several .gl-grid line grids, so a phrase spanning a break is the case most
+     * likely to fail — attachSelection scopes a drag by containment in the
+     * sentence root rather than in one grid, and this is what asserts that.
+     *
+     * Built here, before the settle chain, and measured in the chain's first
+     * step: the renderer lays every sentence out as one line and re-wraps in a
+     * LATER task (plans/014), so a drag driven in the rendering task would
+     * measure the single-line layout and never touch the wrap at all. The host is
+     * pinned in the viewport (elementFromPoint, see dragTokens) and removed as
+     * soon as it has been used, so it can't sit over the geometry checks. */
+    var mtWrapHost = null, mtWrap = null, mtWrapPicked = null;
+    function buildMultiTokenWrap() {
+      mtWrapHost = pinnedHost();
+      mtWrapHost.style.width = "300px";
+      mtWrap = wjt.renderSentence(
+        { text: "In the deepest recesses of the vaults beneath the palazzo the pair " +
+                "went onward with their torches held low.", annotations: [] },
+        { layers: ["pos"], interactive: true,
+          onSelect: function (range) { mtWrapPicked = range; } });
+      mtWrapHost.appendChild(mtWrap.root);
+    }
+    function checkMultiTokenWrap() {
+      if (!mtWrapHost) return;
+      var grids = mtWrap.root.querySelectorAll(".gl-grid");
+      var toks = mtWrap.root.querySelectorAll(".gl-token");
+      check("MT-5: the fixture really wrapped (" + grids.length + " lines)", grids.length > 1);
+      // The first word of line 2, and a word before it on line 1.
+      var second = grids.length > 1 ? grids[1].querySelector(".gl-token") : null;
+      var to = second ? +second.dataset.i : -1;
+      check("MT-5: line 2 starts at a real word (" + to + ")", to > 0);
+      if (to > 0) {
+        var from = to - 1;
+        var via = [];
+        for (var i = from; i <= to; i++) via.push(toks[i]);
+        ["mouse", "touch"].forEach(function (kind) {
+          mtWrap.selection.clear();
+          mtWrapPicked = null;
+          dragTokens(toks[from], toks[to + (to + 1 < toks.length ? 1 : 0)], via, kind);
+          var want = to + (to + 1 < toks.length ? 1 : 0);
+          check("MT-5 (" + kind + "): a drag from line 1 into line 2 selects the whole " +
+            "span across the break (words " + from + "–" + want + ")",
+            !!mtWrapPicked && mtWrapPicked.first === from && mtWrapPicked.last === want &&
+            mtWrap.root.querySelectorAll(".gl-token.is-sel").length === want - from + 1);
+        });
+      }
+      mtWrapHost.parentNode.removeChild(mtWrapHost);
+      mtWrapHost = null;
+    }
+
     /* Never measure layout in the same task as the render that produced it.
      * wjt.renderSentence() lays every sentence out as ONE line on purpose — the
      * state it can measure from — and re-wraps in a post-render microtask, or
@@ -312,8 +367,11 @@
       catch (e) { check("runtime checks threw: " + e.message, false); }
       try { buildWrapStress(); }
       catch (e) { check("wrap stress fixture threw: " + e.message, false); }
+      try { buildMultiTokenWrap(); }
+      catch (e) { check("multi-token wrap fixture threw: " + e.message, false); }
       runSettled([
         { name: "wrap stress check", fn: checkWrapStress },
+        { name: "multi-token wrap-crossing drag", fn: checkMultiTokenWrap },
         { name: "present render", fn: presentRender },
         { name: "present clean checks", fn: presentClean },
         { name: "present breakdown checks", fn: presentBreakdown },
@@ -336,6 +394,49 @@
       opts = opts || {};
       opts.bubbles = true; opts.cancelable = true;
       el.dispatchEvent(new KeyboardEvent("keydown", opts));
+    }
+
+    /* --- pointer gestures (plans/019) ------------------------------------- *
+     * Two things about driving wjt.attachSelection() are easy to get wrong and
+     * both make a broken drag look like a passing check:
+     *
+     *   1. `move` resolves the word under the pointer with
+     *      document.elementFromPoint, which only answers for coordinates that
+     *      are ON SCREEN and topmost. A sentence appended below the fold reports
+     *      no token, so every drag collapses to a single tap — and a check that
+     *      only asserts "something was selected" passes. Hence pinnedHost().
+     *   2. Real pointermove/pointerup events are delivered to the element that
+     *      was PRESSED, not the one under the pointer — that is what touch's
+     *      implicit pointer capture does. So dispatch them at the pressed token
+     *      while the coordinates travel, which is the case the elementFromPoint
+     *      design exists for.
+     */
+    function pinnedHost() {
+      var host = document.createElement("div");
+      host.style.cssText = "position:fixed;left:0;top:0;width:900px;z-index:9999;" +
+        "background:var(--bg,#111)";
+      document.body.appendChild(host);
+      return host;
+    }
+    function midOf(el) {
+      var r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+    function ptr(target, type, pt, kind) {
+      target.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, cancelable: true, composed: true,
+        clientX: pt.x, clientY: pt.y, pointerId: 1, isPrimary: true,
+        pointerType: kind || "mouse",
+        button: type === "pointerup" || type === "pointercancel" ? -1 : 0,
+        buttons: type === "pointerdown" || type === "pointermove" ? 1 : 0,
+      }));
+    }
+    /** Press `from`, travel through `via`, release over `to`. */
+    function dragTokens(from, to, via, kind) {
+      ptr(from, "pointerdown", midOf(from), kind);
+      (via || []).forEach(function (el) { ptr(from, "pointermove", midOf(el), kind); });
+      ptr(from, "pointermove", midOf(to), kind);
+      ptr(from, "pointerup", midOf(to), kind);
     }
 
     function runtimeChecks() {
@@ -394,6 +495,71 @@
       key(focused, { key: "Enter" });
       check("P0-3: Shift+Arrow then Enter commits a multi-word span",
         !!picked && picked.first === 1 && picked.last === 2);
+
+      /* MT-1..4 (plans/019). The MULTI-TOKEN half of token selection — the one
+       * surface Unit 1 could not exercise, because all 841 of its annotations are
+       * one word wide, so all 131 of its tap questions are a single click. Unit 2
+       * is phrases and clauses, where every answer is a span. Everything here was
+       * live but unasserted code, and two of the four were outright faults. */
+      var mtHost = pinnedHost();
+      var mtPicked = null;
+      var mt = wjt.renderSentence(
+        { text: "The two men walked slowly onward beneath the low arches.", annotations: [] },
+        { layers: ["pos"], interactive: true,
+          onSelect: function (range) { mtPicked = range; } });
+      mtHost.appendChild(mt.root);
+      var mtToks = mt.root.querySelectorAll(".gl-token");
+
+      ["mouse", "touch", "pen"].forEach(function (kind) {
+        mt.selection.clear();
+        mtPicked = null;
+        dragTokens(mtToks[1], mtToks[3], [mtToks[2]], kind);
+        check("MT-1 (" + kind + "): a drag across three words commits the whole span",
+          !!mtPicked && mtPicked.first === 1 && mtPicked.last === 3);
+        check("MT-1 (" + kind + "): all three words paint as one selection with its ends marked",
+          mt.root.querySelectorAll(".gl-token.is-sel").length === 3 &&
+          mtToks[1].classList.contains("is-sel-first") &&
+          mtToks[3].classList.contains("is-sel-last"));
+
+        mt.selection.clear();
+        mtPicked = null;
+        dragTokens(mtToks[4], mtToks[2], [mtToks[3]], kind);
+        check("MT-2 (" + kind + "): a right-to-left drag commits the same range, normalized",
+          !!mtPicked && mtPicked.first === 2 && mtPicked.last === 4);
+
+        /* An interrupted gesture. `pointerup` never comes, so before plans/019
+         * the pointermove listener stayed on `document` for the life of the page
+         * — and because it writes the shared head, the selection then followed an
+         * unpressed pointer across the sentence and Check scored whatever it
+         * landed on. A cancel is far likelier on touch than with a mouse. */
+        mt.selection.clear();
+        mtPicked = null;
+        ptr(mtToks[0], "pointerdown", midOf(mtToks[0]), kind);
+        ptr(mtToks[0], "pointercancel", midOf(mtToks[0]), kind);
+        ptr(document.body, "pointermove", midOf(mtToks[5]), kind);   // nothing pressed
+        check("MT-3 (" + kind + "): a cancelled gesture stops tracking the pointer and " +
+          "commits nothing",
+          mtPicked === null && !mt.selection.get() &&
+          mt.root.querySelectorAll(".gl-token.is-sel").length === 0);
+      });
+
+      /* Keyboard: a plain arrow must abandon the selection in progress, or a
+       * student who extends, changes their mind, arrows elsewhere and extends
+       * again is measured from the abandoned anchor — and Enter commits that
+       * instead of the word under the cursor. */
+      mt.selection.clear();
+      mtPicked = null;
+      key(mtToks[1], { key: "ArrowRight", shiftKey: true });          // select 1..2
+      function mtFocused() { return mt.root.querySelector('.gl-token[tabindex="0"]'); }
+      key(mtFocused(), { key: "ArrowRight" });                        // move to 3
+      check("MT-4: a plain arrow abandons the selection in progress",
+        !mt.selection.get() && mt.root.querySelectorAll(".gl-token.is-sel").length === 0);
+      key(mtFocused(), { key: "ArrowRight" });                        // move to 4
+      key(mtFocused(), { key: "ArrowRight", shiftKey: true });        // extend 4..5
+      key(mtFocused(), { key: "Enter" });
+      check("MT-4: Shift+Arrow then extends from the FOCUSED word, not the old anchor",
+        !!mtPicked && mtPicked.first === 4 && mtPicked.last === 5);
+      mtHost.parentNode.removeChild(mtHost);
 
       // 8. Confirmation dialog a11y (audit P0-3): named + Tab focus trap.
       var confirmed = false;

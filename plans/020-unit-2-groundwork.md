@@ -17,7 +17,7 @@ three files.
 | # | Step | Who owns it | Blocked by |
 |---|---|---|---|
 | 1 | **Draft the Unit 2 proposal's 019-independent parts** — passage, sequence, label budget, the `types` sizing decision, the badge-question decision. Leave the step-kinds question open as `C11`. | **this order** | nothing |
-| 2 | **Run the multi-token tap spike.** Its finding becomes `C11`'s decision plus rationale. | [019](019-multi-token-tap-spike.md) | nothing — can run beside step 1 |
+| 2 | ~~**Run the multi-token tap spike.**~~ **Done, 2026-07-29** — its finding is `C11`'s decision plus rationale; see [§5](#5-c11-is-decided-019-has-run) below. | [019](done/019-multi-token-tap-spike.md) | — |
 | 3 | **Phase the build** into numbered orders (`021…`), Unit 1's 015/016/017 shape. | a later order | steps 1 **and** 2 |
 | 4 | **Walk [005](005-presentation-ui-remediation.md)'s amended manual matrix, once**, with both units' surfaces in it. | [005](005-presentation-ui-remediation.md) | step 3's content landing |
 
@@ -145,27 +145,33 @@ down in that finding. Decide whether Unit 2 continues in the same story — the
 continuity is a genuine asset for a student working through both units — and if so,
 start from the passages Unit 1 rejected.
 
-### 5. Leave `C11` open, pointing at 019
+### 5. `C11` is decided: 019 has run
 
-State the step-kinds question as a numbered open question with **no decision yet**
-and a link to [019](019-multi-token-tap-spike.md), the way
-[docs/roadmap.md](../docs/roadmap.md) carries open Q's. Suggested wording:
+**This section was written when 019 was still open. It ran on 2026-07-29, so `C11`
+is a decision with a rationale like every other row, not an open question.** Do not
+copy the "Open — 019 decides" wording below into the proposal.
 
-> **C11** — At `phrase` and `clause` level a `tap` answer is a multi-token span, and
-> spans nest by nature. Does the drag-select mechanic carry it, and is exact
-> boundary equality fair? **Open — 019 decides.**
+The finding, in one line: **the drag mechanic carries Unit 2, exact boundary
+equality stays, and fairness comes from `accept` plus an authoring rule.** Two
+faults in `attachSelection()` were found and fixed on the way, and the touch rows
+are honestly *unverified* — no tablet was available. The full record, with the
+per-input-path table and the numbers, is the
+[019 section of the Unit 1 proposal](proposals/curriculum-unit-1-parts-of-speech.md#019s-answer--multi-token-selection-measured-2026-07-29),
+and the suggested `C11` wording is at the end of it. Copy it from **there**, and
+re-base its links: the proposal sits one directory deeper than this file.
 
-The paths are deliberately bare in that quote. The proposal lives one directory
-deeper than this file, so its link to 019 is `../019-multi-token-tap-spike.md` —
-write it as a real link *there*, not by copying from here.
-
-Note in that row what Unit 1 could not tell us: all 841 of its annotations span one
-token, so its 131 taps never exercised drag at all.
+Note in that row what Unit 1 could not tell us, which is still worth stating: all
+841 of its annotations span one token, so its 131 taps never exercised drag at all.
+And carry forward the two costs 019 measured, because they shape the item mix: a
+keyboard student spends **13 keystrokes** on one 7-word phrase question, and a fully
+annotated sentence makes the prompt read *"Select any one noun phrase — there are
+18."*
 
 ### Out of scope for this order
 
 - **Authoring any content.** No passage, teach screen, item, or stop. That is step 3.
-- **Running 019.** Separate order, may run in parallel.
+- **Running 019.** Separate order — and it has already run; see
+  [§5](#5-c11-is-decided-019-has-run).
 - **Any code change at all**, including to `study-model.js`. This order writes a
   document.
 - **Any taxonomy, label-id, or lesson-format change.** The 87 labels and the eight
@@ -179,7 +185,8 @@ token, so its 131 taps never exercised drag at all.
 
 - `plans/proposals/curriculum-unit-2-<slug>.md` exists, in the Unit 1 proposal's
   shape, with numbered `C` questions that each carry a **decision and a rationale** —
-  except `C11`, which is explicitly open and links to [019](019-multi-token-tap-spike.md).
+  `C11` included, since [019](done/019-multi-token-tap-spike.md) has answered it
+  ([§5](#5-c11-is-decided-019-has-run)).
 - It states a **sentence count and an annotation estimate**, and defends them against
   the seven-sentence ceiling measured above. A proposal that does not size itself has
   not done this order's main job.

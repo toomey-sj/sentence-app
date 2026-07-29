@@ -191,6 +191,37 @@ environment it is about rather than simulated:
   is `12000` rather than the older `8000` — playing the whole unit takes real
   (virtual) time, and too small a budget truncates the dump instead of failing
   loudly.
+- **`MT-*`** — multi-token token selection: the drag half of
+  `wjt.attachSelection()`. `MT-1`/`MT-2` drag across three words (left-to-right and
+  back) with `pointerType` mouse, touch, and pen; `MT-3` interrupts a gesture with
+  `pointercancel`; `MT-4` covers the keyboard anchor; `MT-5` drags **across a line
+  break** in a deliberately narrow, wrapped fixture. This family exists because
+  Unit 1 could not reach any of it — all 841 of its annotations are one word wide,
+  so all 131 of its `tap` questions are single clicks, and the drag path shipped
+  unexercised. Two of the five were outright faults when first asserted
+  ([plans/done/019](../../plans/done/019-multi-token-tap-spike.md)).
+
+**If you add a check that drives a pointer gesture, two things will fool you.**
+Both make a broken drag look like a passing check, and both are why the `MT-*`
+helpers exist rather than raw `dispatchEvent` calls:
+
+- **`document.elementFromPoint` only answers for on-screen, topmost coordinates.**
+  `attachSelection` resolves the word under a moving pointer with it, so a fixture
+  appended below the fold reports no token and every drag silently collapses to a
+  single tap — which still *selects something*, so a loose assertion passes.
+  `pinnedHost()` puts the fixture at the top of the viewport above everything else,
+  and removes it immediately after.
+- **Real `pointermove`/`pointerup` events go to the element that was *pressed*,**
+  not the one under the pointer — that is what touch's implicit pointer capture
+  does. `dragTokens()` dispatches them at the pressed token while the coordinates
+  travel, which is the case `attachSelection`'s `elementFromPoint` design exists
+  for. Dispatching each move at the token it is over tests an easier problem than
+  the browser poses.
+
+A synthetic `pointerType: "touch"` event is **not** a touch device. It drives the
+same JavaScript, which is worth asserting, but it says nothing about the
+compositor's scroll-versus-drag decision, `touch-action`, or a fingertip's
+precision. Don't let a green `MT-1 (touch)` be read as "verified on a tablet."
 
 **If you add a check that measures layout, read this first.** Geometry in that
 harness is only as true as the moment it is measured, and the moment is not the
