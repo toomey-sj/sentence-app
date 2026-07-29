@@ -3,27 +3,25 @@ status: todo   # todo | doing | done | superseded
 created: 2026-07-29
 ---
 
-# Handoff: set Unit 2 up — groundwork now, the spike beside it, phasing after
+# Handoff: set Unit 2 up — groundwork now, the spike answered, phasing after
 
 Unit 1 is finished ([018](done/018-unit-pos-answer-order-and-ambiguous-taps.md) was
 the last order). This file is the handoff for **what comes before Unit 2's first
-line of content**, and it owns exactly one deliverable: a Unit 2 design record with
-its mechanic question left honestly open.
+line of content**, and it owns exactly one deliverable: a Unit 2 design record in
+which every question carries a decision.
 
-It exists because two open orders already sit in front of Unit 2 and the order they
-run in matters. Read this section and you know the sequence without reading the other
-three files.
+It exists because the order these steps run in matters. Read this section and you
+know the sequence without reading the other three files.
 
 | # | Step | Who owns it | Blocked by |
 |---|---|---|---|
-| 1 | **Draft the Unit 2 proposal's 019-independent parts** — passage, sequence, label budget, the `types` sizing decision, the badge-question decision. Leave the step-kinds question open as `C11`. | **this order** | nothing |
-| 2 | ~~**Run the multi-token tap spike.**~~ **Done, 2026-07-29** — its finding is `C11`'s decision plus rationale; see [§5](#5-c11-is-decided-019-has-run) below. | [019](done/019-multi-token-tap-spike.md) | — |
-| 3 | **Phase the build** into numbered orders (`021…`), Unit 1's 015/016/017 shape. | a later order | steps 1 **and** 2 |
+| 1 | **Draft the whole Unit 2 proposal** — passage, sequence, label budget, the `types` sizing decision, the badge-question decision, and `C11`, whose decision 019 has already supplied ([§5](#5-c11-is-decided-019-has-run)). | **this order** | nothing |
+| 2 | ~~**Run the multi-token tap spike.**~~ **Done, 2026-07-29** — its finding is `C11`'s decision plus rationale. | [019](done/019-multi-token-tap-spike.md) | — |
+| 3 | **Phase the build** into numbered orders (`021…`), Unit 1's 015/016/017 shape. | a later order | step 1 |
 | 4 | **Walk [005](005-presentation-ui-remediation.md)'s amended manual matrix, once**, with both units' surfaces in it. | [005](005-presentation-ui-remediation.md) | step 3's content landing |
 
-Steps 1 and 2 are independent and can run in either order or at once. **Do not
-collapse step 1 into step 3** — Unit 1's whole phasing lesson was that the design
-record comes first and the "As built" notes get written back into it.
+**Do not collapse step 1 into step 3** — Unit 1's whole phasing lesson was that the
+design record comes first and the "As built" notes get written back into it.
 
 ## Why
 
@@ -90,24 +88,42 @@ diagrammed sentence or it fails a blocking `check()` in
 |---|---|---|---|---|---|
 | Unit 1 (all 11 passages) | `pos` | 72 | 0 | 841 | **1.00** |
 | `declaration-of-independence` | `pos` | 15 | 0 | 511 | 0.96 |
+| `romeo-juliet-prologue` | all four | **14** | **2** | 138 | **1.30** |
 | `dracula-count-appears` | all four | 2 | 2 | 73 | 1.62 |
 | `great-gatsby-closing` | all four | 4 | 4 | 83 | 1.69 |
 | `parts-of-speech-close-up` | all four | 7 | 7 | 130 | 1.78 |
 | `frankenstein-creation` | all four | 3 | 3 | 97 | 1.87 |
+| `fox` (the starter demo) | all four | 4 | 4 | 72 | 1.89 |
 | `kinds-of-sentences` | all four | 7 | 7 | 98 | 2.04 |
 | `declaration-of-independence-full` | all four | 3 | 3 | 266 | **2.11** |
 
-Two conclusions, and the second is the one to design around:
+*(Re-measured 2026-07-29 with the probe in [Notes](#notes). The first version of
+this table omitted `romeo-juliet-prologue` and `fox`; the first of those changes the
+conclusion below, which is why the row is in bold.)*
+
+Three conclusions, and the third is the one to design around:
 
 - **The multiplier is ~1.8×, not 3×.** [C10](proposals/curriculum-unit-1-parts-of-speech.md#open-questions)
   said badging "triples the authoring cost." Measured against real lessons it is
   closer to double. Correct C10 in the new proposal rather than repeating it.
-- **No fully diagrammed lesson in this repo exceeds seven sentences.** Unit 1 was
-  **72**. A Unit 2 of comparable length would be ~1,500 annotations of four-layer
-  diagramming — roughly ten times the largest fully badged passage that has ever
-  shipped here. **That is the decision this order must make**: fewer and shorter
-  passages, fewer stops, or a deliberate split of Unit 2 into two units. Write down
-  a sentence count and defend it.
+- **The ceiling is seven *badged* sentences, not seven sentences.** That distinction
+  is the cheapest lever this order has. `romeo-juliet-prologue` is a **14-sentence,
+  four-layer** literary passage at **1.30** annotations per word — below every other
+  four-layer lesson here — precisely because **12 of its 14 sentences are verse
+  fragments carrying no `types` badge**, which exempts them from completeness rules
+  2 and 3 (the clause-covers-every-token and subject+predicate-per-clause rules in
+  [tools/completeness.js](../tools/completeness.js)). A passage of complete
+  sentences pays the full cascade on every one; a passage that is mostly fragments
+  pays it only where it badges. Unit 2 teaches sentence structure, so it *wants*
+  badged sentences — but it does not need every sentence badged, and that is a
+  sizing decision to make deliberately rather than discover.
+- **A Unit 2 the length of Unit 1 is not affordable.** Unit 1 was **72** sentences;
+  at ~1.8× that is ~1,500 annotations of four-layer diagramming, roughly ten times
+  the largest fully badged passage that has ever shipped here (`kinds-of-sentences`
+  and `parts-of-speech-close-up`, seven each). **That is the decision this order
+  must make**: fewer and shorter passages, fewer stops, a deliberate fragment/badged
+  mix as above, or a split of Unit 2 into two units. Write down a sentence count and
+  defend it.
 
 ### 3. The badge gap — a second thing the engine cannot generate
 
@@ -188,8 +204,10 @@ annotated sentence makes the prompt read *"Select any one noun phrase — there 
   `C11` included, since [019](done/019-multi-token-tap-spike.md) has answered it
   ([§5](#5-c11-is-decided-019-has-run)).
 - It states a **sentence count and an annotation estimate**, and defends them against
-  the seven-sentence ceiling measured above. A proposal that does not size itself has
-  not done this order's main job.
+  the seven-*badged*-sentence ceiling measured above — including how many of its
+  sentences carry a `types` badge, since that is what decides whether the full
+  completeness cascade applies. A proposal that does not size itself has not done
+  this order's main job.
 - It decides how the eight sentence-type badges are taught and assessed.
 - It corrects C10's "triples the cost" with the measured ~1.8×.
 - Unit 1's proposal gains a link to it, so the
@@ -207,7 +225,10 @@ annotated sentence makes the prompt read *"Select any one noun phrase — there 
   logic-file list (see `LOGIC_FILES` in [tools/smoke-test.js](../tools/smoke-test.js)),
   then: label budget from `wjt.labelsForLayer` / `wjt.filterTier` / `wjt.baseLabelsForLayer`;
   density by building each `wjt.EXAMPLES` entry and counting annotations against
-  word-bearing tokens (`/[A-Za-z0-9]/`, the same test `completeness.js` uses); Unit 1
+  word-bearing tokens (`/[A-Za-z0-9]/`, the same test `completeness.js` uses), plus
+  `s.types.structure || s.types.purpose` per sentence for the badged column — count
+  **every** entry in `wjt.EXAMPLES`, since leaving two out is what made the first
+  version of the density table support a stronger claim than the data does; Unit 1
   via `wjt.study.lessonFor` over `wjt.study.unit("pos").stops`. Note that an
   annotation's `start`/`end` are **character** offsets — use `wjt.spanToTokens` for
   anything token-shaped.
